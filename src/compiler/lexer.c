@@ -11,7 +11,13 @@ static inline char advance(Lexer *lexer);
 
 static inline Token *advance_token(int token_type, char *value, Lexer *lexer, bool does_not_advance);
 
+static inline char peek_next(Lexer *lexer);
+
 static inline char peek(Lexer *lexer, uintptr_t offset);
+
+static inline void advance_block_comment(Lexer *lexer);
+
+static inline void skip_line(Lexer *lexer);
 
 static inline void skip_whitespace(Lexer *lexer);
 
@@ -24,6 +30,10 @@ static inline Token *parse_identifier(Lexer *lexer);
 static inline Token *parse_number(Lexer *lexer);
 
 static inline Token *is_identifier_token(char *identifier, Lexer *lexer);
+
+static inline bool is_eof(Lexer *lexer);
+
+static inline void check_eof(Lexer *lexer, char *error_message);
 
 Lexer *lexer_init(char *source) {
     Lexer *lexer = malloc(sizeof(Lexer));
@@ -39,6 +49,18 @@ Lexer *lexer_init(char *source) {
     return lexer;
 }
 
+Token *lexer_get_next_token_without_advance(Lexer *lexer) {
+    Lexer *new_lexer = lexer_init(lexer->source);
+    new_lexer->current = lexer->current;
+    new_lexer->source = lexer->source;
+    new_lexer->index = lexer->index;
+    new_lexer->position = lexer->position;
+    new_lexer->line = lexer->line;
+    new_lexer->source_length = lexer->source_length;
+
+    return lexer_get_next_token(new_lexer);
+}
+
 Token *lexer_get_next_token(Lexer *lexer) {
     char c = lexer->current;
 
@@ -51,6 +73,16 @@ Token *lexer_get_next_token(Lexer *lexer) {
             lexer->line += 1;
             lexer->position = 0;
             break;
+        case '/':
+            if (peek_next(lexer) == '/') {
+                skip_line(lexer);
+            } else if (peek_next(lexer) == '*') {
+                advance_block_comment(lexer);
+                return lexer_get_next_token(lexer);
+//                continue;
+            } else {
+                return advance_token(T_OPERATOR_DIV, "/", lexer, false);
+            }
         case '(':
             return advance_token(T_PARENS_OPEN, "(", lexer, false);
         case ')':
@@ -74,7 +106,7 @@ Token *lexer_get_next_token(Lexer *lexer) {
         case '=':
             return advance_token(T_EQUAL, "=", lexer, false);
         case '-':
-            if (peek(lexer, 1) == '>') {
+            if (peek_next(lexer) == '>') {
                 advance(lexer);
                 return advance_token(T_ARROW, "->", lexer, false);
             } else
@@ -83,8 +115,6 @@ Token *lexer_get_next_token(Lexer *lexer) {
             return advance_token(T_OPERATOR_ADD, "+", lexer, false);
         case '*':
             return advance_token(T_OPERATOR_MUL, "*", lexer, false);
-        case '/':
-            return advance_token(T_OPERATOR_DIV, "/", lexer, false);
         case '&':
             return advance_token(T_ADDRESS, "&", lexer, false);
         case '"':
@@ -100,7 +130,7 @@ Token *lexer_get_next_token(Lexer *lexer) {
             exit(-1);
     }
 
-    return advance_token(T_EOF, "\0", lexer, false);
+    return advance_token(T_EOF, (char[2]) {lexer->current, 0}, lexer, false);
 }
 
 static inline Token *parse_string(Lexer *lexer) {
@@ -109,6 +139,8 @@ static inline Token *parse_string(Lexer *lexer) {
     advance(lexer);
 
     while (lexer->current != '"') {
+        check_eof(lexer, "Unterminated String Literal\n");
+
         value = realloc(value, (value_count + 2) * sizeof(char));
         value_count++;
         strcat(value, (char[2]) {lexer->current, 0});
@@ -180,14 +212,21 @@ static inline Token *is_identifier_token(char *identifier, Lexer *lexer) {
         return advance_token(T_VOID, identifier, lexer, true);
     else if (strcmp(identifier, "String") == 0)
         return advance_token(T_STRING, identifier, lexer, true);
-    else if (strcmp(identifier, "Bool") == 0)
-        return advance_token(T_BOOL, identifier, lexer, true);
-    else if (strcmp(identifier, "true") == 0)
-        return advance_token(T_BOOL, identifier, lexer, true);
-    else if (strcmp(identifier, "false") == 0)
+    else if (strcmp(identifier, "Bool") == 0 || strcmp(identifier, "true") == 0 || strcmp(identifier, "false") == 0)
         return advance_token(T_BOOL, identifier, lexer, true);
     else
         return advance_token(T_IDENTIFIER, identifier, lexer, true);
+}
+
+static inline void advance_block_comment(Lexer *lexer) {
+    advance(lexer);
+    advance(lexer);
+    while (lexer->current != '*' && peek_next(lexer) != '/') {
+        advance(lexer);
+        check_eof(lexer, "Unterminated Block Comment\n");
+    }
+    advance(lexer);
+    advance(lexer);
 }
 
 static inline bool is_whitespace(Lexer *lexer) {
@@ -195,13 +234,24 @@ static inline bool is_whitespace(Lexer *lexer) {
 }
 
 static inline void skip_whitespace(Lexer *lexer) {
-    while (lexer->current == '\t' || lexer->current == ' ' || lexer->current == '\n' || lexer->current == '\r') {
+    do {
         if (lexer->current == '\n') {
             lexer->position = 0;
             lexer->line++;
         }
         advance(lexer);
-    }
+    } while (lexer->current == '\t' || lexer->current == ' ' || lexer->current == '\n' || lexer->current == '\r');
+}
+
+static inline void skip_line(Lexer *lexer) {
+    while (lexer->current != '\n')
+        advance(lexer);
+    lexer->line++;
+    lexer->position = 0;
+}
+
+static inline char peek_next(Lexer *lexer) {
+    return lexer->source[lexer->index + 1];
 }
 
 static inline char peek(Lexer *lexer, uintptr_t offset) {
@@ -211,7 +261,7 @@ static inline char peek(Lexer *lexer, uintptr_t offset) {
 static inline char advance(Lexer *lexer) {
     lexer->position += 1;
     char previous = lexer->current;
-    lexer->index++;
+    lexer->index += 1;
     lexer->current = lexer->source[lexer->index];
 
     return previous;
@@ -228,4 +278,15 @@ static inline Token *advance_token(int token_type, char *value, Lexer *lexer, bo
         skip_whitespace(lexer);
 
     return new_token;
+}
+
+static inline bool is_eof(Lexer *lexer) {
+    return (lexer->index >= lexer->source_length);
+}
+
+static inline void check_eof(Lexer *lexer, char *error_message) {
+    if (is_eof(lexer)) {
+        fprintf(stderr, "Lexer: %s\n", error_message);
+        exit(-1);
+    }
 }

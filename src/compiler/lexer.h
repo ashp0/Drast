@@ -29,6 +29,8 @@ typedef struct {
 
 Lexer *lexer_init(char *source);
 
+Token *lexer_get_next_token_without_advance(Lexer *lexer);
+
 Token *lexer_get_next_token(Lexer *lexer);
 
 bool is_next_token_operator(Lexer *lexer);

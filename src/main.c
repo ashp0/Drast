@@ -31,9 +31,9 @@ int main(int argc, char **argv) {
     char *file_contents = read_file_contents(argv[1]);
 
     Lexer *lexer = lexer_init(file_contents);
+
     do {
         Token *next_token = lexer_get_next_token(lexer);
-        printf("%s(`%s`) :: LEXER(%lu, %lu)\n", token_print(next_token->type), next_token->value, lexer->line,
-               lexer->position);
+        printf("%s(`%s`)\n", token_print(next_token->type), next_token->value);
     } while (lexer->index < lexer->source_length);
 }

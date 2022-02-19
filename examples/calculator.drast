@@ -1,0 +1,26 @@
+import io
+
+func main() -> Int {
+    var firstNumber: Float
+    var secondNumber: Float
+    var operator: Character
+
+    getInput_F("Type your first number\n", &firstNumber)
+    getInput_F("Type your second number\n", &secondNumber)
+    getInput_C("Type your operator\n", &operator)
+
+    if (operator == "+") {
+        print_F(firstNumber + secondNumber)
+    } else if (operator == "-") {
+        print_F(firstNumber - secondNumber)
+    } else if (operator == "*") {
+        print_F(firstNumber * secondNumber)
+    } else if (operator == "/") {
+        print_F(firstNumber / secondNumber)
+    } else {
+        print("Unknown Operator\n")
+        exit(-0)
+    }
+
+    print("Hello World")
+}
