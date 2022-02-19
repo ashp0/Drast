@@ -4,27 +4,31 @@
 
 import io
 
+
 func main() -> Int {
+    print("Hello World")
+
     var firstNumber: Float
     var secondNumber: Float
     var operator: Character
 
-    getInput_F("Type your first number\n", &firstNumber)
+    getInput_F("Type your first number\n", @firstNumber)
     getInput_F("Type your second number\n", &secondNumber)
     getInput_C("Type your operator\n", &operator)
 
-    if (operator == "+") {
+    switch (operator) {
+    case '+':
         print_F(firstNumber + secondNumber)
-    } else if (operator == "-") {
+        break
+    case '-':
         print_F(firstNumber - secondNumber)
-    } else if (operator == "*") {
+        break
+    case '*'
         print_F(firstNumber * secondNumber)
-    } else if (operator == "/") {
+    case '/':
         print_F(firstNumber / secondNumber)
-    } else {
+    default:
         print("Unknown Operator\n")
         exit(-0)
     }
-
-    print("Hello World")
 }

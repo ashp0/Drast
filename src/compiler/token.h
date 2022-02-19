@@ -106,6 +106,8 @@ typedef struct {
         T_BITWISE_POWER, // ^
         T_BITWISE_POWER_EQUAL, // ^=
 
+        T_BITWISE_NOT, // ~
+
         // Symbols
         T_ARROW, // ->
         T_COLON, // :

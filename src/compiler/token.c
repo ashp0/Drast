@@ -173,6 +173,8 @@ char *token_print(int type) {
             return "T_BITWISE_POWER";
         case T_BITWISE_POWER_EQUAL:
             return "T_BITWISE_POWER_EQUAL";
+        case T_BITWISE_NOT:
+            return "T_BITWISE_NOT";
 
         case T_ARROW:
             return "T_ARROW";

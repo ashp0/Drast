@@ -202,6 +202,8 @@ Token *lexer_get_next_token(Lexer *lexer) {
             } else {
                 return advance_token(T_BITWISE_POWER, "^", lexer, false);
             }
+        case '~':
+            return advance_token(T_BITWISE_NOT, "~", lexer, false);
         case ':':
             return advance_token(T_COLON, ":", lexer, false);
         case ';':
