@@ -1,7 +1,11 @@
+//
+// Drast Programming Language Examples
+//
+
 import io
 
-func main() -> Int {
+func main(argc: Int, argv: String[]) -> Int {
     print("Hello World")
-
+    var number = 50
     return 0
 }

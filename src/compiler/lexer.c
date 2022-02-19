@@ -76,10 +76,10 @@ Token *lexer_get_next_token(Lexer *lexer) {
         case '/':
             if (peek_next(lexer) == '/') {
                 skip_line(lexer);
+                return lexer_get_next_token(lexer);
             } else if (peek_next(lexer) == '*') {
                 advance_block_comment(lexer);
                 return lexer_get_next_token(lexer);
-//                continue;
             } else {
                 return advance_token(T_OPERATOR_DIV, "/", lexer, false);
             }
@@ -91,6 +91,10 @@ Token *lexer_get_next_token(Lexer *lexer) {
             return advance_token(T_BRACE_OPEN, "{", lexer, false);
         case '}':
             return advance_token(T_BRACE_CLOSE, "}", lexer, false);
+        case '[':
+            return advance_token(T_SQUARE_OPEN, "[", lexer, false);
+        case ']':
+            return advance_token(T_SQUARE_CLOSE, "]", lexer, false);
         case ',':
             return advance_token(T_COMMA, ",", lexer, false);
         case '.':
@@ -109,9 +113,15 @@ Token *lexer_get_next_token(Lexer *lexer) {
             if (peek_next(lexer) == '>') {
                 advance(lexer);
                 return advance_token(T_ARROW, "->", lexer, false);
-            } else
+            } else if (isnumber(peek_next(lexer))) {
+                return parse_number(lexer);
+            } else {
                 return advance_token(T_OPERATOR_SUB, "-", lexer, false);
+            }
         case '+':
+            if (isnumber(peek_next(lexer))) {
+                return parse_number(lexer);
+            }
             return advance_token(T_OPERATOR_ADD, "+", lexer, false);
         case '*':
             return advance_token(T_OPERATOR_MUL, "*", lexer, false);
@@ -158,7 +168,7 @@ static inline Token *parse_number(Lexer *lexer) {
     uintptr_t value_count = 0;
     bool is_float_value = false;
 
-    while (isdigit(lexer->current) || lexer->current == '.') {
+    while (isdigit(lexer->current) || lexer->current == '.' || lexer->current == '-' || lexer->current == '+') {
         value = realloc(value, (value_count + 2) * sizeof(char));
         value_count++;
         strcat(value, (char[2]) {lexer->current, 0});
@@ -246,6 +256,8 @@ static inline void skip_whitespace(Lexer *lexer) {
 static inline void skip_line(Lexer *lexer) {
     while (lexer->current != '\n')
         advance(lexer);
+    if (is_whitespace(lexer))
+        skip_whitespace(lexer);
     lexer->line++;
     lexer->position = 0;
 }

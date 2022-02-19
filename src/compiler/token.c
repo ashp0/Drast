@@ -59,6 +59,10 @@ char *token_print(int type) {
             return "T_BRACE_OPEN";
         case T_BRACE_CLOSE:
             return "T_BRACE_CLOSE";
+        case T_SQUARE_OPEN:
+            return "T_SQUARE_OPEN";
+        case T_SQUARE_CLOSE:
+            return "T_SQUARE_CLOSE";
         case T_COMMA:
             return "T_COMMA";
         case T_PERIOD:

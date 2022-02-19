@@ -43,6 +43,8 @@ typedef struct {
         T_PARENS_CLOSE,
         T_BRACE_OPEN,
         T_BRACE_CLOSE,
+        T_SQUARE_OPEN,
+        T_SQUARE_CLOSE,
         T_COMMA,
         T_PERIOD,
         T_LESS_THAN,
