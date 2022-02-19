@@ -48,7 +48,7 @@ typedef struct {
 
         T_GOTO,
         T_PUBLIC,
-        T_STATIC,
+        T_PRIVATE,
 
         T_DO,
         T_TRY,

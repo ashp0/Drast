@@ -79,7 +79,7 @@ char *token_print(int type) {
             return "T_GOTO";
         case T_PUBLIC:
             return "T_PUBLIC";
-        case T_STATIC:
+        case T_PRIVATE:
             return "T_STATIC";
 
         case T_DO:

@@ -311,24 +311,76 @@ static inline Token *is_identifier_token(char *identifier, Lexer *lexer) {
         return advance_token(T_LET, identifier, lexer, true);
     else if (strcmp(identifier, "var") == 0)
         return advance_token(T_VAR, identifier, lexer, true);
+    else if (strcmp(identifier, "struct") == 0)
+        return advance_token(T_STRUCT, identifier, lexer, true);
+    else if (strcmp(identifier, "enum") == 0)
+        return advance_token(T_ENUM, identifier, lexer, true);
+    else if (strcmp(identifier, "alias") == 0)
+        return advance_token(T_ALIAS, identifier, lexer, true);
     else if (strcmp(identifier, "return") == 0)
         return advance_token(T_RETURN, identifier, lexer, true);
-    else if (strcmp(identifier, "print") == 0)
-        return advance_token(T_PRINT, identifier, lexer, true);
     else if (strcmp(identifier, "if") == 0)
         return advance_token(T_IF, identifier, lexer, true);
+    else if (strcmp(identifier, "else") == 0)
+        return advance_token(T_ELSE, identifier, lexer, true);
     else if (strcmp(identifier, "import") == 0)
         return advance_token(T_IMPORT, identifier, lexer, true);
-    else if (strcmp(identifier, "Int") == 0)
-        return advance_token(T_INT, identifier, lexer, true);
-    else if (strcmp(identifier, "Float") == 0)
-        return advance_token(T_FLOAT, identifier, lexer, true);
-    else if (strcmp(identifier, "Void") == 0)
-        return advance_token(T_VOID, identifier, lexer, true);
-    else if (strcmp(identifier, "String") == 0)
-        return advance_token(T_STRING, identifier, lexer, true);
-    else if (strcmp(identifier, "Bool") == 0 || strcmp(identifier, "true") == 0 || strcmp(identifier, "false") == 0)
+    else if (strcmp(identifier, "print") == 0)
+        return advance_token(T_PRINT, identifier, lexer, true);
+    else if (strcmp(identifier, "asm") == 0)
+        return advance_token(T_ASM, identifier, lexer, true);
+    else if (strcmp(identifier, "volatile") == 0)
+        return advance_token(T_VOLATILE, identifier, lexer, true);
+    else if (strcmp(identifier, "cast") == 0)
+        return advance_token(T_CAST, identifier, lexer, true);
+    else if (strcmp(identifier, "switch") == 0)
+        return advance_token(T_SWITCH, identifier, lexer, true);
+    else if (strcmp(identifier, "case") == 0)
+        return advance_token(T_CASE, identifier, lexer, true);
+    else if (strcmp(identifier, "break") == 0)
+        return advance_token(T_BREAK, identifier, lexer, true);
+    else if (strcmp(identifier, "default") == 0)
+        return advance_token(T_DEFAULT, identifier, lexer, true);
+    else if (strcmp(identifier, "while") == 0)
+        return advance_token(T_WHILE, identifier, lexer, true);
+    else if (strcmp(identifier, "for") == 0)
+        return advance_token(T_FOR, identifier, lexer, true);
+    else if (strcmp(identifier, "continue") == 0)
+        return advance_token(T_CONTINUE, identifier, lexer, true);
+    else if (strcmp(identifier, "typedef") == 0)
+        return advance_token(T_TYPEDEF, identifier, lexer, true);
+    else if (strcmp(identifier, "union") == 0)
+        return advance_token(T_UNION, identifier, lexer, true);
+    else if (strcmp(identifier, "false") == 0)
+        return advance_token(T_FALSE, identifier, lexer, true);
+    else if (strcmp(identifier, "true") == 0)
+        return advance_token(T_TRUE, identifier, lexer, true);
+    else if (strcmp(identifier, "bool") == 0)
         return advance_token(T_BOOL, identifier, lexer, true);
+    else if (strcmp(identifier, "int") == 0)
+        return advance_token(T_INT, identifier, lexer, true);
+    else if (strcmp(identifier, "float") == 0)
+        return advance_token(T_FLOAT, identifier, lexer, true);
+    else if (strcmp(identifier, "void") == 0)
+        return advance_token(T_VOID, identifier, lexer, true);
+    else if (strcmp(identifier, "string") == 0)
+        return advance_token(T_STRING, identifier, lexer, true);
+    else if (strcmp(identifier, "goto") == 0)
+        return advance_token(T_GOTO, identifier, lexer, true);
+    else if (strcmp(identifier, "public") == 0)
+        return advance_token(T_PUBLIC, identifier, lexer, true);
+    else if (strcmp(identifier, "private") == 0)
+        return advance_token(T_PRIVATE, identifier, lexer, true);
+    else if (strcmp(identifier, "do") == 0)
+        return advance_token(T_DO, identifier, lexer, true);
+    else if (strcmp(identifier, "try") == 0)
+        return advance_token(T_TRY, identifier, lexer, true);
+    else if (strcmp(identifier, "catch") == 0)
+        return advance_token(T_CATCH, identifier, lexer, true);
+    else if (strcmp(identifier, "throw") == 0)
+        return advance_token(T_THROW, identifier, lexer, true);
+    else if (strcmp(identifier, "throws") == 0)
+        return advance_token(T_THROWS, identifier, lexer, true);
     else
         return advance_token(T_IDENTIFIER, identifier, lexer, true);
 }
