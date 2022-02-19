@@ -23,7 +23,7 @@ static inline void skip_whitespace(Lexer *lexer);
 
 static inline bool is_whitespace(Lexer *lexer);
 
-static inline Token *parse_string(Lexer *lexer);
+static inline Token *parse_string(Lexer *lexer, char string_type);
 
 static inline Token *parse_identifier(Lexer *lexer);
 
@@ -73,8 +73,81 @@ Token *lexer_get_next_token(Lexer *lexer) {
             lexer->line += 1;
             lexer->position = 0;
             break;
+        case '?':
+            return advance_token(T_QUESTION, "?", lexer, false);
+        case '<':
+            if (peek_next(lexer) == '<') {
+                advance(lexer);
+                if (peek_next(lexer) == '=') {
+                    advance(lexer);
+                    return advance_token(T_BITWISE_SHIFT_LEFT_EQUAL, "<<=", lexer, false);
+                } else {
+                    return advance_token(T_BITWISE_SHIFT_LEFT, "<<", lexer, false);
+                }
+            } else if (peek_next(lexer) == '=') {
+                advance(lexer);
+                return advance_token(T_LESS_THAN_EQUAL, "<=", lexer, false);
+            } else {
+                return advance_token(T_LESS_THAN, "<", lexer, false);
+            }
+        case '>':
+            if (peek_next(lexer) == '>') {
+                advance(lexer);
+                if (peek_next(lexer) == '=') {
+                    advance(lexer);
+                    return advance_token(T_BITWISE_SHIFT_RIGHT_EQUAL, ">>=", lexer, false);
+                } else {
+                    return advance_token(T_BITWISE_SHIFT_RIGHT, ">>", lexer, false);
+                }
+            } else if (peek_next(lexer) == '=') {
+                advance(lexer);
+                return advance_token(T_GREATER_THAN_EQUAL, ">=", lexer, false);
+            } else {
+                return advance_token(T_GREATER_THAN, ">", lexer, false);
+            }
+        case '=':
+            if (peek_next(lexer) == '=') {
+                advance(lexer);
+                return advance_token(T_EQUAL_EQUAL, "==", lexer, false);
+            } else {
+                return advance_token(T_EQUAL, "=", lexer, false);
+            }
+        case '!':
+            if (peek_next(lexer) == '=') {
+                advance(lexer);
+                return advance_token(T_NOT_EQUAL, "!=", lexer, false);
+            } else {
+                return advance_token(T_NOT, "!", lexer, false);
+            }
+        case '+':
+            if (peek_next(lexer) == '=') {
+                advance(lexer);
+                return advance_token(T_OPERATOR_ADD_EQUAL, "+=", lexer, false);
+            } else {
+                return advance_token(T_OPERATOR_ADD, "+", lexer, false);
+            }
+        case '-':
+            if (peek_next(lexer) == '=') {
+                advance(lexer);
+                return advance_token(T_OPERATOR_SUB_EQUAL, "-=", lexer, false);
+            } else if (peek_next(lexer) == '>') {
+                advance(lexer);
+                return advance_token(T_ARROW, "->", lexer, false);
+            } else {
+                return advance_token(T_OPERATOR_SUB, "-", lexer, false);
+            }
+        case '*':
+            if (peek_next(lexer) == '=') {
+                advance(lexer);
+                return advance_token(T_OPERATOR_MUL_EQUAL, "*=", lexer, false);
+            } else {
+                return advance_token(T_OPERATOR_MUL, "*", lexer, false);
+            }
         case '/':
-            if (peek_next(lexer) == '/') {
+            if (peek_next(lexer) == '=') {
+                advance(lexer);
+                return advance_token(T_OPERATOR_DIV_EQUAL, "/=", lexer, false);
+            } else if (peek_next(lexer) == '/') {
                 skip_line(lexer);
                 return lexer_get_next_token(lexer);
             } else if (peek_next(lexer) == '*') {
@@ -83,6 +156,56 @@ Token *lexer_get_next_token(Lexer *lexer) {
             } else {
                 return advance_token(T_OPERATOR_DIV, "/", lexer, false);
             }
+        case '%':
+            if (peek_next(lexer) == '=') {
+                advance(lexer);
+                return advance_token(T_OPERATOR_MOD_EQUAL, "%=", lexer, false);
+            } else {
+                return advance_token(T_OPERATOR_MOD, "%", lexer, false);
+            }
+        case '&':
+            if (peek_next(lexer) == '&') {
+                advance(lexer);
+                if (peek_next(lexer) == '=') {
+                    advance(lexer);
+                    return advance_token(T_BITWISE_AND_AND_EQUAL, "&&=", lexer, false);
+                } else {
+                    return advance_token(T_BITWISE_AND_AND, "&&", lexer, false);
+                }
+            }
+            if (peek_next(lexer) == '=') {
+                advance(lexer);
+                return advance_token(T_BITWISE_AND_EQUAL, "&=", lexer, false);
+            } else {
+                return advance_token(T_BITWISE_AND, "&", lexer, false);
+            }
+        case '|':
+            if (peek_next(lexer) == '|') {
+                advance(lexer);
+                if (peek_next(lexer) == '=') {
+                    advance(lexer);
+                    return advance_token(T_BITWISE_PIPE_PIPE_EQUAL, "||=", lexer, false);
+                } else {
+                    return advance_token(T_BITWISE_PIPE_PIPE, "||", lexer, false);
+                }
+            }
+            if (peek_next(lexer) == '=') {
+                advance(lexer);
+                return advance_token(T_BITWISE_PIPE_EQUAL, "|=", lexer, false);
+            } else {
+                return advance_token(T_BITWISE_PIPE, "|", lexer, false);
+            }
+        case '^':
+            if (peek_next(lexer) == '=') {
+                advance(lexer);
+                return advance_token(T_BITWISE_POWER_EQUAL, "^=", lexer, false);
+            } else {
+                return advance_token(T_BITWISE_POWER, "^", lexer, false);
+            }
+        case ':':
+            return advance_token(T_COLON, ":", lexer, false);
+        case ';':
+            return advance_token(T_SEMICOLON, ";", lexer, false);
         case '(':
             return advance_token(T_PARENS_OPEN, "(", lexer, false);
         case ')':
@@ -99,36 +222,18 @@ Token *lexer_get_next_token(Lexer *lexer) {
             return advance_token(T_COMMA, ",", lexer, false);
         case '.':
             return advance_token(T_PERIOD, ".", lexer, false);
-        case '<':
-            return advance_token(T_LESS_THAN, "<", lexer, false);
-        case '>':
-            return advance_token(T_GREATER_THAN, ">", lexer, false);
-        case ':':
-            return advance_token(T_COLON, ":", lexer, false);
-        case ';':
-            return advance_token(T_SEMICOLON, ";", lexer, false);
-        case '=':
-            return advance_token(T_EQUAL, "=", lexer, false);
-        case '-':
-            if (peek_next(lexer) == '>') {
-                advance(lexer);
-                return advance_token(T_ARROW, "->", lexer, false);
-            } else if (isnumber(peek_next(lexer))) {
-                return parse_number(lexer);
-            } else {
-                return advance_token(T_OPERATOR_SUB, "-", lexer, false);
-            }
-        case '+':
-            if (isnumber(peek_next(lexer))) {
-                return parse_number(lexer);
-            }
-            return advance_token(T_OPERATOR_ADD, "+", lexer, false);
-        case '*':
-            return advance_token(T_OPERATOR_MUL, "*", lexer, false);
-        case '&':
-            return advance_token(T_ADDRESS, "&", lexer, false);
+        case '$':
+            return advance_token(T_DOLLAR, "$", lexer, false);
+        case '#':
+            return advance_token(T_HASHTAG, "#", lexer, false);
+        case '@':
+            return advance_token(T_AT, "@", lexer, false);
+        case '\\':
+            return advance_token(T_BACKSLASH, "\\", lexer, false);
         case '"':
-            return parse_string(lexer);
+            return parse_string(lexer, '"');
+        case '\'':
+            return parse_string(lexer, '\'');
         case '\0':
             break;
         default:
@@ -143,12 +248,12 @@ Token *lexer_get_next_token(Lexer *lexer) {
     return advance_token(T_EOF, (char[2]) {lexer->current, 0}, lexer, false);
 }
 
-static inline Token *parse_string(Lexer *lexer) {
+static inline Token *parse_string(Lexer *lexer, char string_type) {
     char *value = calloc(1, sizeof(char));
     uintptr_t value_count = 0;
     advance(lexer);
 
-    while (lexer->current != '"') {
+    while (lexer->current != string_type) {
         check_eof(lexer, "Unterminated String Literal\n");
 
         value = realloc(value, (value_count + 2) * sizeof(char));
