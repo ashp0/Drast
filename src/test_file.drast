@@ -1,0 +1,42 @@
+import io
+
+func add(firstNumber: Float, secondNumber: Float) -> Float {
+    return firstNumber + secondNumber
+}
+
+func subtract(firstNumber: Float, secondNumber: Float) -> Float {
+    return firstNumber - secondNumber
+}
+
+func multiply(firstNumber: Float, secondNumber: Float) -> Float {
+    return firstNumber * secondNumber
+}
+
+func divide(firstNumber: Float, secondNumber: Float) -> Float {
+    return firstNumber / secondNumber
+}
+
+func main() -> Int {
+    var firstNumber: Float
+    var secondNumber: Float
+    var operator: Character
+
+    getInput_F("Type your first number\n", &firstNumber)
+    getInput_F("Type your second number\n", &secondNumber)
+    getInput_C("Type your operator\n", &operator)
+
+    if (operator == "+") {
+        print_F(add(firstNumber, secondNumber))
+    } else if (operator == "-") {
+        print_F(subtract(firstNumber, secondNumber))
+    } else if (operator == "*") {
+        print_F(multiply(firstNumber, secondNumber))
+    } else if (operator == "/") {
+        print_F(divide(firstNumber, secondNumber))
+    } else {
+        print("Unknown Operator\n")
+        exit(-0)
+    }
+
+    print("Hello World")
+}

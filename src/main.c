@@ -7,42 +7,33 @@
 
 #include <stdio.h>
 #include "argument_parser.h"
+#include "compiler/lexer.h"
+#include "compiler/token.h"
 
-const char *long_name_list[] = {"version", "help"};
-
-static void parse_short_argument(const char option, const char *value);
-static void parse_long_argument(const char *option, const char *value);
-
-int main(int argc, const char *argv[])
-{
-    ArgumentParser *argument_parser = argument_parser_init(argc, argv, long_name_list);
-
-    argument_parser_parse_arguments(argument_parser, &parse_short_argument, &parse_long_argument);
-
-    return 0;
-}
-
-static void parse_short_argument(const char option, const char *value)
-{
-    switch (option)
-    {
-    case 'v':
-        printf("VERSION v1.0\n");
-        break;
-
-    case 'h':
-        printf("The Drast Compiler\n");
-        printf("Options:\n");
-        printf("\tv - Version\n");
-        printf("\th - Help\n");
-        break;
-
-    default:
-        break;
+// https://stackoverflow.com/a/47195924
+char *read_file_contents(char *file_name) {
+    FILE *f = fopen(file_name, "rt");
+    if (!f) {
+        printf("Error Reading File %s\n", file_name);
+        exit(-1);
     }
+    fseek(f, 0, SEEK_END);
+    long length = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    char *buffer = (char *) malloc(length + 1);
+    buffer[length] = '\0';
+    fread(buffer, 1, length, f);
+    fclose(f);
+    return buffer;
 }
 
-static void parse_long_argument(const char *option, const char *value)
-{
-    printf("LONG ARGUMENT: %s :: %s\n", option, value);
+int main(int argc, char **argv) {
+    char *file_contents = read_file_contents(argv[1]);
+
+    Lexer *lexer = lexer_init(file_contents);
+    do {
+        Token *next_token = lexer_get_next_token(lexer);
+        printf("%s(`%s`) :: LEXER(%lu, %lu)\n", token_print(next_token->type), next_token->value, lexer->line,
+               lexer->position);
+    } while (lexer->index < lexer->source_length);
 }
