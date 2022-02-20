@@ -13,4 +13,10 @@ add_executable(drast src/main.c
         src/compiler/lexer.h
         src/compiler/token.c
         src/compiler/token.h
-        src/compiler/ast.c src/compiler/ast.h)
+        src/compiler/ast.c
+        src/compiler/ast.h
+        src/compiler/parser.c
+        src/compiler/parser.h
+        src/compiler/ast_print.c
+        src/compiler/ast_print.h
+        )

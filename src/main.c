@@ -9,6 +9,9 @@
 #include "argument_parser.h"
 #include "compiler/lexer.h"
 #include "compiler/token.h"
+#include "compiler/parser.h"
+#include "compiler/ast.h"
+#include "compiler/ast_print.h"
 
 // https://stackoverflow.com/a/47195924
 char *read_file_contents(char *file_name) {
@@ -31,11 +34,21 @@ int main(int argc, char **argv) {
     char *file_contents = read_file_contents(argv[1]);
 
     Lexer *lexer = lexer_init(file_contents);
+    Parser *parser = parser_init(lexer);
 
-    do {
-        Token *next_token = lexer_get_next_token(lexer);
-        if (next_token->type == T_EOF)
-            break;
-        printf("%s(`%s`)\n", token_print(next_token->type), next_token->value);
-    } while (lexer->index < lexer->source_length);
+
+    while (parser->lexer->index < parser->lexer->source_length) {
+//        Token *next_token = lexer_get_next_token(lexer);
+//        if (next_token->type == T_EOF)
+//            break;
+//        printf("%s(`%s`)\n", token_print(next_token->type), next_token->value);
+        AST *ast = parser_parse(parser);
+
+        if (ast) {
+            ast_print(ast);
+            continue;
+        }
+    }
+
+    return 0;
 }

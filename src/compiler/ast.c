@@ -6,3 +6,24 @@
 //
 
 #include "ast.h"
+
+AST *ast_init(void) {
+    AST *ast = malloc(sizeof(AST));
+
+    return ast;
+}
+
+AST *ast_init_with_type(ASTType type) {
+    AST *ast = ast_init();
+    ast->type = type;
+
+    return ast;
+}
+
+AST *ast_init_with_type_and_value(ASTType type, ASTValue value) {
+    AST *ast = ast_init();
+    ast->type = type;
+    ast->value = value;
+
+    return ast;
+}

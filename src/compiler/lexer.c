@@ -391,6 +391,7 @@ static inline void advance_block_comment(Lexer *lexer) {
     advance(lexer);
     while (lexer->current != '*' && peek_next(lexer) != '/') {
         advance(lexer);
+        lexer->source_length--;
         check_eof(lexer, "Unterminated Block Comment\n");
     }
     advance(lexer);
@@ -412,8 +413,10 @@ static inline void skip_whitespace(Lexer *lexer) {
 }
 
 static inline void skip_line(Lexer *lexer) {
-    while (lexer->current != '\n')
+    while (lexer->current != '\n') {
         advance(lexer);
+        lexer->source_length--;
+    }
     if (is_whitespace(lexer))
         skip_whitespace(lexer);
     lexer->line++;
