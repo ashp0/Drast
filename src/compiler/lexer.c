@@ -64,6 +64,9 @@ Token *lexer_get_next_token_without_advance(Lexer *lexer) {
 Token *lexer_get_next_token(Lexer *lexer) {
     char c = lexer->current;
 
+    if (is_eof(lexer))
+        return advance_token(T_EOF, (char[2]) {lexer->current, 0}, lexer, false);
+
     switch (c) {
         case ' ':
         case '\r':
@@ -349,8 +352,6 @@ static inline Token *is_identifier_token(char *identifier, Lexer *lexer) {
         return advance_token(T_FOR, identifier, lexer, true);
     else if (strcmp(identifier, "continue") == 0)
         return advance_token(T_CONTINUE, identifier, lexer, true);
-    else if (strcmp(identifier, "typedef") == 0)
-        return advance_token(T_TYPEDEF, identifier, lexer, true);
     else if (strcmp(identifier, "union") == 0)
         return advance_token(T_UNION, identifier, lexer, true);
     else if (strcmp(identifier, "false") == 0)
@@ -369,8 +370,6 @@ static inline Token *is_identifier_token(char *identifier, Lexer *lexer) {
         return advance_token(T_STRING, identifier, lexer, true);
     else if (strcmp(identifier, "goto") == 0)
         return advance_token(T_GOTO, identifier, lexer, true);
-    else if (strcmp(identifier, "public") == 0)
-        return advance_token(T_PUBLIC, identifier, lexer, true);
     else if (strcmp(identifier, "private") == 0)
         return advance_token(T_PRIVATE, identifier, lexer, true);
     else if (strcmp(identifier, "do") == 0)

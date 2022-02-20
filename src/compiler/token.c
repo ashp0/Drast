@@ -53,8 +53,6 @@ char *token_print(int type) {
             return "T_FOR";
         case T_CONTINUE:
             return "T_CONTINUE";
-        case T_TYPEDEF:
-            return "T_TYPEDEF";
         case T_UNION:
             return "T_UNION";
 
@@ -77,8 +75,6 @@ char *token_print(int type) {
 
         case T_GOTO:
             return "T_GOTO";
-        case T_PUBLIC:
-            return "T_PUBLIC";
         case T_PRIVATE:
             return "T_STATIC";
 

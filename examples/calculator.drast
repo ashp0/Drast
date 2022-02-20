@@ -4,7 +4,6 @@
 
 import io
 
-
 func main() -> Int {
     print("Hello World")
 
@@ -12,21 +11,21 @@ func main() -> Int {
     var secondNumber: Float
     var operator: Character
 
-    getInput_F("Type your first number\n", @firstNumber)
-    getInput_F("Type your second number\n", &secondNumber)
-    getInput_C("Type your operator\n", &operator)
+    getInput("Type your first number\n", &firstNumber)
+    getInput("Type your second number\n", &secondNumber)
+    getInput("Type your operator\n", &operator)
 
     switch (operator) {
     case '+':
-        print_F(firstNumber + secondNumber)
+        print(firstNumber + secondNumber)
         break
     case '-':
-        print_F(firstNumber - secondNumber)
+        print(firstNumber - secondNumber)
         break
     case '*'
-        print_F(firstNumber * secondNumber)
+        print(firstNumber * secondNumber)
     case '/':
-        print_F(firstNumber / secondNumber)
+        print(firstNumber / secondNumber)
     default:
         print("Unknown Operator\n")
         exit(-0)

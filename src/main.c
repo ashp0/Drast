@@ -34,6 +34,8 @@ int main(int argc, char **argv) {
 
     do {
         Token *next_token = lexer_get_next_token(lexer);
+        if (next_token->type == T_EOF)
+            break;
         printf("%s(`%s`)\n", token_print(next_token->type), next_token->value);
     } while (lexer->index < lexer->source_length);
 }

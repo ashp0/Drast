@@ -104,7 +104,7 @@ const char *argument_parser_advance(ArgumentParser *arguments) {
 }
 
 bool argument_parser_is_finished(ArgumentParser *arguments) {
-    return !(arguments->arg_index < arguments->argc);
+    return arguments->arg_index >= arguments->argc;
 }
 
 static void argument_parser_error(ArgumentParser *arguments) {

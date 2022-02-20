@@ -1,0 +1,26 @@
+//
+//  ast.h
+//  drast
+//
+//  Created by Ashwin Paudel on 2022-02-05.
+//
+
+#ifndef __DRAST_COMPILER_AST_H__
+#define __DRAST_COMPILER_AST_H__
+
+typedef enum {
+    AST_TYPE_FUNC_DECLARATION,
+    AST_TYPE_FUNC_ARGUMENT,
+    AST_TYPE_FUNC_CALL,
+
+    AST_TYPE_LET_DEFINITION,
+    AST_TYPE_VAR_DEFINITION,
+
+    AST_TYPE_STRUCT_DECLARATION,
+    AST_TYPE_STRUCT_ITEM,
+
+    AST_TYPE_ENUM_DECLARATION,
+    AST_TYPE_ENUM_ITEM,
+} ASTType;
+
+#endif // __DRAST_COMPILER_AST_H__
