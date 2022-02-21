@@ -5,7 +5,7 @@
 import io
 
 enum Test {
-    case Test,
+    case Test = 10,
     case Test,
     case Test,
 }

@@ -136,6 +136,8 @@ Token *lexer_get_next_token(Lexer *lexer) {
             } else if (peek_next(lexer) == '>') {
                 advance(lexer);
                 return advance_token(T_ARROW, "->", lexer, false);
+            } else if (isnumber(peek_next(lexer))) {
+                return parse_number(lexer);
             } else {
                 return advance_token(T_OPERATOR_SUB, "-", lexer, false);
             }
