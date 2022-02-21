@@ -212,6 +212,7 @@ char *token_print(int type) {
 
         case T_EOF:
             return "T_EOF";
-
     }
+
+    return "UNKNOWN TOKEN";
 }

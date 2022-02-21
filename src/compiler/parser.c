@@ -105,7 +105,7 @@ static inline AST *parse_function(Parser *parser) {
 
     if (parser->current->type == T_K_PRIVATE) {
         new_ast->value.FunctionDeclaration.is_private = true;
-        advance(parser, T_IDENTIFIER);
+        advance(parser, T_K_PRIVATE);
     }
 
     new_ast->value.FunctionDeclaration.function_name = advance(parser, T_IDENTIFIER)->value;
