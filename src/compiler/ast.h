@@ -10,6 +10,7 @@
 
 #include <stdlib.h>
 #include <stdbool.h>
+#include "token.h"
 
 typedef enum {
     AST_TYPE_IMPORT,
@@ -20,6 +21,8 @@ typedef enum {
 
     AST_TYPE_LET_DEFINITION,
     AST_TYPE_VARIABLE_DEFINITION,
+
+    AST_TYPE_VALUE_KEYWORD,
 
     AST_TYPE_STRUCT_DECLARATION,
     AST_TYPE_STRUCT_ITEM,
@@ -38,9 +41,32 @@ typedef union {
         char *identifier;
         bool is_constant;
         bool is_initialized;
-        // bool is_volatile;
+        bool is_volatile;
         struct AST *value;
     } Variable;
+
+    struct {
+        Token *token;
+        bool is_array;
+    } ValueKeyword;
+
+    struct {
+        char *function_name;
+        struct AST *return_type;
+
+        bool is_private;
+
+        struct AST **arguments;
+        uintptr_t argument_size;
+
+        struct AST **body;
+        uintptr_t body_size;
+    } FunctionDeclaration;
+
+    struct {
+        char *argument_name;
+        struct AST *argument_type;
+    } FunctionArgument;
 } ASTValue;
 
 typedef struct AST {

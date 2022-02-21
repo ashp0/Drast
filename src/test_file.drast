@@ -6,6 +6,6 @@ import io
 
 func main(argc: Int, argv: String[]) -> Int {
     print("Hello World")
-    var number = 50
+    var number: Int = 50
     return 0
 }

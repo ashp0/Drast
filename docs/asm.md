@@ -13,7 +13,6 @@ func main(argc: Int, argv: String[]) -> Int {
         "jmp .loop"
     }
     
-    
     return 0
 }
 ```

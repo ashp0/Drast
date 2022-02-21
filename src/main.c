@@ -6,9 +6,7 @@
 //
 
 #include <stdio.h>
-#include "argument_parser.h"
 #include "compiler/lexer.h"
-#include "compiler/token.h"
 #include "compiler/parser.h"
 #include "compiler/ast.h"
 #include "compiler/ast_print.h"
@@ -39,15 +37,13 @@ int main(int argc, char **argv) {
 
     while (parser->lexer->index < parser->lexer->source_length) {
 //        Token *next_token = lexer_get_next_token(lexer);
-//        if (next_token->type == T_EOF)
+//        if (next_token->token == T_EOF)
 //            break;
-//        printf("%s(`%s`)\n", token_print(next_token->type), next_token->value);
+//        printf("%s(`%s`)\n", token_print(next_token->token), next_token->value);
+        if (parser->current->type == T_EOF)
+            break;
         AST *ast = parser_parse(parser);
-
-        if (ast) {
-            ast_print(ast);
-            continue;
-        }
+        ast_print(ast);
     }
 
     return 0;

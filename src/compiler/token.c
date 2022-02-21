@@ -10,84 +10,91 @@
 char *token_print(int type) {
     switch (type) {
         // Keywords
-        case T_FUNC:
-            return "T_FUNC";
-        case T_LET:
-            return "T_LET";
-        case T_VAR:
-            return "T_VAR";
-        case T_STRUCT:
-            return "T_STRUCT";
-        case T_ENUM:
-            return "T_ENUM";
-        case T_ALIAS:
-            return "T_ALIAS";
-        case T_RETURN:
-            return "T_RETURN";
-        case T_IF:
-            return "T_IF";
-        case T_ELSE:
-            return "T_ELSE";
-        case T_IMPORT:
-            return "T_IMPORT";
-        case T_PRINT:
-            return "T_PRINT";
-        case T_ASM:
-            return "T_ASM";
-        case T_VOLATILE:
-            return "T_VOLATILE";
-        case T_CAST:
-            return "T_CAST";
+        case T_K_FUNC:
+            return "T_K_FUNC";
+        case T_K_LET:
+            return "T_K_LET";
+        case T_K_VAR:
+            return "T_K_VAR";
+        case T_K_STRUCT:
+            return "T_K_STRUCT";
+        case T_K_ENUM:
+            return "T_K_ENUM";
+        case T_K_ALIAS:
+            return "T_K_ALIAS";
+        case T_K_RETURN:
+            return "T_K_RETURN";
+        case T_K_IF:
+            return "T_K_IF";
+        case T_K_ELSE:
+            return "T_K_ELSE";
+        case T_K_IMPORT:
+            return "T_K_IMPORT";
+        case T_K_PRINT:
+            return "T_K_PRINT";
+        case T_K_ASM:
+            return "T_K_ASM";
+        case T_K_VOLATILE:
+            return "T_K_VOLATILE";
+        case T_K_CAST:
+            return "T_K_CAST";
 
-        case T_SWITCH:
-            return "T_SWITCH";
-        case T_CASE:
-            return "T_CASE";
-        case T_BREAK:
-            return "T_BREAK";
-        case T_DEFAULT:
-            return "T_DEFAULT";
-        case T_WHILE:
-            return "T_WHILE";
-        case T_FOR:
-            return "T_FOR";
-        case T_CONTINUE:
-            return "T_CONTINUE";
-        case T_UNION:
-            return "T_UNION";
+        case T_K_SWITCH:
+            return "T_K_SWITCH";
+        case T_K_CASE:
+            return "T_K_CASE";
+        case T_K_BREAK:
+            return "T_K_BREAK";
+        case T_K_DEFAULT:
+            return "T_K_DEFAULT";
+        case T_K_WHILE:
+            return "T_K_WHILE";
+        case T_K_FOR:
+            return "T_K_FOR";
+        case T_K_CONTINUE:
+            return "T_K_CONTINUE";
+        case T_K_UNION:
+            return "T_K_UNION";
 
-        case T_FALSE:
-            return "T_FALSE";
-        case T_TRUE:
-            return "T_TRUE";
-        case T_BOOL:
-            return "T_BOOL";
+        case T_K_FALSE:
+            return "T_K_FALSE";
+        case T_K_TRUE:
+            return "T_K_TRUE";
+        case T_K_BOOL:
+            return "T_K_BOOL";
+        case T_K_INT:
+            return "T_K_INT";
+        case T_K_FLOAT:
+            return "T_K_FLOAT";
+        case T_K_VOID:
+            return "T_K_VOID";
+        case T_K_STRING:
+            return "T_K_STRING";
+        case T_IDENTIFIER:
+            return "T_IDENTIFIER";
+
         case T_INT:
             return "T_INT";
         case T_FLOAT:
             return "T_FLOAT";
-        case T_VOID:
-            return "T_VOID";
         case T_STRING:
             return "T_STRING";
-        case T_IDENTIFIER:
-            return "T_IDENTIFIER";
 
-        case T_GOTO:
-            return "T_GOTO";
-        case T_PRIVATE:
-            return "T_STATIC";
+        case T_K_GOTO:
+            return "T_K_GOTO";
+        case T_K_PRIVATE:
+            return "T_K_PRIVATE";
 
-        case T_DO:
-            return "T_DO";
-        case T_TRY:
-            return "T_TRY";
-        case T_CATCH:
-            return "T_CATCH";
-        case T_THROW:
-            return "T_THROW";
-        case T_THROWS:
-            return "T_THROWS";
+        case T_K_DO:
+            return "T_K_DO";
+        case T_K_TRY:
+            return "T_K_TRY";
+        case T_K_CATCH:
+            return "T_K_CATCH";
+        case T_K_THROW:
+            return "T_K_THROW";
+        case T_K_THROWS:
+            return "T_K_THROWS";
 
         case T_QUESTION:
             return "T_QUESTION";
@@ -205,7 +212,6 @@ char *token_print(int type) {
 
         case T_EOF:
             return "T_EOF";
-    }
 
-    return "UNKNOWN";
+    }
 }

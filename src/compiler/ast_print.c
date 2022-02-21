@@ -20,6 +20,8 @@ void ast_print(AST *ast) {
         case AST_TYPE_LET_DEFINITION:
             ast_print_variable(ast);
             break;
+        default:
+            printf("Cannot Print AST\n");
     }
 }
 
@@ -29,5 +31,15 @@ static inline void ast_print_import(AST *ast) {
 }
 
 static inline void ast_print_variable(AST *ast) {
-    printf("(var/let) %s\n", ast->value.Variable.identifier);
+    if (ast->value.Variable.is_initialized) {
+
+    } else {
+        if (ast->value.Variable.value->value.ValueKeyword.is_array == true) {
+            printf("(var/let) %s: %s[]\n", ast->value.Variable.identifier,
+                   token_print(ast->value.Variable.value->value.ValueKeyword.token->type));
+        } else {
+            printf("(var/let) %s: %s\n", ast->value.Variable.identifier,
+                   token_print(ast->value.Variable.value->value.ValueKeyword.token->type));
+        }
+    }
 }
