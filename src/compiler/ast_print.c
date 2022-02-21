@@ -17,6 +17,10 @@ static inline void ast_print_function_arguments(AST *ast);
 
 static inline void ast_print_type_name(AST *ast);
 
+static inline void ast_print_struct_declaration(AST *ast);
+
+static inline void ast_print_enum_declaration(AST *ast);
+
 void ast_print(AST *ast) {
     switch (ast->type) {
         case AST_TYPE_IMPORT:
@@ -28,6 +32,12 @@ void ast_print(AST *ast) {
             break;
         case AST_TYPE_FUNCTION_DECLARATION:
             ast_print_function_declaration(ast);
+            break;
+        case AST_TYPE_STRUCT_DECLARATION:
+            ast_print_struct_declaration(ast);
+            break;
+        case AST_TYPE_ENUM_DECLARATION:
+            ast_print_enum_declaration(ast);
             break;
         default:
             printf("Cannot Print AST %d\n", ast->type);
@@ -44,13 +54,9 @@ static inline void ast_print_variable(AST *ast) {
     if (ast->value.Variable.is_initialized) {
 
     } else {
-        if (ast->value.Variable.value->value.ValueKeyword.is_array == true) {
-            printf("(var/let) %s: %s[]\n", ast->value.Variable.identifier,
-                   token_print(ast->value.Variable.value->value.ValueKeyword.token->type));
-        } else {
-            printf("(var/let) %s: %s\n", ast->value.Variable.identifier,
-                   token_print(ast->value.Variable.value->value.ValueKeyword.token->type));
-        }
+        printf("(var/let) %s: ", ast->value.Variable.identifier);
+        ast_print_type_name(ast->value.Variable.value);
+        printf("\n");
     }
 }
 
@@ -62,7 +68,7 @@ static inline void ast_print_function_declaration(AST *ast) {
 
     for (int i = 0; i < ast->value.FunctionDeclaration.body_size; i++) {
         printf("\t");
-        ast_print(ast->value.FunctionDeclaration.body[0]);
+        ast_print(ast->value.FunctionDeclaration.body[i]);
     }
 
     printf("}\n");
@@ -75,6 +81,28 @@ static inline void ast_print_function_arguments(AST *ast) {
     }
 
     printf("\b\b)");
+}
+
+static inline void ast_print_struct_declaration(AST *ast) {
+    printf("struct %s {\n", ast->value.StructDeclaration.struct_name);
+
+    for (int i = 0; i < ast->value.StructDeclaration.member_size; ++i) {
+        printf("\t");
+        ast_print_variable(ast->value.StructDeclaration.members[i]);
+    }
+
+    printf("}\n");
+}
+
+static inline void ast_print_enum_declaration(AST *ast) {
+    printf("enum %s {\n", ast->value.EnumDeclaration.enum_name);
+
+    for (int i = 0; i < ast->value.EnumDeclaration.case_size; ++i) {
+        printf("\tcase %s = %d\n", ast->value.EnumDeclaration.cases[i]->value.EnumItem.case_name,
+               ast->value.EnumDeclaration.cases[i]->value.EnumItem.case_value);
+    }
+
+    printf("}\n");
 }
 
 static inline void ast_print_type_name(AST *ast) {

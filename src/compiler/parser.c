@@ -25,6 +25,12 @@ static inline AST *parse_type_name(Parser *parser);
 
 static inline AST *parse_inner_statement(Parser *parser);
 
+static inline AST *parse_struct(Parser *parser);
+
+static inline AST *parse_struct_statements(Parser *parser);
+
+static inline AST *parse_enum(Parser *parser);
+
 Parser *parser_init(Lexer *lexer) {
     Parser *parser = malloc(sizeof(Parser));
     parser->lexer = lexer;
@@ -44,6 +50,10 @@ static inline AST *parse_statement(Parser *parser) {
             return parse_import(parser);
         case T_K_FUNC:
             return parse_function(parser);
+        case T_K_STRUCT:
+            return parse_struct(parser);
+        case T_K_ENUM:
+            return parse_enum(parser);
         case T_K_VAR:
         case T_K_LET:
         case T_BRACE_OPEN:
@@ -65,6 +75,19 @@ static inline AST *parse_inner_statement(Parser *parser) {
             return parse_variable(parser, true);
         default:
             fprintf(stderr, "Parser: Token `%s`, is not supposed to be declared inside curly braces\n",
+                    token_print(parser->current->type));
+            exit(-2);
+    }
+}
+
+static inline AST *parse_struct_statements(Parser *parser) {
+    switch (parser->current->type) {
+        case T_K_VAR:
+            return parse_variable(parser, false);
+        case T_K_LET:
+            return parse_variable(parser, true);
+        default:
+            fprintf(stderr, "Parser: Token `%s`, is not supposed to be declared inside of structs\n",
                     token_print(parser->current->type));
             exit(-2);
     }
@@ -146,7 +169,7 @@ static inline AST *parse_function(Parser *parser) {
     advance(parser, T_BRACE_OPEN);
 
     new_ast->value.FunctionDeclaration.body_size = 0;
-    new_ast->value.FunctionDeclaration.body = malloc(sizeof(AST *));
+    new_ast->value.FunctionDeclaration.body = calloc(1, sizeof(AST *));
 
     while (parser->current->type != T_BRACE_CLOSE) {
         new_ast->value.FunctionDeclaration.body_size += 1;
@@ -200,6 +223,69 @@ static inline AST *parse_variable(Parser *parser, bool is_constant) {
     return tree;
 }
 
+static inline AST *parse_enum(Parser *parser) {
+    AST *new_ast = ast_init_with_type(AST_TYPE_ENUM_DECLARATION);
+    advance(parser, T_K_ENUM);
+    char *enum_name = advance(parser, T_IDENTIFIER)->value;
+
+    new_ast->value.EnumDeclaration.enum_name = enum_name;
+
+    advance(parser, T_BRACE_OPEN);
+
+    new_ast->value.EnumDeclaration.case_size = 0;
+    new_ast->value.EnumDeclaration.cases = calloc(1, sizeof(AST *));
+
+    while (parser->current->type != T_BRACE_CLOSE) {
+        new_ast->value.EnumDeclaration.case_size += 1;
+
+        new_ast->value.EnumDeclaration.cases = realloc(new_ast->value.EnumDeclaration.cases,
+                                                       new_ast->value.EnumDeclaration.case_size *
+                                                       sizeof(AST *));
+
+        AST *enum_case = ast_init_with_type(AST_TYPE_ENUM_ITEM);
+        advance(parser, T_K_CASE);
+        enum_case->value.EnumItem.case_name = advance(parser, T_IDENTIFIER)->value;
+        // TODO: Let the user chose the number
+        enum_case->value.EnumItem.case_value = (int) new_ast->value.StructDeclaration.member_size;
+        advance(parser, T_COMMA);
+
+        new_ast->value.EnumDeclaration.cases[new_ast->value.StructDeclaration.member_size -
+                                             1] = enum_case;
+    }
+
+    advance(parser, T_BRACE_CLOSE);
+    return new_ast;
+}
+
+static inline AST *parse_struct(Parser *parser) {
+    AST *new_ast = ast_init_with_type(AST_TYPE_STRUCT_DECLARATION);
+    advance(parser, T_K_STRUCT);
+    char *struct_name = advance(parser, T_IDENTIFIER)->value;
+
+    new_ast->value.StructDeclaration.struct_name = struct_name;
+
+    advance(parser, T_BRACE_OPEN);
+
+
+    new_ast->value.StructDeclaration.member_size = 0;
+    new_ast->value.StructDeclaration.members = calloc(1, sizeof(AST *));
+
+    while (parser->current->type != T_BRACE_CLOSE) {
+        new_ast->value.StructDeclaration.member_size += 1;
+
+        new_ast->value.StructDeclaration.members = realloc(new_ast->value.StructDeclaration.members,
+                                                           new_ast->value.StructDeclaration.member_size *
+                                                           sizeof(AST *));
+
+        new_ast->value.StructDeclaration.members[new_ast->value.StructDeclaration.member_size -
+                                                 1] = parse_struct_statements(parser);
+    }
+
+    advance(parser, T_BRACE_CLOSE);
+
+    return new_ast;
+}
+
 static inline AST *parse_type_name(Parser *parser) {
     if (parser->current->type == T_K_INT || parser->current->type == T_K_FLOAT || parser->current->type == T_K_BOOL ||
         parser->current->type == T_K_STRING) {
@@ -214,6 +300,7 @@ static inline AST *parse_type_name(Parser *parser) {
 
             return new_ast;
         }
+
 
         advance(parser, new_ast->value.ValueKeyword.token->type);
 

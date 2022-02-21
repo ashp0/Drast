@@ -4,8 +4,20 @@
 
 import io
 
-func main(argc: Int, argv: String[]) -> Int {
-    print("Hello World")
-    var number: Int = 50
-    return 0
+enum Test {
+    case Test,
+    case Test,
+    case Test,
+}
+
+struct Hello {
+    var test: Int
+    let test: String
+}
+
+func main(argc: Int, argv: String[]) -> String {
+    //print("Hello World")
+    var sadfasdf: Float[]
+    var number: Int //= 50
+    //return 0
 }

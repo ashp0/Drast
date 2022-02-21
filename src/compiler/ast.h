@@ -25,7 +25,6 @@ typedef enum {
     AST_TYPE_VALUE_KEYWORD,
 
     AST_TYPE_STRUCT_DECLARATION,
-    AST_TYPE_STRUCT_ITEM,
 
     AST_TYPE_ENUM_DECLARATION,
     AST_TYPE_ENUM_ITEM,
@@ -67,6 +66,24 @@ typedef union {
         char *argument_name;
         struct AST *argument_type;
     } FunctionArgument;
+
+    struct {
+        char *struct_name;
+
+        struct AST **members;
+        uintptr_t member_size;
+    } StructDeclaration;
+
+    struct {
+        char *enum_name;
+        struct AST **cases;
+        uintptr_t case_size;
+    } EnumDeclaration;
+
+    struct {
+        char *case_name;
+        int case_value;
+    } EnumItem;
 } ASTValue;
 
 typedef struct AST {
