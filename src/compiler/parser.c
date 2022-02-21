@@ -235,6 +235,7 @@ static inline AST *parse_enum(Parser *parser) {
     new_ast->value.EnumDeclaration.case_size = 0;
     new_ast->value.EnumDeclaration.cases = calloc(1, sizeof(AST *));
 
+    int case_counter = 0;
     while (parser->current->type != T_BRACE_CLOSE) {
         new_ast->value.EnumDeclaration.case_size += 1;
 
@@ -245,12 +246,20 @@ static inline AST *parse_enum(Parser *parser) {
         AST *enum_case = ast_init_with_type(AST_TYPE_ENUM_ITEM);
         advance(parser, T_K_CASE);
         enum_case->value.EnumItem.case_name = advance(parser, T_IDENTIFIER)->value;
-        // TODO: Let the user chose the number
-        enum_case->value.EnumItem.case_value = (int) new_ast->value.StructDeclaration.member_size;
+
+        if (parser->current->type == T_EQUAL) {
+            advance(parser, T_EQUAL);
+            char *case_counter_string = advance(parser, T_INT)->value;
+            case_counter = (int) strtol(case_counter_string, &case_counter_string, 10);
+        }
+
+        enum_case->value.EnumItem.case_value = case_counter;
         advance(parser, T_COMMA);
 
         new_ast->value.EnumDeclaration.cases[new_ast->value.StructDeclaration.member_size -
                                              1] = enum_case;
+
+        case_counter++;
     }
 
     advance(parser, T_BRACE_CLOSE);
