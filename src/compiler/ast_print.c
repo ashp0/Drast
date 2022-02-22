@@ -21,6 +21,14 @@ static inline void ast_print_struct_declaration(AST *ast);
 
 static inline void ast_print_enum_declaration(AST *ast);
 
+static inline void ast_print_binary(AST *ast);
+
+static inline void ast_print_unary(AST *ast);
+
+static inline void ast_print_literal(AST *ast);
+
+static inline void ast_print_grouping(AST *ast);
+
 void ast_print(AST *ast) {
     switch (ast->type) {
         case AST_TYPE_IMPORT:
@@ -39,6 +47,18 @@ void ast_print(AST *ast) {
         case AST_TYPE_ENUM_DECLARATION:
             ast_print_enum_declaration(ast);
             break;
+        case AST_TYPE_BINARY:
+            ast_print_binary(ast);
+            break;
+        case AST_TYPE_UNARY:
+            ast_print_unary(ast);
+            break;
+        case AST_TYPE_LITERAL:
+            ast_print_literal(ast);
+            break;
+        case AST_TYPE_GROUPING:
+            ast_print_grouping(ast);
+            break;
         default:
             printf("Cannot Print AST %d\n", ast->type);
             break;
@@ -51,10 +71,17 @@ static inline void ast_print_import(AST *ast) {
 }
 
 static inline void ast_print_variable(AST *ast) {
-    if (ast->value.Variable.is_initialized) {
+    printf("(var/let) %s", ast->value.Variable.identifier);
 
+    if (ast->value.Variable.is_initialized) {
+        printf(" = ");
+        ast_print(ast->value.Variable.value);
+//        for (int i = 0; i < ast->value.Variable.value->value.Expression.token_size; ++i) {
+//            printf("%s ", ast->value.Variable.value->value.Expression.tokens[i]->value);
+//        }
+        printf("\n");
     } else {
-        printf("(var/let) %s: ", ast->value.Variable.identifier);
+        printf(": ");
         ast_print_type_name(ast->value.Variable.value);
         printf("\n");
     }
@@ -111,4 +138,24 @@ static inline void ast_print_type_name(AST *ast) {
     } else {
         printf("%s", token_print(ast->value.ValueKeyword.token->type));
     }
+}
+
+static inline void ast_print_binary(AST *ast) {
+    ast_print(ast->value.Binary.left);
+    printf(" %s ", ast->value.Binary.operator->value);
+    ast_print(ast->value.Binary.right);
+}
+
+static inline void ast_print_unary(AST *ast) {
+    printf("ast_print_unary");
+}
+
+static inline void ast_print_literal(AST *ast) {
+    printf("%s", ast->value.Literal.literal_value->value);
+}
+
+static inline void ast_print_grouping(AST *ast) {
+    printf("(");
+    ast_print(ast->value.Grouping.expression);
+    printf(")");
 }

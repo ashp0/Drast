@@ -31,6 +31,18 @@ static inline AST *parse_struct_statements(Parser *parser);
 
 static inline AST *parse_enum(Parser *parser);
 
+static inline AST *parse_expression(Parser *parser);
+
+static inline AST *parse_equality(Parser *parser);
+
+static inline AST *parse_comparison(Parser *parser);
+
+static inline AST *parse_term(Parser *parser);
+
+static inline AST *parse_unary(Parser *parser);
+
+static inline AST *parse_primary(Parser *parser);
+
 Parser *parser_init(Lexer *lexer) {
     Parser *parser = malloc(sizeof(Parser));
     parser->lexer = lexer;
@@ -93,13 +105,105 @@ static inline AST *parse_struct_statements(Parser *parser) {
     }
 }
 
-//static inline AST *parse_expression(Parser *parser) {
-//    // var myVariable = (50 + 20) - 50
-//    // var myVariable = (50 + myVariable) - myOtherVariable
-//    switch (parser->current->type) {
-//        case
-//    }
-//}
+static inline AST *parse_expression(Parser *parser) {
+    Token *next_token = lexer_get_next_token_without_advance(parser->lexer);
+    if (next_token->type == T_OPERATOR_ADD || next_token->type == T_OPERATOR_SUB ||
+        next_token->type == T_OPERATOR_MUL || next_token->type == T_OPERATOR_DIV) {
+        return parse_term(parser);
+    } else if (next_token->type == T_EQUAL_EQUAL || next_token->type == T_NOT_EQUAL ||
+               next_token->type == T_GREATER_THAN || next_token->type == T_GREATER_THAN_EQUAL ||
+               next_token->type == T_LESS_THAN || next_token->type == T_LESS_THAN_EQUAL) {
+        return parse_equality(parser);
+    } else if (parser->current->type == T_K_TRUE || parser->current->type == T_K_FALSE ||
+               parser->current->type == T_INT || parser->current->type == T_STRING ||
+               parser->current->type == T_FLOAT || parser->current->type == T_PARENS_OPEN ||
+               parser->current->type == T_IDENTIFIER) {
+        return parse_primary(parser);
+    } else {
+        return parse_equality(parser);
+    }
+}
+
+static inline AST *parse_equality(Parser *parser) {
+    AST *left_expr = parse_unary(parser);
+    AST *ast = ast_init_with_type(AST_TYPE_BINARY);
+
+    while (parser->current->type == T_EQUAL_EQUAL || parser->current->type == T_NOT_EQUAL ||
+           parser->current->type == T_GREATER_THAN || parser->current->type == T_GREATER_THAN_EQUAL ||
+           parser->current->type == T_LESS_THAN || parser->current->type == T_LESS_THAN_EQUAL) {
+        Token *operator = parser->current;
+
+        advance(parser, operator->type);
+
+        AST *right_expr = parse_unary(parser);
+
+        ast->value.Binary.left = left_expr;
+        ast->value.Binary.operator = operator;
+        ast->value.Binary.right = right_expr;
+    }
+
+    return ast;
+}
+
+static inline AST *parse_term(Parser *parser) {
+    AST *tree = ast_init_with_type(AST_TYPE_BINARY);
+    AST *left_factor = parse_unary(parser);
+
+    while (parser->current->type == T_OPERATOR_ADD || parser->current->type == T_OPERATOR_SUB ||
+           parser->current->type == T_OPERATOR_MUL || parser->current->type == T_OPERATOR_DIV) {
+        Token *operator = parser->current;
+        advance(parser, operator->type);
+        AST *right_factor = parse_unary(parser);
+
+        tree->value.Binary.left = left_factor;
+        tree->value.Binary.operator = operator;
+        tree->value.Binary.right = right_factor;
+    }
+
+    return tree;
+}
+
+static inline AST *parse_unary(Parser *parser) {
+    AST *tree = ast_init_with_type(AST_TYPE_UNARY);
+
+    if (parser->current->type == T_OPERATOR_SUB || parser->current->type == T_NOT) {
+        Token *operator = parser->current;
+        advance(parser, operator->type);
+
+        AST *right = parse_unary(parser);
+
+        tree->value.Unary.operator = operator;
+        tree->value.Unary.right = right;
+
+        return tree;
+    }
+
+    return parse_primary(parser);
+}
+
+static inline AST *parse_primary(Parser *parser) {
+    AST *tree = ast_init_with_type(AST_TYPE_LITERAL);
+
+    if (parser->current->type == T_K_TRUE || parser->current->type == T_K_FALSE || parser->current->type == T_INT ||
+        parser->current->type == T_STRING || parser->current->type == T_FLOAT ||
+        parser->current->type == T_IDENTIFIER) {
+        tree->value.Literal.literal_value = parser->current;
+        advance(parser, tree->value.Literal.literal_value->type);
+
+        return tree;
+    } else if (parser->current->type == T_PARENS_OPEN) {
+        advance(parser, T_PARENS_OPEN);
+
+        AST *expression = parse_expression(parser);
+        AST *expression_tree = ast_init_with_type(AST_TYPE_GROUPING);
+        advance(parser, T_PARENS_CLOSE);
+
+        expression_tree->value.Grouping.expression = expression;
+
+        return expression_tree;
+    }
+    return NULL;
+}
 
 static inline AST *parse_import(Parser *parser) {
     AST *tree = ast_init_with_type(AST_TYPE_IMPORT);
@@ -203,8 +307,12 @@ static inline AST *parse_variable(Parser *parser, bool is_constant) {
     tree->value.Variable.is_constant = is_constant;
 
     if (parser->current->type == T_EQUAL) {
-        advance(parser, T_COLON);
+        advance(parser, T_EQUAL);
 
+        tree->value.Variable.is_initialized = true;
+        tree->value.Variable.value = parse_expression(parser);
+
+        return tree;
         // TODO: Parse expression
     } else if (parser->current->type == T_COLON) {
         advance(parser, T_COLON);

@@ -8,7 +8,7 @@
 #include "ast.h"
 
 AST *ast_init(void) {
-    AST *ast = malloc(sizeof(AST));
+    AST *ast = calloc(1, sizeof(AST));
 
     return ast;
 }

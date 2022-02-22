@@ -18,6 +18,9 @@ struct Hello {
 func main(argc: Int, argv: String[]) -> String {
     //print("Hello World")
     var sadfasdf: Float[]
+    var test = 6
+    var test = 6 < 3
+    var test = test + 50
     var number: Int //= 50
     //return 0
 }

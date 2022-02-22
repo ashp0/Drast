@@ -28,6 +28,11 @@ typedef enum {
 
     AST_TYPE_ENUM_DECLARATION,
     AST_TYPE_ENUM_ITEM,
+
+    AST_TYPE_BINARY,
+    AST_TYPE_UNARY,
+    AST_TYPE_LITERAL,
+    AST_TYPE_GROUPING,
 } ASTType;
 
 typedef union {
@@ -84,6 +89,26 @@ typedef union {
         char *case_name;
         int case_value;
     } EnumItem;
+
+    struct {
+        struct AST *left;
+        Token *operator;
+        struct AST *right;
+        char *from;
+    } Binary;
+
+    struct {
+        struct AST *right;
+        Token *operator;
+    } Unary;
+
+    struct {
+        Token *literal_value;
+    } Literal;
+
+    struct {
+        struct AST *expression;
+    } Grouping;
 } ASTValue;
 
 typedef struct AST {
