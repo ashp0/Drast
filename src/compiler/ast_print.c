@@ -29,6 +29,10 @@ static inline void ast_print_literal(AST *ast);
 
 static inline void ast_print_grouping(AST *ast);
 
+static inline void ast_print_type_name(AST *ast);
+
+static inline void ast_print_return(AST *ast);
+
 void ast_print(AST *ast) {
     switch (ast->type) {
         case AST_TYPE_IMPORT:
@@ -59,6 +63,12 @@ void ast_print(AST *ast) {
         case AST_TYPE_GROUPING:
             ast_print_grouping(ast);
             break;
+        case AST_TYPE_VALUE_KEYWORD:
+            ast_print_type_name(ast);
+            break;
+        case AST_TYPE_RETURN:
+            ast_print_return(ast);
+            break;
         default:
             printf("Cannot Print AST %d\n", ast->type);
             break;
@@ -76,9 +86,6 @@ static inline void ast_print_variable(AST *ast) {
     if (ast->value.Variable.is_initialized) {
         printf(" = ");
         ast_print(ast->value.Variable.value);
-//        for (int i = 0; i < ast->value.Variable.value->value.Expression.token_size; ++i) {
-//            printf("%s ", ast->value.Variable.value->value.Expression.tokens[i]->value);
-//        }
         printf("\n");
     } else {
         printf(": ");
@@ -90,8 +97,11 @@ static inline void ast_print_variable(AST *ast) {
 static inline void ast_print_function_declaration(AST *ast) {
     printf("func %s(", ast->value.FunctionDeclaration.function_name);
     ast_print_function_arguments(ast);
-    printf(" -> ");
-    printf("%s {\n", token_print(ast->value.FunctionDeclaration.return_type->value.ValueKeyword.token->type));
+    if (ast->value.FunctionDeclaration.has_return_type) {
+        printf(" -> ");
+        ast_print(ast->value.FunctionDeclaration.return_type);
+    }
+    printf(" {\n");
 
     for (int i = 0; i < ast->value.FunctionDeclaration.body_size; i++) {
         printf("\t");
@@ -132,12 +142,18 @@ static inline void ast_print_enum_declaration(AST *ast) {
     printf("}\n");
 }
 
+static inline void ast_print_return(AST *ast) {
+    printf("return ");
+    ast_print(ast->value.Return.return_expression);
+    printf("\n");
+}
+
 static inline void ast_print_type_name(AST *ast) {
-    if (ast->value.ValueKeyword.is_array) {
-        printf("%s[]", token_print(ast->value.ValueKeyword.token->type));
-    } else {
-        printf("%s", token_print(ast->value.ValueKeyword.token->type));
-    }
+        if (ast->value.ValueKeyword.is_array) {
+            printf("%s[]", token_print(ast->value.ValueKeyword.token->type));
+        } else {
+            printf("%s", token_print(ast->value.ValueKeyword.token->type));
+        }
 }
 
 static inline void ast_print_binary(AST *ast) {

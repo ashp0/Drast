@@ -43,6 +43,8 @@ static inline AST *parse_unary(Parser *parser);
 
 static inline AST *parse_primary(Parser *parser);
 
+static inline AST *parse_return(Parser *parser);
+
 Parser *parser_init(Lexer *lexer) {
     Parser *parser = malloc(sizeof(Parser));
     parser->lexer = lexer;
@@ -85,6 +87,8 @@ static inline AST *parse_inner_statement(Parser *parser) {
             return parse_variable(parser, false);
         case T_K_LET:
             return parse_variable(parser, true);
+        case T_K_RETURN:
+            return parse_return(parser);
         default:
             fprintf(stderr, "Parser: Token `%s`, is not supposed to be declared inside curly braces\n",
                     token_print(parser->current->type));
@@ -266,8 +270,14 @@ static inline AST *parse_function(Parser *parser) {
     }
 
     // Return Type
-    advance(parser, T_ARROW);
-    new_ast->value.FunctionDeclaration.return_type = parse_type_name(parser);
+    if (parser->current->type == T_ARROW) {
+    	advance(parser, T_ARROW);
+        new_ast->value.FunctionDeclaration.has_return_type = true;
+    	new_ast->value.FunctionDeclaration.return_type = parse_type_name(parser);
+    } else {
+        new_ast->value.FunctionDeclaration.has_return_type = false;
+        new_ast->value.FunctionDeclaration.return_type = NULL;
+    }
 
     // Parse inner statement
     advance(parser, T_BRACE_OPEN);
@@ -321,6 +331,12 @@ static inline AST *parse_variable(Parser *parser, bool is_constant) {
         tree->value.Variable.value = parse_type_name(parser);
 
         // TODO: If there is an equal sign, also check if the they are casting
+        if (parser->current->type == T_EQUAL) {
+            advance(parser, T_EQUAL);
+
+            tree->value.Variable.is_initialized = true;
+            tree->value.Variable.value = parse_expression(parser);
+        }
         return tree;
     } else {
         fprintf(stderr, "Parser: Unexpected Token: `%s`, was expecting `=` or `:`\n",
@@ -399,6 +415,15 @@ static inline AST *parse_struct(Parser *parser) {
     }
 
     advance(parser, T_BRACE_CLOSE);
+
+    return new_ast;
+}
+
+static inline AST *parse_return(Parser *parser) {
+    AST *new_ast = ast_init_with_type(AST_TYPE_RETURN);
+
+    advance(parser, T_K_RETURN);
+    new_ast->value.Return.return_expression = parse_expression(parser);
 
     return new_ast;
 }

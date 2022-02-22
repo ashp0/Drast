@@ -15,12 +15,12 @@ struct Hello {
     let test: String
 }
 
-func main(argc: Int, argv: String[]) -> String {
+func main(argc: Int, argv: String[]) -> Int {
     //print("Hello World")
     var sadfasdf: Float[]
     var test = 6
     var test = 6 < 3
-    var test = test + 50
-    var number: Int //= 50
-    //return 0
+    var test = (test + 50)
+    var number: Int = 50
+    return 0
 }

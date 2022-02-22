@@ -33,6 +33,8 @@ typedef enum {
     AST_TYPE_UNARY,
     AST_TYPE_LITERAL,
     AST_TYPE_GROUPING,
+
+    AST_TYPE_RETURN,
 } ASTType;
 
 typedef union {
@@ -56,7 +58,9 @@ typedef union {
 
     struct {
         char *function_name;
+
         struct AST *return_type;
+        bool has_return_type;
 
         bool is_private;
 
@@ -109,6 +113,10 @@ typedef union {
     struct {
         struct AST *expression;
     } Grouping;
+
+    struct {
+        struct AST *return_expression;
+    } Return;
 } ASTValue;
 
 typedef struct AST {
