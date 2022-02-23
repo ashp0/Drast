@@ -25,7 +25,7 @@ static inline AST *parse_type_name(Parser *parser);
 
 static inline AST *parse_inner_statement(Parser *parser);
 
-static inline AST *parse_struct(Parser *parser);
+static inline AST *parse_struct_or_union(Parser *parser, bool is_union);
 
 static inline AST *parse_struct_statements(Parser *parser);
 
@@ -49,6 +49,12 @@ static inline AST *parse_function_call(Parser *parser);
 
 static inline AST *parse_identifier(Parser *parser);
 
+static inline AST *parse_variable_call(Parser *parser);
+
+static inline AST *parse_if_else_statement(Parser *parser, bool is_else);
+
+static inline AST *parse_while_statement(Parser *parser);
+
 Parser *parser_init(Lexer *lexer) {
     Parser *parser = malloc(sizeof(Parser));
     parser->lexer = lexer;
@@ -69,7 +75,9 @@ static inline AST *parse_statement(Parser *parser) {
         case T_K_FUNC:
             return parse_function(parser);
         case T_K_STRUCT:
-            return parse_struct(parser);
+            return parse_struct_or_union(parser, false);
+        case T_K_UNION:
+            return parse_struct_or_union(parser, true);
         case T_K_ENUM:
             return parse_enum(parser);
         case T_K_VAR:
@@ -95,11 +103,96 @@ static inline AST *parse_inner_statement(Parser *parser) {
             return parse_return(parser);
         case T_IDENTIFIER:
             return parse_identifier(parser);
+        case T_K_IF:
+            return parse_if_else_statement(parser, false);
+        case T_K_ELSE:
+            return parse_if_else_statement(parser, true);
+        case T_K_WHILE:
+            return parse_while_statement(parser);
         default:
             fprintf(stderr, "Parser: Token `%s`, is not supposed to be declared inside curly braces\n",
                     token_print(parser->current->type));
             exit(-2);
     }
+}
+
+static inline AST *parse_if_else_statement(Parser *parser, bool is_else) {
+    AST *new_ast = ast_init_with_type(AST_TYPE_IF_ELSE_STATEMENT);
+
+    is_else ? advance(parser, T_K_ELSE) : advance(parser, T_K_IF);
+
+    if (is_else) {
+        if (parser->current->type == T_K_IF) {
+            new_ast->value.IfElseStatement.is_else_if_statement = true;
+            advance(parser, T_K_IF);
+        } else {
+            new_ast->value.IfElseStatement.is_else_statement = true;
+        }
+    } else {
+        new_ast->value.IfElseStatement.is_else_if_statement = false;
+        new_ast->value.IfElseStatement.is_else_statement = false;
+    }
+
+    // The expression
+
+    if (!new_ast->value.IfElseStatement.is_else_statement) {
+        advance(parser, T_PARENS_OPEN);
+        new_ast->value.IfElseStatement.expression = parse_expression(parser);
+        advance(parser, T_PARENS_CLOSE);
+    }
+
+    // The body
+    advance(parser, T_BRACE_OPEN);
+
+    new_ast->value.IfElseStatement.body_size = 0;
+    new_ast->value.IfElseStatement.body = calloc(1, sizeof(AST *));
+
+    while (parser->current->type != T_BRACE_CLOSE) {
+        new_ast->value.IfElseStatement.body_size += 1;
+
+        new_ast->value.IfElseStatement.body = realloc(new_ast->value.IfElseStatement.body,
+                                                      new_ast->value.IfElseStatement.body_size *
+                                                      sizeof(AST *));
+
+        new_ast->value.IfElseStatement.body[new_ast->value.IfElseStatement.body_size -
+                                            1] = parse_inner_statement(parser);
+    }
+
+    advance(parser, T_BRACE_CLOSE);
+
+    return new_ast;
+}
+
+static inline AST *parse_while_statement(Parser *parser) {
+    AST *new_ast = ast_init_with_type(AST_TYPE_WHILE_STATEMENT);
+
+    advance(parser, T_K_WHILE);
+
+    // The expression
+    advance(parser, T_PARENS_OPEN);
+    new_ast->value.WhileStatement.expression = parse_expression(parser);
+    advance(parser, T_PARENS_CLOSE);
+
+    // The body
+    advance(parser, T_BRACE_OPEN);
+
+    new_ast->value.WhileStatement.body_size = 0;
+    new_ast->value.WhileStatement.body = calloc(1, sizeof(AST *));
+
+    while (parser->current->type != T_BRACE_CLOSE) {
+        new_ast->value.WhileStatement.body_size += 1;
+
+        new_ast->value.WhileStatement.body = realloc(new_ast->value.WhileStatement.body,
+                                                     new_ast->value.WhileStatement.body_size *
+                                                     sizeof(AST *));
+
+        new_ast->value.WhileStatement.body[new_ast->value.WhileStatement.body_size -
+                                           1] = parse_inner_statement(parser);
+    }
+
+    advance(parser, T_BRACE_CLOSE);
+
+    return new_ast;
 }
 
 static inline AST *parse_struct_statements(Parser *parser) {
@@ -280,14 +373,20 @@ static inline AST *parse_import(Parser *parser) {
 }
 
 static inline AST *parse_identifier(Parser *parser) {
-    char *identifier_name = advance(parser, T_IDENTIFIER)->value;
+    advance(parser, T_IDENTIFIER);
 
     if (parser->current->type == T_PARENS_OPEN) {
         return parse_function_call(parser);
     } else {
-        fprintf(stderr, "Parser: Unknown Identifier %s\n", token_print(parser->current->type));
-        exit(-2);
+        return parse_variable_call(parser);
     }
+}
+
+static inline AST *parse_variable_call(Parser *parser) {
+    AST *new_ast = ast_init_with_type(AST_TYPE_VARIABLE_CALL);
+    new_ast->value.VariableCall.variable_name = parser->previous->value;
+
+    return new_ast;
 }
 
 static inline AST *parse_function_call(Parser *parser) {
@@ -404,35 +503,35 @@ static inline AST *parse_variable(Parser *parser, bool is_constant) {
     is_constant ? advance(parser, T_K_LET) : advance(parser, T_K_VAR);
 
     if (parser->current->type == T_K_VOLATILE) {
-        tree->value.Variable.is_volatile = true;
+        tree->value.VariableDeclaration.is_volatile = true;
         advance(parser, T_K_VOLATILE);
     } else {
-        tree->value.Variable.is_volatile = false;
+        tree->value.VariableDeclaration.is_volatile = false;
     }
 
     char *identifier = advance(parser, T_IDENTIFIER)->value;
-    tree->value.Variable.identifier = identifier;
-    tree->value.Variable.is_constant = is_constant;
+    tree->value.VariableDeclaration.identifier = identifier;
+    tree->value.VariableDeclaration.is_constant = is_constant;
 
     if (parser->current->type == T_EQUAL) {
         advance(parser, T_EQUAL);
 
-        tree->value.Variable.is_initialized = true;
-        tree->value.Variable.value = parse_expression(parser);
+        tree->value.VariableDeclaration.is_initialized = true;
+        tree->value.VariableDeclaration.value = parse_expression(parser);
 
         advance_semi(parser);
         return tree;
     } else if (parser->current->type == T_COLON) {
         advance(parser, T_COLON);
 
-        tree->value.Variable.is_initialized = false;
-        tree->value.Variable.value = parse_type_name(parser);
+        tree->value.VariableDeclaration.is_initialized = false;
+        tree->value.VariableDeclaration.value = parse_type_name(parser);
 
         if (parser->current->type == T_EQUAL) {
             advance(parser, T_EQUAL);
 
-            tree->value.Variable.is_initialized = true;
-            tree->value.Variable.value = parse_expression(parser);
+            tree->value.VariableDeclaration.is_initialized = true;
+            tree->value.VariableDeclaration.value = parse_expression(parser);
         }
 
         advance_semi(parser);
@@ -477,7 +576,7 @@ static inline AST *parse_enum(Parser *parser) {
         enum_case->value.EnumItem.case_value = case_counter;
         advance(parser, T_COMMA);
 
-        new_ast->value.EnumDeclaration.cases[new_ast->value.StructDeclaration.member_size -
+        new_ast->value.EnumDeclaration.cases[new_ast->value.EnumDeclaration.case_size -
                                              1] = enum_case;
 
         case_counter++;
@@ -488,32 +587,42 @@ static inline AST *parse_enum(Parser *parser) {
     return new_ast;
 }
 
-static inline AST *parse_struct(Parser *parser) {
-    AST *new_ast = ast_init_with_type(AST_TYPE_STRUCT_DECLARATION);
-    advance(parser, T_K_STRUCT);
-    char *struct_name = advance(parser, T_IDENTIFIER)->value;
+static inline AST *parse_struct_or_union(Parser *parser, bool is_union) {
+    AST *new_ast = ast_init_with_type(AST_TYPE_STRUCT_OR_UNION_DECLARATION);
 
-    new_ast->value.StructDeclaration.struct_name = struct_name;
+    if (is_union)
+        advance(parser, T_K_UNION);
+    else
+        advance(parser, T_K_STRUCT);
+
+    char *name = advance(parser, T_IDENTIFIER)->value;
+
+    new_ast->value.StructOrUnionDeclaration.name = name;
 
     advance(parser, T_BRACE_OPEN);
 
 
-    new_ast->value.StructDeclaration.member_size = 0;
-    new_ast->value.StructDeclaration.members = calloc(1, sizeof(AST *));
+    new_ast->value.StructOrUnionDeclaration.member_size = 0;
+    new_ast->value.StructOrUnionDeclaration.members = calloc(1, sizeof(AST *));
 
     while (parser->current->type != T_BRACE_CLOSE) {
-        new_ast->value.StructDeclaration.member_size += 1;
+        new_ast->value.StructOrUnionDeclaration.member_size += 1;
 
-        new_ast->value.StructDeclaration.members = realloc(new_ast->value.StructDeclaration.members,
-                                                           new_ast->value.StructDeclaration.member_size *
-                                                           sizeof(AST *));
+        new_ast->value.StructOrUnionDeclaration.members = realloc(new_ast->value.StructOrUnionDeclaration.members,
+                                                                  new_ast->value.StructOrUnionDeclaration.member_size *
+                                                                  sizeof(AST *));
 
-        new_ast->value.StructDeclaration.members[new_ast->value.StructDeclaration.member_size -
-                                                 1] = parse_struct_statements(parser);
+        new_ast->value.StructOrUnionDeclaration.members[new_ast->value.StructOrUnionDeclaration.member_size -
+                                                        1] = parse_struct_statements(parser);
     }
 
     advance(parser, T_BRACE_CLOSE);
     advance_semi(parser);
+
+    if (is_union)
+        new_ast->value.StructOrUnionDeclaration.is_union = true;
+    else
+        new_ast->value.StructOrUnionDeclaration.is_union = false;
 
     return new_ast;
 }
@@ -538,6 +647,12 @@ static inline AST *parse_type_name(Parser *parser) {
             advance(parser, new_ast->value.ValueKeyword.token->type);
             advance(parser, T_SQUARE_OPEN);
             advance(parser, T_SQUARE_CLOSE);
+
+            if (parser->current->type == T_QUESTION) {
+                new_ast->value.ValueKeyword.is_optional = true;
+                advance(parser, T_QUESTION);
+            }
+
             new_ast->value.ValueKeyword.is_array = true;
 
             return new_ast;
@@ -545,6 +660,11 @@ static inline AST *parse_type_name(Parser *parser) {
 
 
         advance(parser, new_ast->value.ValueKeyword.token->type);
+
+        if (parser->current->type == T_QUESTION) {
+            new_ast->value.ValueKeyword.is_optional = true;
+            advance(parser, T_QUESTION);
+        }
 
         return new_ast;
     } else {

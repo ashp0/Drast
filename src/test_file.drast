@@ -15,17 +15,35 @@ struct Hello {
     let test: String
 }
 
+union Hello2 {
+    var test1: Int
+    var test2: String[]
+}
+
 func multiply(first: Int, second: Int) -> Int {
     return first * second
 }
 
 func main(argc: Int, argv: String[]) -> Int {
     // print("Hello World")
-    var sadfasdf: Float[]
-    var test = 6 / 3 + 2 + 50 / (9 + 10)
+    var sadfasdf: Float[]?
+    var test = 6 / 3 + 2 + 50 / 9 + 10 == 10
     var test = (-5 - 3)
 
+    if (test == "askjdfn") {
+        var test = 50
+    } else if (test == "test") {
+        var test = 30
+    } else {
+        var test = 0
+    }
+
+    while (test == "askjdfn") {
+        var test = 450
+    }
+
     testing(hello, "testing")
+    lmao
 
     var test = (test + 50)
     var number: Int = 50

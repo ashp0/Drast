@@ -29,11 +29,15 @@ static inline void ast_print_literal(AST *ast);
 
 static inline void ast_print_grouping(AST *ast);
 
-static inline void ast_print_type_name(AST *ast);
-
 static inline void ast_print_return(AST *ast);
 
 static inline void ast_print_function_call(AST *ast);
+
+static inline void ast_print_variable_call(AST *ast);
+
+static inline void ast_print_if_else_statement(AST *ast);
+
+static inline void ast_print_while_statement(AST *ast);
 
 void ast_print(AST *ast) {
     switch (ast->type) {
@@ -47,7 +51,7 @@ void ast_print(AST *ast) {
         case AST_TYPE_FUNCTION_DECLARATION:
             ast_print_function_declaration(ast);
             break;
-        case AST_TYPE_STRUCT_DECLARATION:
+        case AST_TYPE_STRUCT_OR_UNION_DECLARATION:
             ast_print_struct_declaration(ast);
             break;
         case AST_TYPE_ENUM_DECLARATION:
@@ -74,6 +78,15 @@ void ast_print(AST *ast) {
         case AST_TYPE_FUNCTION_CALL:
             ast_print_function_call(ast);
             break;
+        case AST_TYPE_VARIABLE_CALL:
+            ast_print_variable_call(ast);
+            break;
+        case AST_TYPE_IF_ELSE_STATEMENT:
+            ast_print_if_else_statement(ast);
+            break;
+        case AST_TYPE_WHILE_STATEMENT:
+            ast_print_while_statement(ast);
+            break;
         default:
             printf("Cannot Print AST %d\n", ast->type);
             break;
@@ -86,15 +99,15 @@ static inline void ast_print_import(AST *ast) {
 }
 
 static inline void ast_print_variable(AST *ast) {
-    printf("(var/let) %s", ast->value.Variable.identifier);
+    printf("(var/let) %s", ast->value.VariableDeclaration.identifier);
 
-    if (ast->value.Variable.is_initialized) {
+    if (ast->value.VariableDeclaration.is_initialized) {
         printf(" = ");
-        ast_print(ast->value.Variable.value);
+        ast_print(ast->value.VariableDeclaration.value);
         printf("\n");
     } else {
         printf(": ");
-        ast_print_type_name(ast->value.Variable.value);
+        ast_print_type_name(ast->value.VariableDeclaration.value);
         printf("\n");
     }
 }
@@ -136,11 +149,14 @@ static inline void ast_print_function_call(AST *ast) {
 }
 
 static inline void ast_print_struct_declaration(AST *ast) {
-    printf("struct %s {\n", ast->value.StructDeclaration.struct_name);
+    if (ast->value.StructOrUnionDeclaration.is_union)
+        printf("union %s {\n", ast->value.StructOrUnionDeclaration.name);
+    else
+        printf("struct %s {\n", ast->value.StructOrUnionDeclaration.name);
 
-    for (int i = 0; i < ast->value.StructDeclaration.member_size; ++i) {
+    for (int i = 0; i < ast->value.StructOrUnionDeclaration.member_size; ++i) {
         printf("\t");
-        ast_print_variable(ast->value.StructDeclaration.members[i]);
+        ast_print_variable(ast->value.StructOrUnionDeclaration.members[i]);
     }
 
     printf("}\n\n");
@@ -169,6 +185,9 @@ static inline void ast_print_type_name(AST *ast) {
     } else {
         printf("%s", token_print(ast->value.ValueKeyword.token->type));
     }
+
+    if (ast->value.ValueKeyword.is_optional)
+        printf("?");
 }
 
 static inline void ast_print_binary(AST *ast) {
@@ -189,4 +208,37 @@ static inline void ast_print_grouping(AST *ast) {
     printf("(");
     ast_print(ast->value.Grouping.expression);
     printf(")");
+}
+
+static inline void ast_print_variable_call(AST *ast) {
+    printf("%s\n", ast->value.VariableCall.variable_name);
+}
+
+static inline void ast_print_if_else_statement(AST *ast) {
+    if (ast->value.IfElseStatement.is_else_if_statement)
+        printf("else if (");
+    else if (ast->value.IfElseStatement.is_else_statement) {
+        printf("else");
+    } else {
+        printf("if (");
+    }
+    if (ast->value.IfElseStatement.expression)
+        ast_print(ast->value.IfElseStatement.expression);
+    ast->value.IfElseStatement.is_else_statement ? printf(" {\n") : printf(") {\n");
+    for (int i = 0; i < ast->value.IfElseStatement.body_size; i++) {
+        printf("\t\t");
+        ast_print(ast->value.IfElseStatement.body[i]);
+    }
+    printf("\t}\n");
+}
+
+static inline void ast_print_while_statement(AST *ast) {
+    printf("while (");
+    ast_print(ast->value.WhileStatement.expression);
+    printf(") {\n");
+    for (int i = 0; i < ast->value.WhileStatement.body_size; i++) {
+        printf("\t\t");
+        ast_print(ast->value.WhileStatement.body[i]);
+    }
+    printf("\t}\n");
 }

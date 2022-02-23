@@ -19,14 +19,14 @@ typedef enum {
     AST_TYPE_FUNCTION_ARGUMENT,
 
     AST_TYPE_FUNCTION_CALL,
-    AST_TYPE_FUNCTION_CALL_ARGUMENT,
 
     AST_TYPE_LET_DEFINITION,
     AST_TYPE_VARIABLE_DEFINITION,
+    AST_TYPE_VARIABLE_CALL, // This applies to both `let` and `var`
 
     AST_TYPE_VALUE_KEYWORD,
 
-    AST_TYPE_STRUCT_DECLARATION,
+    AST_TYPE_STRUCT_OR_UNION_DECLARATION,
 
     AST_TYPE_ENUM_DECLARATION,
     AST_TYPE_ENUM_ITEM,
@@ -37,6 +37,10 @@ typedef enum {
     AST_TYPE_GROUPING,
 
     AST_TYPE_RETURN,
+
+    AST_TYPE_IF_ELSE_STATEMENT,
+
+    AST_TYPE_WHILE_STATEMENT,
 } ASTType;
 
 typedef union {
@@ -51,11 +55,12 @@ typedef union {
         bool is_initialized;
         bool is_volatile;
         struct AST *value;
-    } Variable;
+    } VariableDeclaration;
 
     struct {
         Token *token;
         bool is_array;
+        bool is_optional;
     } ValueKeyword;
 
     struct {
@@ -85,11 +90,12 @@ typedef union {
     } FunctionCall;
 
     struct {
-        char *struct_name;
+        char *name;
+        bool is_union;
 
         struct AST **members;
         uintptr_t member_size;
-    } StructDeclaration;
+    } StructOrUnionDeclaration;
 
     struct {
         char *enum_name;
@@ -125,6 +131,28 @@ typedef union {
     struct {
         struct AST *return_expression;
     } Return;
+
+    struct {
+        char *variable_name;
+        struct AST *expression;
+        bool is_expression;
+    } VariableCall;
+
+    struct {
+        struct AST *expression;
+        bool is_else_if_statement;
+        bool is_else_statement;
+
+        struct AST **body;
+        uintptr_t body_size;
+    } IfElseStatement;
+
+    struct {
+        struct AST *expression;
+
+        struct AST **body;
+        uintptr_t body_size;
+    } WhileStatement;
 } ASTValue;
 
 typedef struct AST {
