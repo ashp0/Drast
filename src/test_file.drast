@@ -24,6 +24,9 @@ func main(argc: Int, argv: String[]) -> Int {
     var sadfasdf: Float[]
     var test = 6 / 3 + 2 + 50 / (9 + 10)
     var test = (-5 - 3)
+
+    testing(hello, "testing")
+
     var test = (test + 50)
     var number: Int = 50
     return 0

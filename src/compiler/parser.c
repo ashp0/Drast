@@ -35,8 +35,6 @@ static inline AST *parse_expression(Parser *parser);
 
 static inline AST *parse_equality(Parser *parser);
 
-static inline AST *parse_comparison(Parser *parser);
-
 static inline AST *parse_term(Parser *parser);
 
 static inline AST *parse_unary(Parser *parser);
@@ -45,9 +43,11 @@ static inline AST *parse_primary(Parser *parser);
 
 static inline AST *parse_return(Parser *parser);
 
-static inline AST *parse_expressions(Parser *parser);
-
 static inline AST *parse_literal(Parser *parser);
+
+static inline AST *parse_function_call(Parser *parser);
+
+static inline AST *parse_identifier(Parser *parser);
 
 Parser *parser_init(Lexer *lexer) {
     Parser *parser = malloc(sizeof(Parser));
@@ -93,6 +93,8 @@ static inline AST *parse_inner_statement(Parser *parser) {
             return parse_variable(parser, true);
         case T_K_RETURN:
             return parse_return(parser);
+        case T_IDENTIFIER:
+            return parse_identifier(parser);
         default:
             fprintf(stderr, "Parser: Token `%s`, is not supposed to be declared inside curly braces\n",
                     token_print(parser->current->type));
@@ -106,6 +108,8 @@ static inline AST *parse_struct_statements(Parser *parser) {
             return parse_variable(parser, false);
         case T_K_LET:
             return parse_variable(parser, true);
+        case T_IDENTIFIER:
+            return parse_function_call(parser);
         default:
             fprintf(stderr, "Parser: Token `%s`, is not supposed to be declared inside of structs\n",
                     token_print(parser->current->type));
@@ -275,6 +279,53 @@ static inline AST *parse_import(Parser *parser) {
     return tree;
 }
 
+static inline AST *parse_identifier(Parser *parser) {
+    char *identifier_name = advance(parser, T_IDENTIFIER)->value;
+
+    if (parser->current->type == T_PARENS_OPEN) {
+        return parse_function_call(parser);
+    } else {
+        fprintf(stderr, "Parser: Unknown Identifier %s\n", token_print(parser->current->type));
+        exit(-2);
+    }
+}
+
+static inline AST *parse_function_call(Parser *parser) {
+    AST *new_ast = ast_init_with_type(AST_TYPE_FUNCTION_CALL);
+    new_ast->value.FunctionCall.function_call_name = parser->previous->value;
+
+    // Parse the arguments
+    advance(parser, T_PARENS_OPEN);
+
+    new_ast->value.FunctionCall.arguments_size = 0;
+    new_ast->value.FunctionCall.arguments = malloc(sizeof(AST *));
+
+    while (parser->current->type != T_PARENS_CLOSE) {
+        new_ast->value.FunctionCall.arguments_size += 1;
+
+        new_ast->value.FunctionCall.arguments = realloc(new_ast->value.FunctionCall.arguments,
+                                                        new_ast->value.FunctionCall.arguments_size *
+                                                        sizeof(AST *));
+
+        AST *argument = ast_init_with_type(AST_TYPE_LITERAL);
+        argument->value.Literal.literal_value = parser->current;
+        advance(parser, argument->value.Literal.literal_value->type);
+
+        new_ast->value.FunctionCall.arguments[new_ast->value.FunctionCall.arguments_size - 1] = argument;
+
+        if (parser->current->type == T_PARENS_CLOSE) {
+            advance(parser, T_PARENS_CLOSE);
+            break;
+        } else {
+            advance(parser, T_COMMA);
+        }
+    }
+
+    advance_semi(parser);
+
+    return new_ast;
+}
+
 static inline AST *parse_function(Parser *parser) {
     AST *new_ast = ast_init_with_type(AST_TYPE_FUNCTION_DECLARATION);
     advance(parser, T_K_FUNC);
@@ -300,9 +351,9 @@ static inline AST *parse_function(Parser *parser) {
                                                                sizeof(AST *));
 
         AST *argument = ast_init_with_type(AST_TYPE_FUNCTION_ARGUMENT);
-        argument->value.FunctionArgument.argument_name = advance(parser, T_IDENTIFIER)->value;
+        argument->value.FunctionDeclarationArgument.argument_name = advance(parser, T_IDENTIFIER)->value;
         advance(parser, T_COLON);
-        argument->value.FunctionArgument.argument_type = parse_type_name(parser);
+        argument->value.FunctionDeclarationArgument.argument_type = parse_type_name(parser);
 
         new_ast->value.FunctionDeclaration.arguments[new_ast->value.FunctionDeclaration.argument_size - 1] = argument;
 

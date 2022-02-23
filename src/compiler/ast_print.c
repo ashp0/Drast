@@ -33,7 +33,7 @@ static inline void ast_print_type_name(AST *ast);
 
 static inline void ast_print_return(AST *ast);
 
-static inline void ast_print_expressions(AST *ast);
+static inline void ast_print_function_call(AST *ast);
 
 void ast_print(AST *ast) {
     switch (ast->type) {
@@ -70,6 +70,9 @@ void ast_print(AST *ast) {
             break;
         case AST_TYPE_RETURN:
             ast_print_return(ast);
+            break;
+        case AST_TYPE_FUNCTION_CALL:
+            ast_print_function_call(ast);
             break;
         default:
             printf("Cannot Print AST %d\n", ast->type);
@@ -115,11 +118,21 @@ static inline void ast_print_function_declaration(AST *ast) {
 
 static inline void ast_print_function_arguments(AST *ast) {
     for (int i = 0; i < ast->value.FunctionDeclaration.argument_size; i++) {
-        ast_print_type_name(ast->value.FunctionDeclaration.arguments[i]->value.FunctionArgument.argument_type);
-        printf(" %s, ", ast->value.FunctionDeclaration.arguments[i]->value.FunctionArgument.argument_name);
+        ast_print_type_name(
+                ast->value.FunctionDeclaration.arguments[i]->value.FunctionDeclarationArgument.argument_type);
+        printf(" %s, ", ast->value.FunctionDeclaration.arguments[i]->value.FunctionDeclarationArgument.argument_name);
     }
 
     printf("\b\b)");
+}
+
+static inline void ast_print_function_call(AST *ast) {
+    printf("%s(", ast->value.FunctionCall.function_call_name);
+    for (int i = 0; i < ast->value.FunctionCall.arguments_size; i++) {
+        ast_print(ast->value.FunctionCall.arguments[i]);
+        printf(", ");
+    }
+    printf("\b\b)\n");
 }
 
 static inline void ast_print_struct_declaration(AST *ast) {

@@ -17,7 +17,9 @@ typedef enum {
 
     AST_TYPE_FUNCTION_DECLARATION,
     AST_TYPE_FUNCTION_ARGUMENT,
+
     AST_TYPE_FUNCTION_CALL,
+    AST_TYPE_FUNCTION_CALL_ARGUMENT,
 
     AST_TYPE_LET_DEFINITION,
     AST_TYPE_VARIABLE_DEFINITION,
@@ -74,7 +76,13 @@ typedef union {
     struct {
         char *argument_name;
         struct AST *argument_type;
-    } FunctionArgument;
+    } FunctionDeclarationArgument;
+
+    struct {
+        char *function_call_name;
+        struct AST **arguments; // Literal Values
+        uintptr_t arguments_size;
+    } FunctionCall;
 
     struct {
         char *struct_name;
