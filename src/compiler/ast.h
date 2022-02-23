@@ -29,7 +29,6 @@ typedef enum {
     AST_TYPE_ENUM_DECLARATION,
     AST_TYPE_ENUM_ITEM,
 
-    AST_TYPE_EXPRESSIONS,
     AST_TYPE_BINARY,
     AST_TYPE_UNARY,
     AST_TYPE_LITERAL,
@@ -94,11 +93,6 @@ typedef union {
         char *case_name;
         int case_value;
     } EnumItem;
-
-    struct {
-        struct AST **expressions;
-        uintptr_t expressions_size;
-    } Expressions;
 
     struct {
         struct AST *left;

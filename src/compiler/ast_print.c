@@ -53,9 +53,6 @@ void ast_print(AST *ast) {
         case AST_TYPE_ENUM_DECLARATION:
             ast_print_enum_declaration(ast);
             break;
-        case AST_TYPE_EXPRESSIONS:
-            ast_print_expressions(ast);
-            break;
         case AST_TYPE_BINARY:
             ast_print_binary(ast);
             break;
@@ -158,12 +155,6 @@ static inline void ast_print_type_name(AST *ast) {
         printf("%s[]", token_print(ast->value.ValueKeyword.token->type));
     } else {
         printf("%s", token_print(ast->value.ValueKeyword.token->type));
-    }
-}
-
-static inline void ast_print_expressions(AST *ast) {
-    for (int i = 0; i < ast->value.Expressions.expressions_size; i++) {
-        ast_print(ast->value.Expressions.expressions[i]);
     }
 }
 
