@@ -8,9 +8,9 @@ Right now, I just want a working compiler,
 
 - [x] Lexing
 - [ ] Parsing (30% Done)
-    - [ ] Variables (50%)
+    - [x] Variables
     - [ ] If, Else, Else If
-    - [ ] Return
+    - [x] Return
     - [ ] ASM
     - [ ] Cast
     - [ ] Switch, break, case, default

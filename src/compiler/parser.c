@@ -133,7 +133,7 @@ static inline AST *parse_expression(Parser *parser) {
 }
 
 static inline AST *parse_equality(Parser *parser) {
-    AST *left_expr = parse_expression(parser);
+    AST *left_expr = parse_unary(parser);
     AST *ast = ast_init_with_type(AST_TYPE_BINARY);
 
     if (parser->current->type == T_EQUAL_EQUAL || parser->current->type == T_NOT_EQUAL ||
@@ -184,7 +184,7 @@ static inline AST *parse_unary(Parser *parser) {
         Token *operator = parser->current;
         advance(parser, operator->type);
 
-        AST *right = parse_unary(parser);
+        AST *right = parse_expression(parser);
 
         tree->value.Unary.operator = operator;
         tree->value.Unary.right = right;
@@ -318,6 +318,9 @@ static inline AST *parse_function(Parser *parser) {
         new_ast->value.FunctionDeclaration.body[new_ast->value.FunctionDeclaration.body_size -
                                                 1] = parse_inner_statement(parser);
     }
+//    printf("wknefkajwenfkajwnefkjawe");
+    advance(parser, T_BRACE_CLOSE);
+//    advance_semi(parser);
 
     return new_ast;
 }
@@ -345,6 +348,7 @@ static inline AST *parse_variable(Parser *parser, bool is_constant) {
         tree->value.Variable.is_initialized = true;
         tree->value.Variable.value = parse_expression(parser);
 
+        advance_semi(parser);
         return tree;
     } else if (parser->current->type == T_COLON) {
         advance(parser, T_COLON);
@@ -358,6 +362,8 @@ static inline AST *parse_variable(Parser *parser, bool is_constant) {
             tree->value.Variable.is_initialized = true;
             tree->value.Variable.value = parse_expression(parser);
         }
+
+        advance_semi(parser);
         return tree;
     } else {
         fprintf(stderr, "Parser: Unexpected Token: `%s`, was expecting `=` or `:`\n",
@@ -406,6 +412,7 @@ static inline AST *parse_enum(Parser *parser) {
     }
 
     advance(parser, T_BRACE_CLOSE);
+    advance_semi(parser);
     return new_ast;
 }
 
@@ -434,6 +441,7 @@ static inline AST *parse_struct(Parser *parser) {
     }
 
     advance(parser, T_BRACE_CLOSE);
+    advance_semi(parser);
 
     return new_ast;
 }
@@ -443,6 +451,7 @@ static inline AST *parse_return(Parser *parser) {
 
     advance(parser, T_K_RETURN);
     new_ast->value.Return.return_expression = parse_expression(parser);
+    advance_semi(parser);
 
     return new_ast;
 }
@@ -492,7 +501,7 @@ static inline Token *advance_without_check(Parser *parser) {
 }
 
 static inline void advance_semi(Parser *parser) {
-    if (lexer_get_next_token_without_advance(parser->lexer)->type == T_SEMICOLON) {
+    if (parser->current->type == T_SEMICOLON) {
         advance(parser, T_SEMICOLON);
     }
 }

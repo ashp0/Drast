@@ -110,7 +110,7 @@ static inline void ast_print_function_declaration(AST *ast) {
         ast_print(ast->value.FunctionDeclaration.body[i]);
     }
 
-    printf("}\n");
+    printf("}\n\n");
 }
 
 static inline void ast_print_function_arguments(AST *ast) {
@@ -130,7 +130,7 @@ static inline void ast_print_struct_declaration(AST *ast) {
         ast_print_variable(ast->value.StructDeclaration.members[i]);
     }
 
-    printf("}\n");
+    printf("}\n\n");
 }
 
 static inline void ast_print_enum_declaration(AST *ast) {
@@ -141,7 +141,7 @@ static inline void ast_print_enum_declaration(AST *ast) {
                ast->value.EnumDeclaration.cases[i]->value.EnumItem.case_value);
     }
 
-    printf("}\n");
+    printf("}\n\n");
 }
 
 static inline void ast_print_return(AST *ast) {

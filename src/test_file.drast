@@ -15,6 +15,10 @@ struct Hello {
     let test: String
 }
 
+func multiply(first: Int, second: Int) -> Int {
+    return first * second
+}
+
 func main(argc: Int, argv: String[]) -> Int {
     // print("Hello World")
     var sadfasdf: Float[]

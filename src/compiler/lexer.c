@@ -65,7 +65,7 @@ Token *lexer_get_next_token(Lexer *lexer) {
     char c = lexer->current;
 
     if (is_eof(lexer))
-        return advance_token(T_EOF, (char[2]) {lexer->current, 0}, lexer, false);
+        return advance_token(T_EOF, (char[2]) {lexer->current, 0}, lexer, true);
 
     switch (c) {
         case ' ':
