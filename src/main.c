@@ -44,6 +44,7 @@ int main(int argc, char **argv) {
             break;
         AST *ast = parser_parse(parser);
         ast_print(ast);
+        free(ast);
     }
 
     return 0;

@@ -16,10 +16,10 @@ struct Hello {
 }
 
 func main(argc: Int, argv: String[]) -> Int {
-    //print("Hello World")
+    // print("Hello World")
     var sadfasdf: Float[]
-    var test = 6
-    var test = 6 < 3
+    var test = 6 / 3 + 2 + 50 / (9 + 10)
+    var test = (-5 - 3)
     var test = (test + 50)
     var number: Int = 50
     return 0

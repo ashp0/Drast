@@ -45,6 +45,10 @@ static inline AST *parse_primary(Parser *parser);
 
 static inline AST *parse_return(Parser *parser);
 
+static inline AST *parse_expressions(Parser *parser);
+
+static inline AST *parse_literal(Parser *parser);
+
 Parser *parser_init(Lexer *lexer) {
     Parser *parser = malloc(sizeof(Parser));
     parser->lexer = lexer;
@@ -129,21 +133,24 @@ static inline AST *parse_expression(Parser *parser) {
 }
 
 static inline AST *parse_equality(Parser *parser) {
-    AST *left_expr = parse_unary(parser);
+    AST *left_expr = parse_expression(parser);
     AST *ast = ast_init_with_type(AST_TYPE_BINARY);
 
-    while (parser->current->type == T_EQUAL_EQUAL || parser->current->type == T_NOT_EQUAL ||
-           parser->current->type == T_GREATER_THAN || parser->current->type == T_GREATER_THAN_EQUAL ||
-           parser->current->type == T_LESS_THAN || parser->current->type == T_LESS_THAN_EQUAL) {
+    if (parser->current->type == T_EQUAL_EQUAL || parser->current->type == T_NOT_EQUAL ||
+        parser->current->type == T_GREATER_THAN || parser->current->type == T_GREATER_THAN_EQUAL ||
+        parser->current->type == T_LESS_THAN || parser->current->type == T_LESS_THAN_EQUAL) {
         Token *operator = parser->current;
 
         advance(parser, operator->type);
 
-        AST *right_expr = parse_unary(parser);
+        AST *right_expr = parse_expression(parser);
 
         ast->value.Binary.left = left_expr;
         ast->value.Binary.operator = operator;
         ast->value.Binary.right = right_expr;
+    } else {
+        fprintf(stderr, "Parser: Expected Equality Operators\n");
+        exit(-2);
     }
 
     return ast;
@@ -153,15 +160,18 @@ static inline AST *parse_term(Parser *parser) {
     AST *tree = ast_init_with_type(AST_TYPE_BINARY);
     AST *left_factor = parse_unary(parser);
 
-    while (parser->current->type == T_OPERATOR_ADD || parser->current->type == T_OPERATOR_SUB ||
-           parser->current->type == T_OPERATOR_MUL || parser->current->type == T_OPERATOR_DIV) {
+    if (parser->current->type == T_OPERATOR_ADD || parser->current->type == T_OPERATOR_SUB ||
+        parser->current->type == T_OPERATOR_MUL || parser->current->type == T_OPERATOR_DIV) {
         Token *operator = parser->current;
         advance(parser, operator->type);
-        AST *right_factor = parse_unary(parser);
+        AST *right_factor = parse_expression(parser);
 
         tree->value.Binary.left = left_factor;
         tree->value.Binary.operator = operator;
         tree->value.Binary.right = right_factor;
+    } else {
+        fprintf(stderr, "Parser: Expected Math Operators\n");
+        exit(-2);
     }
 
     return tree;
@@ -186,15 +196,10 @@ static inline AST *parse_unary(Parser *parser) {
 }
 
 static inline AST *parse_primary(Parser *parser) {
-    AST *tree = ast_init_with_type(AST_TYPE_LITERAL);
-
     if (parser->current->type == T_K_TRUE || parser->current->type == T_K_FALSE || parser->current->type == T_INT ||
         parser->current->type == T_STRING || parser->current->type == T_FLOAT ||
         parser->current->type == T_IDENTIFIER) {
-        tree->value.Literal.literal_value = parser->current;
-        advance(parser, tree->value.Literal.literal_value->type);
-
-        return tree;
+        return parse_literal(parser);
     } else if (parser->current->type == T_PARENS_OPEN) {
         advance(parser, T_PARENS_OPEN);
 
@@ -205,8 +210,26 @@ static inline AST *parse_primary(Parser *parser) {
         expression_tree->value.Grouping.expression = expression;
 
         return expression_tree;
+    } else {
+        fprintf(stderr, "Parser: Expected Literal Values or Open Braces %s\n", token_print(parser->current->type));
+        exit(-2);
     }
-    return NULL;
+}
+
+static inline AST *parse_literal(Parser *parser) {
+    AST *tree = ast_init_with_type(AST_TYPE_LITERAL);
+
+    if (parser->current->type == T_K_TRUE || parser->current->type == T_K_FALSE || parser->current->type == T_INT ||
+        parser->current->type == T_STRING || parser->current->type == T_FLOAT ||
+        parser->current->type == T_IDENTIFIER) {
+        tree->value.Literal.literal_value = parser->current;
+        advance(parser, tree->value.Literal.literal_value->type);
+
+        return tree;
+    } else {
+        fprintf(stderr, "Parser: Not a literal %s\n", token_print(parser->current->type));
+        exit(-2);
+    }
 }
 
 static inline AST *parse_import(Parser *parser) {
@@ -271,9 +294,9 @@ static inline AST *parse_function(Parser *parser) {
 
     // Return Type
     if (parser->current->type == T_ARROW) {
-    	advance(parser, T_ARROW);
+        advance(parser, T_ARROW);
         new_ast->value.FunctionDeclaration.has_return_type = true;
-    	new_ast->value.FunctionDeclaration.return_type = parse_type_name(parser);
+        new_ast->value.FunctionDeclaration.return_type = parse_type_name(parser);
     } else {
         new_ast->value.FunctionDeclaration.has_return_type = false;
         new_ast->value.FunctionDeclaration.return_type = NULL;
@@ -323,14 +346,12 @@ static inline AST *parse_variable(Parser *parser, bool is_constant) {
         tree->value.Variable.value = parse_expression(parser);
 
         return tree;
-        // TODO: Parse expression
     } else if (parser->current->type == T_COLON) {
         advance(parser, T_COLON);
 
         tree->value.Variable.is_initialized = false;
         tree->value.Variable.value = parse_type_name(parser);
 
-        // TODO: If there is an equal sign, also check if the they are casting
         if (parser->current->type == T_EQUAL) {
             advance(parser, T_EQUAL);
 
@@ -343,8 +364,6 @@ static inline AST *parse_variable(Parser *parser, bool is_constant) {
                 token_print(parser->current->type));
         exit(-2);
     }
-
-    return tree;
 }
 
 static inline AST *parse_enum(Parser *parser) {
