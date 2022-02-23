@@ -128,6 +128,4 @@ AST *ast_init(void);
 
 AST *ast_init_with_type(ASTType type);
 
-AST *ast_init_with_type_and_value(ASTType type, ASTValue value);
-
 #endif // __DRAST_COMPILER_AST_H__

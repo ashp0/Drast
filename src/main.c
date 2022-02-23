@@ -40,7 +40,7 @@ int main(int argc, char **argv) {
 //        if (next_token->token == T_EOF)
 //            break;
 //        printf("%s(`%s`)\n", token_print(next_token->token), next_token->value);
-        if (lexer_get_next_token_without_advance(parser->lexer)->type == T_EOF)
+        if (parser->current->type == T_EOF)
             break;
         AST *ast = parser_parse(parser);
         ast_print(ast);

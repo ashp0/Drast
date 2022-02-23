@@ -19,11 +19,3 @@ AST *ast_init_with_type(ASTType type) {
 
     return ast;
 }
-
-AST *ast_init_with_type_and_value(ASTType type, ASTValue value) {
-    AST *ast = ast_init();
-    ast->type = type;
-    ast->value = value;
-
-    return ast;
-}

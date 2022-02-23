@@ -116,11 +116,22 @@ static inline AST *parse_struct_statements(Parser *parser) {
 static inline AST *parse_expression(Parser *parser) {
     Token *next_token = lexer_get_next_token_without_advance(parser->lexer);
     if (next_token->type == T_OPERATOR_ADD || next_token->type == T_OPERATOR_SUB ||
-        next_token->type == T_OPERATOR_MUL || next_token->type == T_OPERATOR_DIV) {
+        next_token->type == T_OPERATOR_MUL || next_token->type == T_OPERATOR_DIV ||
+        next_token->type == T_OPERATOR_MOD || next_token->type == T_BITWISE_PIPE ||
+        next_token->type == T_BITWISE_SHIFT_LEFT || next_token->type == T_BITWISE_SHIFT_RIGHT ||
+        next_token->type == T_BITWISE_POWER || next_token->type == T_BITWISE_NOT) {
         return parse_term(parser);
     } else if (next_token->type == T_EQUAL_EQUAL || next_token->type == T_NOT_EQUAL ||
                next_token->type == T_GREATER_THAN || next_token->type == T_GREATER_THAN_EQUAL ||
-               next_token->type == T_LESS_THAN || next_token->type == T_LESS_THAN_EQUAL) {
+               next_token->type == T_LESS_THAN || next_token->type == T_LESS_THAN_EQUAL ||
+               next_token->type == T_OPERATOR_ADD_EQUAL || next_token->type == T_OPERATOR_SUB_EQUAL ||
+               next_token->type == T_OPERATOR_MUL_EQUAL || next_token->type == T_OPERATOR_DIV_EQUAL ||
+               next_token->type == T_OPERATOR_MOD_EQUAL ||
+               next_token->type == T_BITWISE_AND_EQUAL || next_token->type == T_BITWISE_AND_AND_EQUAL ||
+               next_token->type == T_BITWISE_PIPE_EQUAL || next_token->type == T_BITWISE_PIPE_PIPE_EQUAL ||
+               next_token->type == T_BITWISE_SHIFT_LEFT_EQUAL || next_token->type == T_BITWISE_SHIFT_RIGHT_EQUAL ||
+               next_token->type == T_BITWISE_POWER_EQUAL || next_token->type == T_NOT ||
+               next_token->type == T_BITWISE_PIPE_PIPE) {
         return parse_equality(parser);
     } else if (parser->current->type == T_K_TRUE || parser->current->type == T_K_FALSE ||
                parser->current->type == T_INT || parser->current->type == T_STRING ||
@@ -138,7 +149,15 @@ static inline AST *parse_equality(Parser *parser) {
 
     if (parser->current->type == T_EQUAL_EQUAL || parser->current->type == T_NOT_EQUAL ||
         parser->current->type == T_GREATER_THAN || parser->current->type == T_GREATER_THAN_EQUAL ||
-        parser->current->type == T_LESS_THAN || parser->current->type == T_LESS_THAN_EQUAL) {
+        parser->current->type == T_LESS_THAN || parser->current->type == T_LESS_THAN_EQUAL ||
+        parser->current->type == T_OPERATOR_ADD_EQUAL || parser->current->type == T_OPERATOR_SUB_EQUAL ||
+        parser->current->type == T_OPERATOR_MUL_EQUAL || parser->current->type == T_OPERATOR_DIV_EQUAL ||
+        parser->current->type == T_OPERATOR_MOD_EQUAL ||
+        parser->current->type == T_BITWISE_AND_EQUAL || parser->current->type == T_BITWISE_AND_AND_EQUAL ||
+        parser->current->type == T_BITWISE_PIPE_EQUAL || parser->current->type == T_BITWISE_PIPE_PIPE_EQUAL ||
+        parser->current->type == T_BITWISE_SHIFT_LEFT_EQUAL || parser->current->type == T_BITWISE_SHIFT_RIGHT_EQUAL ||
+        parser->current->type == T_BITWISE_POWER_EQUAL || parser->current->type == T_NOT ||
+        parser->current->type == T_BITWISE_PIPE_PIPE) {
         Token *operator = parser->current;
 
         advance(parser, operator->type);
@@ -161,7 +180,10 @@ static inline AST *parse_term(Parser *parser) {
     AST *left_factor = parse_unary(parser);
 
     if (parser->current->type == T_OPERATOR_ADD || parser->current->type == T_OPERATOR_SUB ||
-        parser->current->type == T_OPERATOR_MUL || parser->current->type == T_OPERATOR_DIV) {
+        parser->current->type == T_OPERATOR_MUL || parser->current->type == T_OPERATOR_DIV ||
+        parser->current->type == T_OPERATOR_MOD || parser->current->type == T_BITWISE_PIPE ||
+        parser->current->type == T_BITWISE_SHIFT_LEFT || parser->current->type == T_BITWISE_SHIFT_RIGHT ||
+        parser->current->type == T_BITWISE_POWER || parser->current->type == T_BITWISE_NOT) {
         Token *operator = parser->current;
         advance(parser, operator->type);
         AST *right_factor = parse_expression(parser);
@@ -318,9 +340,8 @@ static inline AST *parse_function(Parser *parser) {
         new_ast->value.FunctionDeclaration.body[new_ast->value.FunctionDeclaration.body_size -
                                                 1] = parse_inner_statement(parser);
     }
-//    printf("wknefkajwenfkajwnefkjawe");
     advance(parser, T_BRACE_CLOSE);
-//    advance_semi(parser);
+    advance_semi(parser);
 
     return new_ast;
 }
