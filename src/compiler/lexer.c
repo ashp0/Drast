@@ -210,7 +210,11 @@ Token *lexer_get_next_token(Lexer *lexer) {
         case '~':
             return advance_token(T_BITWISE_NOT, "~", lexer, false);
         case ':':
-            return advance_token(T_COLON, ":", lexer, false);
+            if (peek_next(lexer) == ':') {
+                advance(lexer);
+                return advance_token(T_DOUBLE_COLON, "::", lexer, false);
+            } else
+                return advance_token(T_COLON, ":", lexer, false);
         case ';':
             return advance_token(T_SEMICOLON, ";", lexer, false);
         case '(':
@@ -362,13 +366,13 @@ static inline Token *is_identifier_token(char *identifier, Lexer *lexer) {
         return advance_token(T_K_TRUE, identifier, lexer, true);
     else if (strcmp(identifier, "Bool") == 0)
         return advance_token(T_K_BOOL, identifier, lexer, true);
-    else if (strcmp(identifier, "Int") == 0)
+    else if (strcmp(identifier, "int") == 0)
         return advance_token(T_K_INT, identifier, lexer, true);
-    else if (strcmp(identifier, "Float") == 0)
+    else if (strcmp(identifier, "float") == 0)
         return advance_token(T_K_FLOAT, identifier, lexer, true);
-    else if (strcmp(identifier, "Void") == 0)
+    else if (strcmp(identifier, "void") == 0)
         return advance_token(T_K_VOID, identifier, lexer, true);
-    else if (strcmp(identifier, "String") == 0)
+    else if (strcmp(identifier, "string") == 0)
         return advance_token(T_K_STRING, identifier, lexer, true);
     else if (strcmp(identifier, "goto") == 0)
         return advance_token(T_K_GOTO, identifier, lexer, true);

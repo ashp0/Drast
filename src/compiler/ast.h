@@ -55,12 +55,14 @@ typedef union {
         bool is_initialized;
         bool is_volatile;
         struct AST *value;
+        struct AST *type;
     } VariableDeclaration;
 
     struct {
         Token *token;
         bool is_array;
         bool is_optional;
+        bool is_pointer;
     } ValueKeyword;
 
     struct {

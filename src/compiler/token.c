@@ -183,6 +183,8 @@ char *token_print(int type) {
             return "T_ARROW";
         case T_COLON:
             return "T_COLON";
+        case T_DOUBLE_COLON:
+            return "T_DOUBLE_COLON";
         case T_SEMICOLON:
             return "T_SEMICOLON";
         case T_PARENS_OPEN:
@@ -214,5 +216,6 @@ char *token_print(int type) {
             return "T_EOF";
     }
 
+    printf("%d ", type);
     return "UNKNOWN TOKEN";
 }

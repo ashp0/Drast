@@ -99,26 +99,23 @@ static inline void ast_print_import(AST *ast) {
 }
 
 static inline void ast_print_variable(AST *ast) {
-    printf("(var/let) %s", ast->value.VariableDeclaration.identifier);
+    ast_print_type_name(ast->value.VariableDeclaration.type);
+    printf(" %s", ast->value.VariableDeclaration.identifier);
 
     if (ast->value.VariableDeclaration.is_initialized) {
         printf(" = ");
         ast_print(ast->value.VariableDeclaration.value);
-        printf("\n");
-    } else {
-        printf(": ");
-        ast_print_type_name(ast->value.VariableDeclaration.value);
-        printf("\n");
     }
+    if (ast->value.VariableDeclaration.type->value.ValueKeyword.is_optional) {
+        printf("?");
+    }
+    printf("\n");
 }
 
 static inline void ast_print_function_declaration(AST *ast) {
-    printf("func %s(", ast->value.FunctionDeclaration.function_name);
+    ast_print(ast->value.FunctionDeclaration.return_type);
+    printf(" :: %s(", ast->value.FunctionDeclaration.function_name);
     ast_print_function_arguments(ast);
-    if (ast->value.FunctionDeclaration.has_return_type) {
-        printf(" -> ");
-        ast_print(ast->value.FunctionDeclaration.return_type);
-    }
     printf(" {\n");
 
     for (int i = 0; i < ast->value.FunctionDeclaration.body_size; i++) {
@@ -186,8 +183,8 @@ static inline void ast_print_type_name(AST *ast) {
         printf("%s", token_print(ast->value.ValueKeyword.token->type));
     }
 
-    if (ast->value.ValueKeyword.is_optional)
-        printf("?");
+    if (ast->value.ValueKeyword.is_pointer)
+        printf("*");
 }
 
 static inline void ast_print_binary(AST *ast) {

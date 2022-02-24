@@ -68,12 +68,30 @@ AST *parser_parse(Parser *parser) {
     return parse_statement(parser);
 }
 
+static inline AST *parse_variable_or_function_definition(Parser *parser, bool is_inner_statement) {
+    if (lexer_get_next_token_without_advance(parser->lexer)->type == T_DOUBLE_COLON && !is_inner_statement) {
+        return parse_function(parser);
+    } else {
+        if (is_inner_statement) {
+            return parse_variable(parser, false);
+        } else {
+            fprintf(stderr, "Parser: Cannot declare variable outside of scope\n");
+            exit(-2);
+        }
+    }
+
+}
+
 static inline AST *parse_statement(Parser *parser) {
     switch (parser->current->type) {
+        case T_K_INT:
+        case T_K_STRING:
+        case T_K_BOOL:
+        case T_K_FLOAT:
+        case T_K_VOID:
+            return parse_variable_or_function_definition(parser, false);
         case T_K_IMPORT:
             return parse_import(parser);
-        case T_K_FUNC:
-            return parse_function(parser);
         case T_K_STRUCT:
             return parse_struct_or_union(parser, false);
         case T_K_UNION:
@@ -95,10 +113,12 @@ static inline AST *parse_statement(Parser *parser) {
 
 static inline AST *parse_inner_statement(Parser *parser) {
     switch (parser->current->type) {
-        case T_K_VAR:
-            return parse_variable(parser, false);
-        case T_K_LET:
-            return parse_variable(parser, true);
+        case T_K_INT:
+        case T_K_STRING:
+        case T_K_BOOL:
+        case T_K_FLOAT:
+        case T_K_VOID:
+            return parse_variable_or_function_definition(parser, true);
         case T_K_RETURN:
             return parse_return(parser);
         case T_IDENTIFIER:
@@ -197,12 +217,12 @@ static inline AST *parse_while_statement(Parser *parser) {
 
 static inline AST *parse_struct_statements(Parser *parser) {
     switch (parser->current->type) {
-        case T_K_VAR:
+        case T_K_INT:
+        case T_K_STRING:
+        case T_K_BOOL:
+        case T_K_FLOAT:
+        case T_K_VOID:
             return parse_variable(parser, false);
-        case T_K_LET:
-            return parse_variable(parser, true);
-        case T_IDENTIFIER:
-            return parse_function_call(parser);
         default:
             fprintf(stderr, "Parser: Token `%s`, is not supposed to be declared inside of structs\n",
                     token_print(parser->current->type));
@@ -427,16 +447,14 @@ static inline AST *parse_function_call(Parser *parser) {
 
 static inline AST *parse_function(Parser *parser) {
     AST *new_ast = ast_init_with_type(AST_TYPE_FUNCTION_DECLARATION);
-    advance(parser, T_K_FUNC);
+    new_ast->value.FunctionDeclaration.has_return_type = true;
+    new_ast->value.FunctionDeclaration.return_type = parse_type_name(parser);
 
-    if (parser->current->type == T_K_PRIVATE) {
-        new_ast->value.FunctionDeclaration.is_private = true;
-        advance(parser, T_K_PRIVATE);
-    }
+    advance(parser, T_DOUBLE_COLON);
 
     new_ast->value.FunctionDeclaration.function_name = advance(parser, T_IDENTIFIER)->value;
 
-    // Parse Arguments
+//    // Parse Arguments
     advance(parser, T_PARENS_OPEN);
 
     new_ast->value.FunctionDeclaration.argument_size = 0;
@@ -450,9 +468,8 @@ static inline AST *parse_function(Parser *parser) {
                                                                sizeof(AST *));
 
         AST *argument = ast_init_with_type(AST_TYPE_FUNCTION_ARGUMENT);
-        argument->value.FunctionDeclarationArgument.argument_name = advance(parser, T_IDENTIFIER)->value;
-        advance(parser, T_COLON);
         argument->value.FunctionDeclarationArgument.argument_type = parse_type_name(parser);
+        argument->value.FunctionDeclarationArgument.argument_name = advance(parser, T_IDENTIFIER)->value;
 
         new_ast->value.FunctionDeclaration.arguments[new_ast->value.FunctionDeclaration.argument_size - 1] = argument;
 
@@ -462,16 +479,6 @@ static inline AST *parse_function(Parser *parser) {
         } else {
             advance(parser, T_COMMA);
         }
-    }
-
-    // Return Type
-    if (parser->current->type == T_ARROW) {
-        advance(parser, T_ARROW);
-        new_ast->value.FunctionDeclaration.has_return_type = true;
-        new_ast->value.FunctionDeclaration.return_type = parse_type_name(parser);
-    } else {
-        new_ast->value.FunctionDeclaration.has_return_type = false;
-        new_ast->value.FunctionDeclaration.return_type = NULL;
     }
 
     // Parse inner statement
@@ -497,21 +504,23 @@ static inline AST *parse_function(Parser *parser) {
 }
 
 static inline AST *parse_variable(Parser *parser, bool is_constant) {
+    // float myVariable = 4
+    // volatile float myVariable = 3
     AST *tree = is_constant ? ast_init_with_type(AST_TYPE_LET_DEFINITION) : ast_init_with_type(
             AST_TYPE_VARIABLE_DEFINITION);
-
-    is_constant ? advance(parser, T_K_LET) : advance(parser, T_K_VAR);
-
     if (parser->current->type == T_K_VOLATILE) {
         tree->value.VariableDeclaration.is_volatile = true;
         advance(parser, T_K_VOLATILE);
     } else {
         tree->value.VariableDeclaration.is_volatile = false;
     }
-
+    tree->value.VariableDeclaration.type = parse_type_name(parser);
     char *identifier = advance(parser, T_IDENTIFIER)->value;
     tree->value.VariableDeclaration.identifier = identifier;
-    tree->value.VariableDeclaration.is_constant = is_constant;
+    if (parser->current->type == T_QUESTION) {
+        tree->value.VariableDeclaration.type->value.ValueKeyword.is_optional = true;
+        advance(parser, T_QUESTION);
+    }
 
     if (parser->current->type == T_EQUAL) {
         advance(parser, T_EQUAL);
@@ -521,26 +530,12 @@ static inline AST *parse_variable(Parser *parser, bool is_constant) {
 
         advance_semi(parser);
         return tree;
-    } else if (parser->current->type == T_COLON) {
-        advance(parser, T_COLON);
-
-        tree->value.VariableDeclaration.is_initialized = false;
-        tree->value.VariableDeclaration.value = parse_type_name(parser);
-
-        if (parser->current->type == T_EQUAL) {
-            advance(parser, T_EQUAL);
-
-            tree->value.VariableDeclaration.is_initialized = true;
-            tree->value.VariableDeclaration.value = parse_expression(parser);
-        }
-
-        advance_semi(parser);
-        return tree;
-    } else {
-        fprintf(stderr, "Parser: Unexpected Token: `%s`, was expecting `=` or `:`\n",
-                token_print(parser->current->type));
-        exit(-2);
     }
+
+    tree->value.VariableDeclaration.is_initialized = false;
+    advance_semi(parser);
+
+    return tree;
 }
 
 static inline AST *parse_enum(Parser *parser) {
@@ -638,8 +633,9 @@ static inline AST *parse_return(Parser *parser) {
 }
 
 static inline AST *parse_type_name(Parser *parser) {
+
     if (parser->current->type == T_K_INT || parser->current->type == T_K_FLOAT || parser->current->type == T_K_BOOL ||
-        parser->current->type == T_K_STRING) {
+        parser->current->type == T_K_STRING || parser->current->type == T_K_VOID) {
         AST *new_ast = ast_init_with_type(AST_TYPE_VALUE_KEYWORD);
         new_ast->value.ValueKeyword.token = parser->current;
 
@@ -648,22 +644,20 @@ static inline AST *parse_type_name(Parser *parser) {
             advance(parser, T_SQUARE_OPEN);
             advance(parser, T_SQUARE_CLOSE);
 
-            if (parser->current->type == T_QUESTION) {
-                new_ast->value.ValueKeyword.is_optional = true;
-                advance(parser, T_QUESTION);
-            }
-
             new_ast->value.ValueKeyword.is_array = true;
+
+            if (parser->current->type == T_OPERATOR_MUL) {
+                advance(parser, T_OPERATOR_MUL);
+                new_ast->value.ValueKeyword.is_pointer = true;
+            }
 
             return new_ast;
         }
 
-
         advance(parser, new_ast->value.ValueKeyword.token->type);
-
-        if (parser->current->type == T_QUESTION) {
-            new_ast->value.ValueKeyword.is_optional = true;
-            advance(parser, T_QUESTION);
+        if (parser->current->type == T_OPERATOR_MUL) {
+            advance(parser, T_OPERATOR_MUL);
+            new_ast->value.ValueKeyword.is_pointer = true;
         }
 
         return new_ast;
@@ -675,7 +669,8 @@ static inline AST *parse_type_name(Parser *parser) {
 
 static inline Token *advance(Parser *parser, uintptr_t type) {
     if (parser->current->type != type) {
-        fprintf(stderr, "Parser: Unexpected Token: `%s`, was expecting `%s`\n", token_print(parser->current->type),
+        fprintf(stderr, "Parser: Unexpected Token: `%s` :: `%s`, was expecting `%s`\n",
+                token_print(parser->current->type), parser->current->value,
                 token_print((int) type));
         exit(-2);
     }

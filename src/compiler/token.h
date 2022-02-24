@@ -8,6 +8,8 @@
 #ifndef __DRAST_COMPILER_TOKEN_H__
 #define __DRAST_COMPILER_TOKEN_H__
 
+#include "stdio.h"
+
 typedef struct {
     char *value;
     enum {
@@ -113,6 +115,7 @@ typedef struct {
         // Symbols
         T_ARROW,        // ->
         T_COLON,        // :
+        T_DOUBLE_COLON, // ::
         T_SEMICOLON,    // ;
         T_PARENS_OPEN,  // (
         T_PARENS_CLOSE, // )
