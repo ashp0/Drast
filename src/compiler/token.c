@@ -10,12 +10,6 @@
 char *token_print(int type) {
     switch (type) {
         // Keywords
-        case T_K_FUNC:
-            return "T_K_FUNC";
-        case T_K_LET:
-            return "T_K_LET";
-        case T_K_VAR:
-            return "T_K_VAR";
         case T_K_STRUCT:
             return "T_K_STRUCT";
         case T_K_ENUM:
@@ -91,10 +85,6 @@ char *token_print(int type) {
             return "T_K_TRY";
         case T_K_CATCH:
             return "T_K_CATCH";
-        case T_K_THROW:
-            return "T_K_THROW";
-        case T_K_THROWS:
-            return "T_K_THROWS";
 
         case T_QUESTION:
             return "T_QUESTION";

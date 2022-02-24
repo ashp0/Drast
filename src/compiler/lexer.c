@@ -316,13 +316,7 @@ static inline Token *parse_identifier(Lexer *lexer) {
 }
 
 static inline Token *is_identifier_token(char *identifier, Lexer *lexer) {
-    if (strcmp(identifier, "func") == 0)
-        return advance_token(T_K_FUNC, identifier, lexer, true);
-    else if (strcmp(identifier, "let") == 0)
-        return advance_token(T_K_LET, identifier, lexer, true);
-    else if (strcmp(identifier, "var") == 0)
-        return advance_token(T_K_VAR, identifier, lexer, true);
-    else if (strcmp(identifier, "struct") == 0)
+    if (strcmp(identifier, "struct") == 0)
         return advance_token(T_K_STRUCT, identifier, lexer, true);
     else if (strcmp(identifier, "enum") == 0)
         return advance_token(T_K_ENUM, identifier, lexer, true);
@@ -364,7 +358,7 @@ static inline Token *is_identifier_token(char *identifier, Lexer *lexer) {
         return advance_token(T_K_FALSE, identifier, lexer, true);
     else if (strcmp(identifier, "true") == 0)
         return advance_token(T_K_TRUE, identifier, lexer, true);
-    else if (strcmp(identifier, "Bool") == 0)
+    else if (strcmp(identifier, "bool") == 0)
         return advance_token(T_K_BOOL, identifier, lexer, true);
     else if (strcmp(identifier, "int") == 0)
         return advance_token(T_K_INT, identifier, lexer, true);
@@ -384,10 +378,6 @@ static inline Token *is_identifier_token(char *identifier, Lexer *lexer) {
         return advance_token(T_K_TRY, identifier, lexer, true);
     else if (strcmp(identifier, "catch") == 0)
         return advance_token(T_K_CATCH, identifier, lexer, true);
-    else if (strcmp(identifier, "throw") == 0)
-        return advance_token(T_K_THROW, identifier, lexer, true);
-    else if (strcmp(identifier, "throws") == 0)
-        return advance_token(T_K_THROWS, identifier, lexer, true);
     else
         return advance_token(T_IDENTIFIER, identifier, lexer, true);
 }

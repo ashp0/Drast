@@ -98,8 +98,6 @@ static inline AST *parse_statement(Parser *parser) {
             return parse_struct_or_union(parser, true);
         case T_K_ENUM:
             return parse_enum(parser);
-        case T_K_VAR:
-        case T_K_LET:
         case T_BRACE_OPEN:
         case T_BRACE_CLOSE:
         case T_K_IF:

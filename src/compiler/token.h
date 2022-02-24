@@ -14,9 +14,6 @@ typedef struct {
     char *value;
     enum {
         // Keywords
-        T_K_FUNC,
-        T_K_LET,
-        T_K_VAR,
         T_K_STRUCT,
         T_K_ENUM,
         T_K_ALIAS,
@@ -57,8 +54,6 @@ typedef struct {
         T_K_DO,
         T_K_TRY,
         T_K_CATCH,
-        T_K_THROW,
-        T_K_THROWS,
 
         // Operators
         T_QUESTION, // ?
