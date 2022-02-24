@@ -55,6 +55,10 @@ static inline AST *parse_if_else_statement(Parser *parser, bool is_else);
 
 static inline AST *parse_while_statement(Parser *parser);
 
+static inline AST *parse_asm(Parser *parser);
+
+static inline AST *parse_switch_statement(Parser *parser);
+
 Parser *parser_init(Lexer *lexer) {
     Parser *parser = malloc(sizeof(Parser));
     parser->lexer = lexer;
@@ -84,6 +88,8 @@ static inline AST *parse_variable_or_function_definition(Parser *parser, bool is
 
 static inline AST *parse_statement(Parser *parser) {
     switch (parser->current->type) {
+        case T_K_ASM:
+            return parse_asm(parser);
         case T_K_INT:
         case T_K_STRING:
         case T_K_CHAR:
@@ -112,6 +118,8 @@ static inline AST *parse_statement(Parser *parser) {
 
 static inline AST *parse_inner_statement(Parser *parser) {
     switch (parser->current->type) {
+        case T_K_SWITCH:
+            return parse_switch_statement(parser);
         case T_K_INT:
         case T_K_STRING:
         case T_K_CHAR:
@@ -134,6 +142,101 @@ static inline AST *parse_inner_statement(Parser *parser) {
                     token_print(parser->current->type));
             exit(-2);
     }
+}
+
+static inline AST *parse_switch_statement(Parser *parser) {
+    AST *new_tree = ast_init_with_type(AST_TYPE_SWITCH_STATEMENT);
+
+    advance(parser, T_K_SWITCH);
+    advance(parser, T_PARENS_OPEN);
+    new_tree->value.SwitchStatement.expression = parse_expression(parser);
+    advance(parser, T_PARENS_CLOSE);
+
+    advance(parser, T_BRACE_OPEN);
+
+    new_tree->value.SwitchStatement.switch_cases_size = 0;
+    new_tree->value.SwitchStatement.switch_cases = calloc(1, sizeof(AST *));
+
+    while (parser->current->type != T_BRACE_CLOSE) {
+        new_tree->value.SwitchStatement.switch_cases_size += 1;
+
+        new_tree->value.SwitchStatement.switch_cases = realloc(new_tree->value.SwitchStatement.switch_cases,
+                                                               new_tree->value.SwitchStatement.switch_cases_size *
+                                                               sizeof(AST *));
+        bool is_default = false;
+        if (parser->current->type == T_K_CASE)
+            advance(parser, T_K_CASE);
+        else {
+            is_default = true;
+            advance(parser, T_K_DEFAULT);
+        }
+
+        AST *switch_case = ast_init_with_type(AST_TYPE_SWITCH_CASE);
+        if (!is_default)
+            switch_case->value.SwitchCase.expression = parse_expression(parser);
+        else
+            switch_case->value.SwitchCase.is_default = true;
+
+        advance(parser, T_COLON);
+
+        switch_case->value.SwitchCase.body_size = 0;
+        switch_case->value.SwitchCase.body = calloc(1, sizeof(AST *));
+
+        while (parser->current->type != T_BRACE_CLOSE) {
+            switch_case->value.SwitchCase.body_size += 1;
+
+            switch_case->value.SwitchCase.body = realloc(switch_case->value.SwitchCase.body,
+                                                         switch_case->value.SwitchCase.body_size *
+                                                         sizeof(AST *));
+
+            if (parser->current->type == T_K_BREAK) {
+                AST *literal_value = ast_init_with_type(AST_TYPE_LITERAL);
+                literal_value->value.Literal.literal_value = parser->current;
+                switch_case->value.SwitchCase.body[switch_case->value.SwitchCase.body_size -
+                                                   1] = literal_value;
+                advance(parser, T_K_BREAK);
+            } else {
+                switch_case->value.SwitchCase.body[switch_case->value.SwitchCase.body_size -
+                                                   1] = parse_inner_statement(parser);
+            }
+
+            if (parser->current->type == T_BRACE_CLOSE || parser->current->type == T_K_CASE ||
+                parser->current->type == T_K_DEFAULT) {
+                break;
+            }
+        }
+
+        new_tree->value.SwitchStatement.switch_cases[new_tree->value.SwitchStatement.switch_cases_size -
+                                                     1] = switch_case;
+    }
+    advance(parser, T_BRACE_CLOSE);
+
+    return new_tree;
+}
+
+static inline AST *parse_asm(Parser *parser) {
+    AST *new_tree = ast_init_with_type(AST_TYPE_INLINE_ASSEMBLY);
+
+    advance(parser, T_K_ASM);
+    advance(parser, T_BRACE_OPEN);
+
+    new_tree->value.InlineAssembly.instructions_size = 0;
+    new_tree->value.InlineAssembly.instruction = calloc(1, sizeof(AST *));
+
+    while (parser->current->type != T_BRACE_CLOSE) {
+        new_tree->value.InlineAssembly.instructions_size += 1;
+
+        new_tree->value.InlineAssembly.instruction = realloc(new_tree->value.InlineAssembly.instruction,
+                                                             new_tree->value.InlineAssembly.instructions_size *
+                                                             sizeof(AST *));
+
+        new_tree->value.InlineAssembly.instruction[new_tree->value.InlineAssembly.instructions_size -
+                                                   1] = advance(parser, T_STRING)->value;
+    }
+
+    advance(parser, T_BRACE_CLOSE);
+
+    return new_tree;
 }
 
 static inline AST *parse_if_else_statement(Parser *parser, bool is_else) {
@@ -365,6 +468,10 @@ static inline AST *parse_literal(Parser *parser) {
         tree->value.Literal.literal_value = parser->current;
         advance(parser, tree->value.Literal.literal_value->type);
 
+        if (parser->current->type == T_PARENS_OPEN) {
+            return parse_function_call(parser);
+        }
+
         return tree;
     } else {
         fprintf(stderr, "Parser: Not a literal %s\n", token_print(parser->current->type));
@@ -407,11 +514,9 @@ static inline AST *parse_variable_call(Parser *parser) {
     AST *new_ast = ast_init_with_type(AST_TYPE_VARIABLE_CALL);
     new_ast->value.VariableCall.variable_name = parser->previous->value;
 
-    if (parser->current->type == T_EQUAL) {
-        new_ast->value.VariableCall.is_expression = true;
-        advance(parser, T_EQUAL);
-        new_ast->value.VariableCall.expression = parse_expression(parser);
-    }
+    new_ast->value.VariableCall.is_expression = true;
+    advance_without_check(parser);
+    new_ast->value.VariableCall.expression = parse_expression(parser);
 
     return new_ast;
 }
@@ -439,13 +544,11 @@ static inline AST *parse_function_call(Parser *parser) {
 
         new_ast->value.FunctionCall.arguments[new_ast->value.FunctionCall.arguments_size - 1] = argument;
 
-        if (parser->current->type == T_PARENS_CLOSE) {
-            advance(parser, T_PARENS_CLOSE);
-            break;
-        } else {
+        if (parser->current->type != T_PARENS_CLOSE)
             advance(parser, T_COMMA);
-        }
     }
+
+    advance(parser, T_PARENS_CLOSE);
 
     advance_semi(parser);
 

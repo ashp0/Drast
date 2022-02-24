@@ -6,16 +6,17 @@ simplicity
 ## TODO
 
 - [x] Lexing
-- [ ] Parsing (62% Done)
+- [ ] Parsing (57% Done)
     - [x] Variables
     - [x] If, Else, Else If
     - [x] Return
-    - [ ] ASM
+    - [x] ASM
     - [ ] Cast
-    - [ ] Switch, break, case, default
+    - [x] Switch, break, case, default
     - [ ] For, While, Continue (50%)
     - [x] Union
     - [ ] Do Catch Try (25%)
+    - [ ] matches keyword
     - [x] Import
     - [x] Functions
     - [x] Struct

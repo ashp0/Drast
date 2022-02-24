@@ -39,6 +39,12 @@ static inline void ast_print_if_else_statement(AST *ast);
 
 static inline void ast_print_while_statement(AST *ast);
 
+static inline void ast_print_inline_assembly(AST *ast);
+
+static inline void ast_print_switch_statement(AST *ast);
+
+static inline void ast_print_switch_case_statement(AST *ast);
+
 void ast_print(AST *ast) {
     switch (ast->type) {
         case AST_TYPE_IMPORT:
@@ -87,6 +93,12 @@ void ast_print(AST *ast) {
         case AST_TYPE_WHILE_STATEMENT:
             ast_print_while_statement(ast);
             break;
+        case AST_TYPE_INLINE_ASSEMBLY:
+            ast_print_inline_assembly(ast);
+            break;
+        case AST_TYPE_SWITCH_STATEMENT:
+            ast_print_switch_statement(ast);
+            break;
         default:
             printf("Cannot Print AST %d\n", ast->type);
             break;
@@ -110,6 +122,32 @@ static inline void ast_print_variable(AST *ast) {
         printf("?");
     }
     printf("\n");
+}
+
+static inline void ast_print_switch_statement(AST *ast) {
+    printf("switch (");
+    ast_print(ast->value.SwitchStatement.expression);
+    printf(") {\n");
+
+    for (int i = 0; i < ast->value.SwitchStatement.switch_cases_size; ++i) {
+        printf("\t\t");
+        ast_print_switch_case_statement(ast->value.SwitchStatement.switch_cases[i]);
+    }
+}
+
+static inline void ast_print_switch_case_statement(AST *ast) {
+    if (!ast->value.SwitchCase.is_default) {
+        printf("\n\t\tcase (");
+        ast_print(ast->value.SwitchCase.expression);
+        printf("): \n");
+    } else {
+        printf("\n\t\tdefault: \n");
+    }
+
+    for (int i = 0; i < ast->value.SwitchCase.body_size; i++) {
+        printf("\t\t\t");
+        ast_print(ast->value.SwitchCase.body[i]);
+    }
 }
 
 static inline void ast_print_function_declaration(AST *ast) {
@@ -138,11 +176,16 @@ static inline void ast_print_function_arguments(AST *ast) {
 
 static inline void ast_print_function_call(AST *ast) {
     printf("%s(", ast->value.FunctionCall.function_call_name);
+
     for (int i = 0; i < ast->value.FunctionCall.arguments_size; i++) {
         ast_print(ast->value.FunctionCall.arguments[i]);
         printf(", ");
     }
-    printf("\b\b)\n");
+
+    if (ast->value.FunctionCall.arguments_size == 0)
+        printf(")\n");
+    else
+        printf("\b\b)\n");
 }
 
 static inline void ast_print_struct_declaration(AST *ast) {
@@ -243,4 +286,13 @@ static inline void ast_print_while_statement(AST *ast) {
         ast_print(ast->value.WhileStatement.body[i]);
     }
     printf("\t}\n");
+}
+
+static inline void ast_print_inline_assembly(AST *ast) {
+    printf("asm {\n");
+    for (int i = 0; i < ast->value.InlineAssembly.instructions_size; ++i) {
+        printf("\t");
+        printf("%s\n", ast->value.InlineAssembly.instruction[i]);
+    }
+    printf("}\n");
 }

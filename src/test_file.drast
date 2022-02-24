@@ -21,6 +21,13 @@ union Hello2 {
     string[] test2
 }
 
+asm {
+"loop:"
+    "cli"
+    "htl"
+    "jmp loop"
+}
+
 float :: multiply(float first, float second) {
     return first * second
 }
@@ -30,6 +37,7 @@ int :: main(int argc, string[] argv) {
     char test = "c"
     float[] sadfasdf?
 
+    int myTest = multiply()
     float test = 6 / 3 + 2 + 50 / 9 + 10 == 10
     float test = (-5 - 3)
 
@@ -43,6 +51,16 @@ int :: main(int argc, string[] argv) {
 
     while (test == "askjdfn") {
         float test = 450
+    }
+
+    switch (50 + 30) {
+        case "lmao":
+            float test
+            break
+        case "lmao2":
+            float test2
+        default:
+            float test3
     }
 
     testing(hello, "testing")

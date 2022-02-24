@@ -1,25 +1,24 @@
 # Keywords
 
-## setval
+## matches
 
 **Set a variable's value corresponding to a value. Similar to switch statements**
 
-> `setval (<variable>, <variable1>) {[<value>:]}`
+> `matches (<variable>) {[<value>:]}`
 
-- `variable` The name of the variable who's value will be changed
-- `variable1` The variable that will be compared to set that value of
-- `value` If the variable1 is equal to this value, the variable will be set to this value
+- `variable` The variable that will be compared
+- `value` If the variable is equal to this value, the a value will be returned
 
 ```C
-setval(self.result, operator) {
-    '+': first_number + second_number
-    '-': first_number - second_number
-    '*': first_number * second_number
-    '/': first_number / second_number
-    '%': first_number % second_number
-    _ {
-        assert("Invalid operator")
-    }
+result = matches(operator) {
+        '+': first_number + second_number
+        '-': first_number - second_number
+        '*': first_number * second_number
+        '/': first_number / second_number
+        '%': first_number % second_number
+        _ {
+            throw("Invalid operator")
+        }
 }
 ```
 
@@ -28,11 +27,11 @@ setval(self.result, operator) {
 - If you need to use more than one command, then you have to use the `{` and `}` brackets.
 - `_` is the default operator.
 - If you don't use the `_` operator, it will check if it's an optional value, if it is; the variable will be set to nil.
-  If not, the compiler will throw an error.
+  If not, the compiler will throw an error. The compiler will also send a warning
 
 **Use Cases:**
 
-- Instead of using switch statements to just set the value of a variable, you can use setval. ( Switch statements are
+- Instead of using switch statements to just set the value of a variable, you can use matches. ( Switch statements are
   meant for when you need to check if a value is equal to a certain value. And then do more operations, this is only 1
   operation, which is setting the value of a variable. )
 

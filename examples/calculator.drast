@@ -19,14 +19,14 @@ int :: main(int argc, string[] argv) {
     getInput("Type your operator\n")
     operator = readChar()
 
-    setval(result, operator) {
+    result = matches(operator) {
         '+': first_number + second_number
         '-': first_number - second_number
         '*': first_number * second_number
         '/': first_number / second_number
         '%': first_number % second_number
         _ {
-            assert("Invalid operator")
+            throw("Invalid operator")
         }
     }
 

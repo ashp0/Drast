@@ -41,6 +41,11 @@ typedef enum {
     AST_TYPE_IF_ELSE_STATEMENT,
 
     AST_TYPE_WHILE_STATEMENT,
+
+    AST_TYPE_INLINE_ASSEMBLY,
+
+    AST_TYPE_SWITCH_STATEMENT,
+    AST_TYPE_SWITCH_CASE,
 } ASTType;
 
 typedef union {
@@ -155,6 +160,26 @@ typedef union {
         struct AST **body;
         uintptr_t body_size;
     } WhileStatement;
+
+    struct {
+        char **instruction;
+        uintptr_t instructions_size;
+    } InlineAssembly;
+
+    struct {
+        struct AST *expression;
+
+        struct AST **switch_cases;
+        uintptr_t switch_cases_size;
+    } SwitchStatement;
+
+    struct {
+        bool is_default;
+
+        struct AST *expression;
+        struct AST **body;
+        uintptr_t body_size;
+    } SwitchCase;
 } ASTValue;
 
 typedef struct AST {
