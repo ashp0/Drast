@@ -29,6 +29,7 @@ typedef struct {
         T_K_FLOAT,
         T_K_VOID,
         T_K_STRING,
+        T_K_CHAR,
         T_K_BOOL,
         T_K_FALSE,
         T_K_TRUE,

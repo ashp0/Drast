@@ -27,6 +27,7 @@ float :: multiply(float first, float second) {
 
 int :: main(int argc, string[] argv) {
     int test = 5
+    char test = "c"
     float[] sadfasdf?
 
     float test = 6 / 3 + 2 + 50 / 9 + 10 == 10
@@ -45,7 +46,7 @@ int :: main(int argc, string[] argv) {
     }
 
     testing(hello, "testing")
-    lmao
+    lmao = 59 + 40
 
     float test = (test + 50)
     int number = 50

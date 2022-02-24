@@ -64,6 +64,8 @@ char *token_print(int type) {
             return "T_K_VOID";
         case T_K_STRING:
             return "T_K_STRING";
+        case T_K_CHAR:
+            return "T_K_CHAR";
         case T_IDENTIFIER:
             return "T_IDENTIFIER";
 

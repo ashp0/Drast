@@ -368,6 +368,8 @@ static inline Token *is_identifier_token(char *identifier, Lexer *lexer) {
         return advance_token(T_K_VOID, identifier, lexer, true);
     else if (strcmp(identifier, "string") == 0)
         return advance_token(T_K_STRING, identifier, lexer, true);
+    else if (strcmp(identifier, "char") == 0)
+        return advance_token(T_K_CHAR, identifier, lexer, true);
     else if (strcmp(identifier, "goto") == 0)
         return advance_token(T_K_GOTO, identifier, lexer, true);
     else if (strcmp(identifier, "private") == 0)

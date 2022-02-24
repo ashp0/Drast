@@ -86,6 +86,7 @@ static inline AST *parse_statement(Parser *parser) {
     switch (parser->current->type) {
         case T_K_INT:
         case T_K_STRING:
+        case T_K_CHAR:
         case T_K_BOOL:
         case T_K_FLOAT:
         case T_K_VOID:
@@ -113,6 +114,7 @@ static inline AST *parse_inner_statement(Parser *parser) {
     switch (parser->current->type) {
         case T_K_INT:
         case T_K_STRING:
+        case T_K_CHAR:
         case T_K_BOOL:
         case T_K_FLOAT:
         case T_K_VOID:
@@ -217,6 +219,7 @@ static inline AST *parse_struct_statements(Parser *parser) {
     switch (parser->current->type) {
         case T_K_INT:
         case T_K_STRING:
+        case T_K_CHAR:
         case T_K_BOOL:
         case T_K_FLOAT:
         case T_K_VOID:
@@ -404,6 +407,12 @@ static inline AST *parse_variable_call(Parser *parser) {
     AST *new_ast = ast_init_with_type(AST_TYPE_VARIABLE_CALL);
     new_ast->value.VariableCall.variable_name = parser->previous->value;
 
+    if (parser->current->type == T_EQUAL) {
+        new_ast->value.VariableCall.is_expression = true;
+        advance(parser, T_EQUAL);
+        new_ast->value.VariableCall.expression = parse_expression(parser);
+    }
+
     return new_ast;
 }
 
@@ -452,7 +461,7 @@ static inline AST *parse_function(Parser *parser) {
 
     new_ast->value.FunctionDeclaration.function_name = advance(parser, T_IDENTIFIER)->value;
 
-//    // Parse Arguments
+    // Parse Arguments
     advance(parser, T_PARENS_OPEN);
 
     new_ast->value.FunctionDeclaration.argument_size = 0;
@@ -633,7 +642,7 @@ static inline AST *parse_return(Parser *parser) {
 static inline AST *parse_type_name(Parser *parser) {
 
     if (parser->current->type == T_K_INT || parser->current->type == T_K_FLOAT || parser->current->type == T_K_BOOL ||
-        parser->current->type == T_K_STRING || parser->current->type == T_K_VOID) {
+        parser->current->type == T_K_STRING || parser->current->type == T_K_VOID || parser->current->type == T_K_CHAR) {
         AST *new_ast = ast_init_with_type(AST_TYPE_VALUE_KEYWORD);
         new_ast->value.ValueKeyword.token = parser->current;
 

@@ -208,7 +208,12 @@ static inline void ast_print_grouping(AST *ast) {
 }
 
 static inline void ast_print_variable_call(AST *ast) {
-    printf("%s\n", ast->value.VariableCall.variable_name);
+    printf("%s = ", ast->value.VariableCall.variable_name);
+
+    if (ast->value.VariableCall.is_expression) {
+        ast_print(ast->value.VariableCall.expression);
+    }
+    printf("\n");
 }
 
 static inline void ast_print_if_else_statement(AST *ast) {

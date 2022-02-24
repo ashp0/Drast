@@ -5,8 +5,6 @@ simplicity
 
 ## TODO
 
-Right now, I just want a working compiler,
-
 - [x] Lexing
 - [ ] Parsing (62% Done)
     - [x] Variables
@@ -33,7 +31,7 @@ Right now, I just want a working compiler,
 ```swift
 import io
 
-func main(argc: Int, argv: String[]) -> Int {
+int :: main(int argc, string[] argv) {
     print("Hello World!")
     
     return 0

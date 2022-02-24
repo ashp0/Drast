@@ -4,30 +4,31 @@
 
 import io
 
-func main() -> Int {
+int :: main(int argc, string[] argv) {
     print("Hello World")
 
-    var firstNumber: Float
-    var secondNumber: Float
-    var operator: Character
+    float first_number
+    float second_number
+    float result
+    char operator
 
-    getInput("Type your first number\n", &firstNumber)
-    getInput("Type your second number\n", &secondNumber)
-    getInput("Type your operator\n", &operator)
+    print("Type your first number\n")
+    firstNumber = readFloat()
+    getInput("Type your second number\n")
+    secondNumber = readFloat()
+    getInput("Type your operator\n")
+    operator = readChar()
 
-    switch (operator) {
-    case '+':
-        print(firstNumber + secondNumber)
-        break
-    case '-':
-        print(firstNumber - secondNumber)
-        break
-    case '*'
-        print(firstNumber * secondNumber)
-    case '/':
-        print(firstNumber / secondNumber)
-    default:
-        print("Unknown Operator\n")
-        exit(-0)
+    setval(result, operator) {
+        '+': first_number + second_number
+        '-': first_number - second_number
+        '*': first_number * second_number
+        '/': first_number / second_number
+        '%': first_number % second_number
+        _ {
+            assert("Invalid operator")
+        }
     }
+
+    print(result)
 }
