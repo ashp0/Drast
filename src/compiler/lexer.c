@@ -62,10 +62,14 @@ Token *lexer_get_next_token_without_advance(Lexer *lexer) {
 }
 
 Token *lexer_get_next_token(Lexer *lexer) {
-    char c = lexer->current;
+    if (is_eof(lexer)) {
+        Token *token;
+        token->type = T_EOF;
+        token->value = '\0';
+        return token;
+    }
 
-    if (is_eof(lexer))
-        return advance_token(T_EOF, (char[2]) {lexer->current, 0}, lexer, true);
+    char c = lexer->current;
 
     switch (c) {
         case ' ':
@@ -387,13 +391,22 @@ static inline Token *is_identifier_token(char *identifier, Lexer *lexer) {
 static inline void advance_block_comment(Lexer *lexer) {
     advance(lexer);
     advance(lexer);
-    while (lexer->current != '*' && peek_next(lexer) != '/') {
+    while (!is_eof(lexer)) {
+        if (lexer->current == '*' && peek_next(lexer) == '/') {
+            break;
+        }
         advance(lexer);
-//        lexer->source_length--;
-        check_eof(lexer, "Unterminated Block Comment\n");
     }
-    advance(lexer);
-    advance(lexer);
+
+    if (!is_eof(lexer)) {
+        advance(lexer);
+        advance(lexer);
+    } else {
+        fprintf(stderr, "Lexer: Unterminated Block Comment\n");
+        exit(-1);
+    }
+
+    skip_whitespace(lexer);
 }
 
 static inline bool is_whitespace(Lexer *lexer) {
@@ -407,11 +420,12 @@ static inline void skip_whitespace(Lexer *lexer) {
             lexer->line++;
         }
         advance(lexer);
-    } while (lexer->current == '\t' || lexer->current == ' ' || lexer->current == '\n' || lexer->current == '\r');
+    } while (!is_eof(lexer) &&
+             (lexer->current == '\t' || lexer->current == ' ' || lexer->current == '\n' || lexer->current == '\r'));
 }
 
 static inline void skip_line(Lexer *lexer) {
-    while (lexer->current != '\n') {
+    while (!is_eof(lexer) && lexer->current != '\n') {
         advance(lexer);
     }
 
@@ -430,12 +444,16 @@ static inline char peek(Lexer *lexer, uintptr_t offset) {
 }
 
 static inline char advance(Lexer *lexer) {
-    lexer->position += 1;
-    char previous = lexer->current;
-    lexer->index += 1;
-    lexer->current = lexer->source[lexer->index];
+    if (is_eof(lexer)) {
+        return lexer->current;
+    } else {
+        lexer->position += 1;
+        char previous = lexer->current;
+        lexer->index += 1;
+        lexer->current = lexer->source[lexer->index];
 
-    return previous;
+        return previous;
+    }
 }
 
 static inline Token *advance_token(int token_type, char *value, Lexer *lexer, bool does_not_advance) {

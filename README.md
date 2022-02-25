@@ -21,9 +21,9 @@ simplicity
     - [x] Functions
     - [x] Struct
     - [x] Enums
-- [ ] Improvements
-  - [ ] Lexer: Problem where is there are block comments, the lexer will loop
-  - [ ] Parser: Problem where using brackets in expressions didn't work
+- [ ] Improvements (50%)
+    - [x] Lexer: Problem where is there are block comments, the lexer will loop
+    - [ ] Parser: Problem where using brackets in expressions didn't work
 - [ ] Syntax Checker
 - [ ] Code Generation
 - [ ] Improvements to the CLI
