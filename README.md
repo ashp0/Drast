@@ -25,7 +25,8 @@ simplicity
     - [x] Lexer: Problem where is there are block comments, the lexer will loop
     - [x] Parser: Improvements with Optional Semi-colons
     - [x] Parser: Problem where using brackets in expressions didn't work
-- [ ] Syntax Checker
+- [ ] Grammar Checker
+    - [ ] 
 - [ ] Code Generation
 - [ ] Improvements to the CLI
 - [ ] Standard Library

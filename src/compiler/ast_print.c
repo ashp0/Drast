@@ -137,21 +137,27 @@ static inline void ast_print_do_catch_statement(AST *ast, uintptr_t indent) {
 
     printf("do {\n");
 
-    for (int i = 0; i < ast->value.DoCatchStatement.do_body_size; ++i) {
-        _ast_print(ast->value.DoCatchStatement.do_body[i], indent + 1);
+    for (int i = 0; i < ast->value.DoCatchOrWhileStatement.do_body_size; ++i) {
+        _ast_print(ast->value.DoCatchOrWhileStatement.do_body[i], indent + 1);
     }
 
     for (int i = 0; i < indent; ++i)
         printf("\t");
-    printf("} catch {\n");
+    if (ast->value.DoCatchOrWhileStatement.is_while_statement) {
+        printf("} while (");
+        ast_print(ast->value.DoCatchOrWhileStatement.while_statement_expression);
+        printf(")\n\n");
+    } else {
+        printf("} catch {\n");
 
-    for (int i = 0; i < ast->value.DoCatchStatement.catch_body_size; ++i) {
-        _ast_print(ast->value.DoCatchStatement.catch_body[i], indent + 1);
+        for (int i = 0; i < ast->value.DoCatchOrWhileStatement.second_body_size; ++i) {
+            _ast_print(ast->value.DoCatchOrWhileStatement.second_body[i], indent + 1);
+        }
+
+        for (int i = 0; i < indent; ++i)
+            printf("\t");
+        printf("}\n");
     }
-
-    for (int i = 0; i < indent; ++i)
-        printf("\t");
-    printf("}\n");
 }
 
 static inline void ast_print_import(AST *ast, uintptr_t indent) {

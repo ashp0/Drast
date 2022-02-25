@@ -104,13 +104,9 @@ static inline AST *parse_statement(Parser *parser) {
             return parse_struct_or_union(parser, true);
         case T_K_ENUM:
             return parse_enum(parser);
-        case T_BRACE_OPEN:
-        case T_BRACE_CLOSE:
-        case T_K_IF:
-            fprintf(stderr, "Parser: Cannot declare`%s` outside of scope\n", token_print(parser->current->type));
-            exit(-2);
         default:
-            fprintf(stderr, "Parser: Cannot Parse Token: `%s`\n", token_print(parser->current->type));
+            fprintf(stderr, "Parser: Token not parsible or declaracted out of scope: `%s`\n",
+                    token_print(parser->current->type));
             exit(-2);
     }
 }
@@ -120,7 +116,6 @@ static inline AST *parse_inner_statement(Parser *parser) {
         case T_K_SWITCH:
             return parse_switch_statement(parser);
         case T_K_DO:
-            // TODO: Check for while do statements
             return parse_do_catch_statement(parser);
         case T_K_INT:
         case T_K_STRING:
@@ -144,7 +139,23 @@ static inline AST *parse_inner_statement(Parser *parser) {
         case T_K_MATCHES:
             return parse_function_call(parser);
         default:
-            fprintf(stderr, "Parser: Token `%s`, is not supposed to be declared inside curly braces\n",
+            fprintf(stderr, "Parser: Token `%s`, is not supposed to be declared inside the scope\n",
+                    token_print(parser->current->type));
+            exit(-2);
+    }
+}
+
+static inline AST *parse_struct_statements(Parser *parser) {
+    switch (parser->current->type) {
+        case T_K_INT:
+        case T_K_STRING:
+        case T_K_CHAR:
+        case T_K_BOOL:
+        case T_K_FLOAT:
+        case T_K_VOID:
+            return parse_variable_or_function_definition(parser);
+        default:
+            fprintf(stderr, "Parser: Token `%s`, is not supposed to be declared inside of structs\n",
                     token_print(parser->current->type));
             exit(-2);
     }
@@ -157,43 +168,58 @@ static inline AST *parse_do_catch_statement(Parser *parser) {
     advance(parser, T_K_DO);
     advance(parser, T_BRACE_OPEN);
     // Parse Body
-    new_ast->value.DoCatchStatement.do_body_size = 0;
-    new_ast->value.DoCatchStatement.do_body = calloc(1, sizeof(AST *));
+    new_ast->value.DoCatchOrWhileStatement.do_body_size = 0;
+    new_ast->value.DoCatchOrWhileStatement.do_body = calloc(1, sizeof(AST *));
 
     while (parser->current->type != T_BRACE_CLOSE) {
-        new_ast->value.DoCatchStatement.do_body_size += 1;
+        new_ast->value.DoCatchOrWhileStatement.do_body_size += 1;
 
-        new_ast->value.DoCatchStatement.do_body = realloc(new_ast->value.DoCatchStatement.do_body,
-                                                          new_ast->value.DoCatchStatement.do_body_size *
-                                                          sizeof(AST *));
+        new_ast->value.DoCatchOrWhileStatement.do_body = realloc(new_ast->value.DoCatchOrWhileStatement.do_body,
+                                                                 new_ast->value.DoCatchOrWhileStatement.do_body_size *
+                                                                 sizeof(AST *));
 
-        new_ast->value.DoCatchStatement.do_body[new_ast->value.DoCatchStatement.do_body_size -
-                                                1] = parse_inner_statement(parser);
+        new_ast->value.DoCatchOrWhileStatement.do_body[new_ast->value.DoCatchOrWhileStatement.do_body_size -
+                                                       1] = parse_inner_statement(parser);
     }
 
     advance(parser, T_BRACE_CLOSE);
     advance_semi(parser);
 
     /* Catch Statements */
-    advance(parser, T_K_CATCH);
 
-    advance(parser, T_BRACE_OPEN);
+    if (parser->current->type == T_K_WHILE) {
+        advance(parser, T_K_WHILE);
 
-    new_ast->value.DoCatchStatement.catch_body_size = 0;
-    new_ast->value.DoCatchStatement.catch_body = calloc(1, sizeof(AST *));
+        advance(parser, T_PARENS_OPEN);
+        new_ast->value.DoCatchOrWhileStatement.is_while_statement = true;
+        new_ast->value.DoCatchOrWhileStatement.while_statement_expression = parse_expression(parser);
+        advance(parser, T_PARENS_CLOSE);
+    } else if (parser->current->type == T_K_CATCH) {
+        advance(parser, T_K_CATCH);
 
-    while (parser->current->type != T_BRACE_CLOSE) {
-        new_ast->value.DoCatchStatement.catch_body_size += 1;
+        advance(parser, T_BRACE_OPEN);
 
-        new_ast->value.DoCatchStatement.catch_body = realloc(new_ast->value.DoCatchStatement.catch_body,
-                                                             new_ast->value.DoCatchStatement.catch_body_size *
-                                                             sizeof(AST *));
-        new_ast->value.DoCatchStatement.catch_body[new_ast->value.DoCatchStatement.catch_body_size -
-                                                   1] = parse_inner_statement(parser);
+        new_ast->value.DoCatchOrWhileStatement.second_body_size = 0;
+        new_ast->value.DoCatchOrWhileStatement.second_body = calloc(1, sizeof(AST *));
+
+        while (parser->current->type != T_BRACE_CLOSE) {
+            new_ast->value.DoCatchOrWhileStatement.second_body_size += 1;
+
+            new_ast->value.DoCatchOrWhileStatement.second_body = realloc(
+                    new_ast->value.DoCatchOrWhileStatement.second_body,
+                    new_ast->value.DoCatchOrWhileStatement.second_body_size *
+                    sizeof(AST *));
+            new_ast->value.DoCatchOrWhileStatement.second_body[new_ast->value.DoCatchOrWhileStatement.second_body_size -
+                                                               1] = parse_inner_statement(parser);
+        }
+
+        advance(parser, T_BRACE_CLOSE);
+        advance_semi(parser);
+    } else {
+        fprintf(stderr, "Parser: Expected `catch` or `while` after `do` statement\n",
+                token_print(parser->current->type));
+        exit(-2);
     }
-
-    advance(parser, T_BRACE_CLOSE);
-    advance_semi(parser);
 
     return new_ast;
 }
@@ -323,6 +349,7 @@ static inline AST *parse_switch_statement(Parser *parser) {
                 switch_case->value.SwitchCase.body[switch_case->value.SwitchCase.body_size -
                                                    1] = literal_value;
                 advance(parser, T_K_BREAK);
+                advance_semi(parser);
             } else {
                 switch_case->value.SwitchCase.body[switch_case->value.SwitchCase.body_size -
                                                    1] = parse_inner_statement(parser);
@@ -446,6 +473,7 @@ static inline AST *parse_while_statement(Parser *parser) {
             new_ast->value.WhileStatement.body[new_ast->value.WhileStatement.body_size -
                                                1] = literal_value;
             advance_without_check(parser);
+            advance_semi(parser);
         } else {
             new_ast->value.WhileStatement.body[new_ast->value.WhileStatement.body_size -
                                                1] = parse_inner_statement(parser);
@@ -456,22 +484,6 @@ static inline AST *parse_while_statement(Parser *parser) {
     advance_semi(parser);
 
     return new_ast;
-}
-
-static inline AST *parse_struct_statements(Parser *parser) {
-    switch (parser->current->type) {
-        case T_K_INT:
-        case T_K_STRING:
-        case T_K_CHAR:
-        case T_K_BOOL:
-        case T_K_FLOAT:
-        case T_K_VOID:
-            return parse_variable_or_function_definition(parser);
-        default:
-            fprintf(stderr, "Parser: Token `%s`, is not supposed to be declared inside of structs\n",
-                    token_print(parser->current->type));
-            exit(-2);
-    }
 }
 
 static inline AST *parse_for_loop(Parser *parser) {
@@ -506,6 +518,7 @@ static inline AST *parse_for_loop(Parser *parser) {
             tree->value.ForLoop.body[tree->value.ForLoop.body_size -
                                      1] = literal_value;
             advance_without_check(parser);
+            advance_semi(parser);
         } else {
             tree->value.ForLoop.body[tree->value.ForLoop.body_size -
                                      1] = parse_inner_statement(parser);

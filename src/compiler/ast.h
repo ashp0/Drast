@@ -207,9 +207,12 @@ typedef union {
         uintptr_t do_body_size;
 
         // Catch Statement
-        struct AST **catch_body;
-        uintptr_t catch_body_size;
-    } DoCatchStatement;
+        struct AST **second_body;
+        uintptr_t second_body_size;
+
+        bool is_while_statement;
+        struct AST *while_statement_expression;
+    } DoCatchOrWhileStatement;
 
     struct {
         struct AST *expression;

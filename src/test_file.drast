@@ -37,9 +37,8 @@ float :: multiply(float first, float second) {
 }
 
 int :: main(int argc, string[] argv) {
-
     int test = 5
-    char test = "c"
+    char test = 'c'
     float[] sadfasdf?
 
     int myTest = multiply()
@@ -57,6 +56,10 @@ int :: main(int argc, string[] argv) {
     while (test == "askjdfn") {
         float test = 450
     }
+
+    do {
+        float test
+    } while (5 + 3)
 
     switch (50 + 30) {
         case "lmao":
