@@ -107,12 +107,15 @@ typedef union {
 
         struct AST **members;
         uintptr_t member_size;
+
+        bool is_private;
     } StructOrUnionDeclaration;
 
     struct {
         char *enum_name;
         struct AST **cases;
         uintptr_t case_size;
+        bool is_private;
     } EnumDeclaration;
 
     struct {

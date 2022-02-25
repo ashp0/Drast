@@ -4,7 +4,7 @@
 
 import io
 
-enum Test {
+private enum Test {
     case Test = 10,
     case Test,
     case Test,
@@ -15,12 +15,12 @@ struct Hello {
     string test
     void *myTest?
 
-    void :: print_hello_world() {
+    private void :: print_hello_world() {
         print("Hello World")
     }
 }
 
-union Hello2 {
+private union Hello2 {
     int test1
     string[] test2
 }
@@ -81,7 +81,7 @@ private int :: main(int argc, string[] argv) {
 
     testVar = firstName -> int
 
-    result = matches(operator)  {
+    result = matches(operator) {
         '+': first_number + second_number
         '-': first_number - second_number
         '*': first_number * second_number

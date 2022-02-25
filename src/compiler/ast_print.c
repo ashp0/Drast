@@ -286,6 +286,9 @@ static inline void ast_print_function_call(AST *ast, uintptr_t indent) {
 }
 
 static inline void ast_print_struct_declaration(AST *ast, uintptr_t indent) {
+    if (ast->value.StructOrUnionDeclaration.is_private) {
+        printf("private ");
+    }
     if (ast->value.StructOrUnionDeclaration.is_union)
         printf("union %s {\n", ast->value.StructOrUnionDeclaration.name);
     else
@@ -301,6 +304,9 @@ static inline void ast_print_struct_declaration(AST *ast, uintptr_t indent) {
 static inline void ast_print_enum_declaration(AST *ast, uintptr_t indent) {
     for (int i = 0; i < indent; ++i)
         printf("\t");
+    if (ast->value.EnumDeclaration.is_private) {
+        printf("private ");
+    }
     printf("enum %s {\n", ast->value.EnumDeclaration.enum_name);
 
     for (int i = 0; i < ast->value.EnumDeclaration.case_size; ++i) {

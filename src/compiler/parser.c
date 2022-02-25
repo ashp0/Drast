@@ -67,7 +67,7 @@ static inline AST *parse_variable_or_function_definition(Parser *parser);
 
 static inline AST *parse_attributes(Parser *parser);
 
-static inline AST *parse_attributes_variable(Parser *parser);
+static inline AST *parse_attributes_variable(Parser *parser, bool is_private, bool is_volatile);
 
 Parser *parser_init(Lexer *lexer) {
     Parser *parser = malloc(sizeof(Parser));
@@ -157,6 +157,9 @@ static inline AST *parse_struct_statements(Parser *parser) {
         case T_K_FLOAT:
         case T_K_VOID:
             return parse_variable_or_function_definition(parser);
+        case T_K_VOLATILE:
+        case T_K_PRIVATE:
+            return parse_attributes(parser);
         default:
             fprintf(stderr, "Parser: Token `%s`, is not supposed to be declared inside of structs\n",
                     token_print(parser->current->type));
@@ -166,47 +169,46 @@ static inline AST *parse_struct_statements(Parser *parser) {
 
 static inline AST *parse_attributes(Parser *parser) {
     bool is_private;
+    bool is_volatile;
     AST *new_tree;
 
-    if (lexer_get_next_token_without_advance_offset(parser->lexer, 2)->type == T_DOUBLE_COLON) {
-        while (parser->current->type == T_K_PRIVATE) {
-            if (parser->current->type == T_K_PRIVATE) {
-                advance(parser, T_K_PRIVATE);
+    while (parser->current->type == T_K_PRIVATE || parser->current->type == T_K_VOLATILE) {
+        if (parser->current->type == T_K_PRIVATE) {
+            advance(parser, T_K_PRIVATE);
 
-                is_private = true;
-            }
+            is_private = true;
+        } else if (parser->current->type == T_K_VOLATILE) {
+            advance(parser, T_K_VOLATILE);
+
+            is_volatile = true;
         }
+    }
 
+    if (parser->current->type == T_K_STRUCT || parser->current->type == T_K_UNION) {
+        AST *union_or_struct = parse_struct_or_union(parser, parser->current->type == T_K_UNION);
+
+        union_or_struct->value.StructOrUnionDeclaration.is_private = is_private;
+
+        return union_or_struct;
+    } else if (parser->current->type == T_K_ENUM) {
+        AST *enum_ast = parse_enum(parser);
+
+        enum_ast->value.EnumDeclaration.is_private = is_private;
+
+        return enum_ast;
+    } else if (lexer_get_next_token_without_advance(parser->lexer)->type == T_DOUBLE_COLON) {
         new_tree = parse_function(parser);
         new_tree->value.FunctionDeclaration.is_private = is_private;
 
         return new_tree;
     } else {
-        return parse_attributes_variable(parser);
+        return parse_attributes_variable(parser, is_private, is_volatile);
     }
 }
 
-static inline AST *parse_attributes_variable(Parser *parser) {
+static inline AST *parse_attributes_variable(Parser *parser, bool is_private, bool is_volatile) {
     // private volatile int myVariable
-    AST *variable_ast;
-
-    bool is_volatile;
-    bool is_private;
-
-    Token *next_token = lexer_get_next_token_without_advance(parser->lexer);
-    while (parser->current->type == T_K_VOLATILE || parser->current->type == T_K_PRIVATE) {
-        if (parser->current->type == T_K_VOLATILE) {
-            advance(parser, T_K_VOLATILE);
-
-            is_volatile = true;
-        } else if (parser->current->type == T_K_PRIVATE) {
-            advance(parser, T_K_PRIVATE);
-
-            is_private = true;
-        }
-    }
-
-    variable_ast = parse_variable(parser, false);
+    AST *variable_ast = parse_variable(parser, false);
 
     variable_ast->value.VariableDeclaration.is_private = is_private;
     variable_ast->value.VariableDeclaration.is_volatile = is_volatile;
@@ -1079,9 +1081,10 @@ static inline AST *parse_literal(Parser *parser) {
 
 static inline Token *advance(Parser *parser, uintptr_t type) {
     if (parser->current->type != type) {
-        fprintf(stderr, "Parser: Unexpected Token: `%s` :: `%s`, was expecting `%s`\n",
+        fprintf(stderr, "Parser: Unexpected Token: `%s`, was expecting `%s`, line: %lu\n",
                 token_print(parser->current->type), parser->current->value,
-                token_print((int) type));
+                token_print((int) type),
+                parser->lexer->line);
         exit(-2);
     }
     parser->previous = parser->current;

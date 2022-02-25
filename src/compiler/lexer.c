@@ -80,10 +80,7 @@ Token *lexer_get_next_token_without_advance_offset(Lexer *lexer, uintptr_t offse
 
 Token *lexer_get_next_token(Lexer *lexer) {
     if (is_eof(lexer)) {
-        Token *token;
-        token->type = T_EOF;
-        token->value = '\0';
-        return token;
+        return advance_token(T_EOF, (char[2]) {lexer->current, 0}, lexer, true);
     }
 
     char c = lexer->current;
@@ -411,6 +408,9 @@ static inline void advance_block_comment(Lexer *lexer) {
     while (!is_eof(lexer)) {
         if (lexer->current == '*' && peek_next(lexer) == '/') {
             break;
+        }
+        if (lexer->current == '\n') {
+            lexer->line++;
         }
         advance(lexer);
     }
