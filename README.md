@@ -6,7 +6,7 @@ simplicity
 ## TODO
 
 - [x] Lexing
-- [ ] Parsing (71% Done)
+- [ ] Parsing (78% Done)
     - [x] Variables
     - [x] If, Else, Else If
     - [x] Return
@@ -16,7 +16,7 @@ simplicity
     - [ ] For, While, Continue (50%)
     - [x] Union
     - [ ] Do Catch Try (25%)
-    - [ ] matches keyword
+    - [x] matches keyword
     - [x] Import
     - [x] Functions
     - [x] Struct

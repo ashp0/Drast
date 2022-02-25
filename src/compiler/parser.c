@@ -148,6 +148,7 @@ static inline AST *parse_inner_statement(Parser *parser) {
 
 static inline AST *parse_matches_statement(Parser *parser, AST *argument) {
     AST *new_tree = ast_init_with_type(AST_TYPE_SWITCH_STATEMENT);
+    new_tree->value.SwitchStatement.is_matches_statement = true;
 
     if (argument->value.FunctionCall.arguments_size != 1) {
         fprintf(stderr, "Parser: Matches Token Must Have Only 1 Parameter\n",
@@ -169,21 +170,46 @@ static inline AST *parse_matches_statement(Parser *parser, AST *argument) {
                                                                sizeof(AST *));
 
         AST *switch_case = ast_init_with_type(AST_TYPE_SWITCH_CASE);
+
+        if (parser->current->type == T_IDENTIFIER && strlen(parser->current->value) == 1 &&
+            parser->current->value[0] == '_') {
+            // Default Clause
+            switch_case->value.SwitchCase.is_default = true;
+        }
+
         switch_case->value.SwitchCase.expression = parse_expression(parser);
 
         advance(parser, T_COLON);
 
-        switch_case->value.SwitchCase.body_size = 1;
         switch_case->value.SwitchCase.body = calloc(1, sizeof(AST *));
 
-        switch_case->value.SwitchCase.body[0] = parse_expression(parser);
+        if (parser->current->type == T_BRACE_OPEN) {
+            advance(parser, T_BRACE_OPEN);
+
+            while (parser->current->type != T_BRACE_CLOSE) {
+                switch_case->value.SwitchCase.body_size += 1;
+                switch_case->value.SwitchCase.body = realloc(switch_case->value.SwitchCase.body,
+                                                             switch_case->value.SwitchCase.body_size *
+                                                             sizeof(AST *));
+
+                switch_case->value.SwitchCase.body[switch_case->value.SwitchCase.body_size - 1] = parse_inner_statement(
+                        parser);
+                if (parser->current->type == T_BRACE_CLOSE)
+                    break;
+            }
+
+            advance(parser, T_BRACE_CLOSE);
+        } else {
+            switch_case->value.SwitchCase.body_size = 1;
+            switch_case->value.SwitchCase.body[switch_case->value.SwitchCase.body_size - 1] = parse_expression(parser);
+        }
 
         new_tree->value.SwitchStatement.switch_cases[new_tree->value.SwitchStatement.switch_cases_size -
                                                      1] = switch_case;
 
-            if (parser->current->type == T_BRACE_CLOSE) {
-                break;
-            }
+        if (parser->current->type == T_BRACE_CLOSE) {
+            break;
+        }
     }
 
     advance(parser, T_BRACE_CLOSE);
@@ -549,8 +575,6 @@ static inline AST *parse_import(Parser *parser) {
 
 static inline AST *parse_identifier(Parser *parser) {
     advance(parser, T_IDENTIFIER);
-
-    printf("%s, %s\n", token_print(lexer_get_next_token_without_advance(parser->lexer)->type), token_print(parser->current->type));
 
     if (parser->current->type == T_PARENS_OPEN) {
         return parse_function_call(parser);

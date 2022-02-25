@@ -70,9 +70,11 @@ int :: main(int argc, string[] argv) {
         '*': first_number * second_number
         '/': first_number / second_number
         '%': first_number % second_number
-       // _ {
-         //   throw("Invalid operator")
-        //}
+        _: {
+            float sadfklm
+            float woeifaw
+            float awef4
+        }
     }
 
     testing(hello, "testing")

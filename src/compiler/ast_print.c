@@ -125,9 +125,12 @@ static inline void ast_print_variable(AST *ast) {
 }
 
 static inline void ast_print_switch_statement(AST *ast) {
-    printf("switch (");
+    if (ast->value.SwitchStatement.is_matches_statement)
+        printf("matches (");
+    else
+        printf("switch (");
     ast_print(ast->value.SwitchStatement.expression);
-    printf(") {\n");
+    printf(") {");
 
     for (int i = 0; i < ast->value.SwitchStatement.switch_cases_size; ++i) {
         printf("\t\t");
@@ -146,7 +149,7 @@ static inline void ast_print_switch_case_statement(AST *ast) {
         printf("\n\t\tdefault: \n");
     }
 
-    for (int i = 0; i < ast->value.SwitchCase.body_size; i++) {
+    for (int i = 0; i < ast->value.SwitchCase.body_size; ++i) {
         printf("\t\t\t");
         ast_print(ast->value.SwitchCase.body[i]);
     }

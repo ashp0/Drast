@@ -172,6 +172,8 @@ typedef union {
 
         struct AST **switch_cases;
         uintptr_t switch_cases_size;
+
+        bool is_matches_statement;
     } SwitchStatement;
 
     struct {
