@@ -74,16 +74,11 @@ AST *parser_parse(Parser *parser) {
     return parse_statement(parser);
 }
 
-static inline AST *parse_variable_or_function_definition(Parser *parser, bool is_inner_statement) {
-    if (lexer_get_next_token_without_advance(parser->lexer)->type == T_DOUBLE_COLON && !is_inner_statement) {
+static inline AST *parse_variable_or_function_definition(Parser *parser) {
+    if (lexer_get_next_token_without_advance(parser->lexer)->type == T_DOUBLE_COLON) {
         return parse_function(parser);
     } else {
-        if (is_inner_statement) {
-            return parse_variable(parser, false);
-        } else {
-            fprintf(stderr, "Parser: Cannot declare variable outside of scope\n");
-            exit(-2);
-        }
+        return parse_variable(parser, false);
     }
 
 }
@@ -98,7 +93,7 @@ static inline AST *parse_statement(Parser *parser) {
         case T_K_BOOL:
         case T_K_FLOAT:
         case T_K_VOID:
-            return parse_variable_or_function_definition(parser, false);
+            return parse_variable_or_function_definition(parser);
         case T_K_IMPORT:
             return parse_import(parser);
         case T_K_STRUCT:
@@ -128,7 +123,7 @@ static inline AST *parse_inner_statement(Parser *parser) {
         case T_K_BOOL:
         case T_K_FLOAT:
         case T_K_VOID:
-            return parse_variable_or_function_definition(parser, true);
+            return parse_variable_or_function_definition(parser);
         case T_K_RETURN:
             return parse_return(parser);
         case T_IDENTIFIER:
@@ -411,7 +406,7 @@ static inline AST *parse_struct_statements(Parser *parser) {
         case T_K_BOOL:
         case T_K_FLOAT:
         case T_K_VOID:
-            return parse_variable(parser, false);
+            return parse_variable_or_function_definition(parser);
         default:
             fprintf(stderr, "Parser: Token `%s`, is not supposed to be declared inside of structs\n",
                     token_print(parser->current->type));
@@ -736,13 +731,12 @@ static inline AST *parse_function(Parser *parser) {
 
         new_ast->value.FunctionDeclaration.arguments[new_ast->value.FunctionDeclaration.argument_size - 1] = argument;
 
-        if (parser->current->type == T_PARENS_CLOSE) {
-            advance(parser, T_PARENS_CLOSE);
-            break;
-        } else {
+
+        if (parser->current->type == T_COMMA)
             advance(parser, T_COMMA);
-        }
     }
+
+    advance(parser, T_PARENS_CLOSE);
 
     // Parse inner statement
     advance(parser, T_BRACE_OPEN);

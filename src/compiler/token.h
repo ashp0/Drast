@@ -21,7 +21,6 @@ typedef struct {
         T_K_IF,
         T_K_ELSE,
         T_K_IMPORT,
-        T_K_PRINT,
         T_K_ASM,
         T_K_VOLATILE,
         T_K_CAST,

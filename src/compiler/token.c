@@ -24,8 +24,6 @@ char *token_print(int type) {
             return "T_K_ELSE";
         case T_K_IMPORT:
             return "T_K_IMPORT";
-        case T_K_PRINT:
-            return "T_K_PRINT";
         case T_K_ASM:
             return "T_K_ASM";
         case T_K_VOLATILE:

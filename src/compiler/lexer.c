@@ -330,8 +330,6 @@ static inline Token *is_identifier_token(char *identifier, Lexer *lexer) {
         return advance_token(T_K_ELSE, identifier, lexer, true);
     else if (strcmp(identifier, "import") == 0)
         return advance_token(T_K_IMPORT, identifier, lexer, true);
-    else if (strcmp(identifier, "print") == 0)
-        return advance_token(T_K_PRINT, identifier, lexer, true);
     else if (strcmp(identifier, "asm") == 0)
         return advance_token(T_K_ASM, identifier, lexer, true);
     else if (strcmp(identifier, "volatile") == 0)
