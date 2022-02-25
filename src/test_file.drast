@@ -95,5 +95,12 @@ int :: main(int argc, string[] argv) {
     float test = (test + 50)
     int number = 50
 
+    do {
+        float myVariable = try myFunction()
+        float hello = 4
+    } catch {
+        float hello2 = 5
+    }
+
     return 0
 }

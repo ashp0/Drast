@@ -47,6 +47,9 @@ typedef enum {
 
     AST_TYPE_SWITCH_STATEMENT,
     AST_TYPE_SWITCH_CASE,
+
+    AST_TYPE_DO_CATCH,
+    AST_TYPE_TRY_STATEMENT,
 } ASTType;
 
 typedef union {
@@ -197,6 +200,20 @@ typedef union {
         struct AST **body;
         uintptr_t body_size;
     } ForLoop;
+
+    struct {
+        // Do Statement
+        struct AST **do_body;
+        uintptr_t do_body_size;
+
+        // Catch Statement
+        struct AST **catch_body;
+        uintptr_t catch_body_size;
+    } DoCatchStatement;
+
+    struct {
+        struct AST *expression;
+    } TryStatement;
 } ASTValue;
 
 typedef struct AST {

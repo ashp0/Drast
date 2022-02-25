@@ -49,12 +49,19 @@ static inline void ast_print_for_loop(AST *ast, uintptr_t indent);
 
 static inline void _ast_print(AST *ast, uintptr_t indent);
 
+static inline void ast_print_do_catch_statement(AST *ast, uintptr_t indent);
+
+static inline void ast_print_try_statement(AST *ast, uintptr_t indent);
+
 void ast_print(AST *ast) {
     _ast_print(ast, 0);
 }
 
 static inline void _ast_print(AST *ast, uintptr_t indent) {
     switch (ast->type) {
+        case AST_TYPE_DO_CATCH:
+            ast_print_do_catch_statement(ast, indent);
+            break;
         case AST_TYPE_IMPORT:
             ast_print_import(ast, indent);
             break;
@@ -110,10 +117,41 @@ static inline void _ast_print(AST *ast, uintptr_t indent) {
         case AST_TYPE_SWITCH_STATEMENT:
             ast_print_switch_statement(ast, indent);
             break;
+        case AST_TYPE_TRY_STATEMENT:
+            ast_print_try_statement(ast, indent);
+            break;
         default:
             printf("Cannot Print AST %d\n", ast->type);
             break;
     }
+}
+
+static inline void ast_print_try_statement(AST *ast, uintptr_t indent) {
+    printf("try ");
+    ast_print(ast->value.TryStatement.expression);
+}
+
+static inline void ast_print_do_catch_statement(AST *ast, uintptr_t indent) {
+    for (int i = 0; i < indent; ++i)
+        printf("\t");
+
+    printf("do {\n");
+
+    for (int i = 0; i < ast->value.DoCatchStatement.do_body_size; ++i) {
+        _ast_print(ast->value.DoCatchStatement.do_body[i], indent + 1);
+    }
+
+    for (int i = 0; i < indent; ++i)
+        printf("\t");
+    printf("} catch {\n");
+
+    for (int i = 0; i < ast->value.DoCatchStatement.catch_body_size; ++i) {
+        _ast_print(ast->value.DoCatchStatement.catch_body[i], indent + 1);
+    }
+
+    for (int i = 0; i < indent; ++i)
+        printf("\t");
+    printf("}\n");
 }
 
 static inline void ast_print_import(AST *ast, uintptr_t indent) {

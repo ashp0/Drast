@@ -6,7 +6,7 @@ simplicity
 ## TODO
 
 - [x] Lexing
-- [ ] Parsing (92% Done)
+- [x] Parsing
     - [x] Variables
     - [x] If, Else, Else If
     - [x] Return
@@ -15,12 +15,15 @@ simplicity
     - [x] Switch, break, case, default
     - [x] For, While, Continue
     - [x] Union
-    - [ ] Do Catch Try (25%)
+    - [x] Do Catch Try
     - [x] matches keyword
     - [x] Import
     - [x] Functions
     - [x] Struct
     - [x] Enums
+- [ ] Improvements
+  - [ ] Lexer: Problem where is there are block comments, the lexer will loop
+  - [ ] Parser: Problem where using brackets in expressions didn't work
 - [ ] Syntax Checker
 - [ ] Code Generation
 - [ ] Improvements to the CLI

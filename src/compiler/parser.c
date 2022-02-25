@@ -61,6 +61,8 @@ static inline AST *parse_switch_statement(Parser *parser);
 
 static inline AST *parse_for_loop(Parser *parser);
 
+static inline AST *parse_do_catch_statement(Parser *parser);
+
 Parser *parser_init(Lexer *lexer) {
     Parser *parser = malloc(sizeof(Parser));
     parser->lexer = lexer;
@@ -117,6 +119,9 @@ static inline AST *parse_inner_statement(Parser *parser) {
     switch (parser->current->type) {
         case T_K_SWITCH:
             return parse_switch_statement(parser);
+        case T_K_DO:
+            // TODO: Check for while do statements
+            return parse_do_catch_statement(parser);
         case T_K_INT:
         case T_K_STRING:
         case T_K_CHAR:
@@ -143,6 +148,52 @@ static inline AST *parse_inner_statement(Parser *parser) {
                     token_print(parser->current->type));
             exit(-2);
     }
+}
+
+static inline AST *parse_do_catch_statement(Parser *parser) {
+    AST *new_ast = ast_init_with_type(AST_TYPE_DO_CATCH);
+
+    /* Do Statements */
+    advance(parser, T_K_DO);
+    advance(parser, T_BRACE_OPEN);
+    // Parse Body
+    new_ast->value.DoCatchStatement.do_body_size = 0;
+    new_ast->value.DoCatchStatement.do_body = calloc(1, sizeof(AST *));
+
+    while (parser->current->type != T_BRACE_CLOSE) {
+        new_ast->value.DoCatchStatement.do_body_size += 1;
+
+        new_ast->value.DoCatchStatement.do_body = realloc(new_ast->value.DoCatchStatement.do_body,
+                                                          new_ast->value.DoCatchStatement.do_body_size *
+                                                          sizeof(AST *));
+
+        new_ast->value.DoCatchStatement.do_body[new_ast->value.DoCatchStatement.do_body_size -
+                                                1] = parse_inner_statement(parser);
+    }
+
+    advance(parser, T_BRACE_CLOSE);
+
+    /* Catch Statements */
+    advance(parser, T_K_CATCH);
+
+    advance(parser, T_BRACE_OPEN);
+
+    new_ast->value.DoCatchStatement.catch_body_size = 0;
+    new_ast->value.DoCatchStatement.catch_body = calloc(1, sizeof(AST *));
+
+    while (parser->current->type != T_BRACE_CLOSE) {
+        new_ast->value.DoCatchStatement.catch_body_size += 1;
+
+        new_ast->value.DoCatchStatement.catch_body = realloc(new_ast->value.DoCatchStatement.catch_body,
+                                                             new_ast->value.DoCatchStatement.catch_body_size *
+                                                             sizeof(AST *));
+        new_ast->value.DoCatchStatement.catch_body[new_ast->value.DoCatchStatement.catch_body_size -
+                                                   1] = parse_inner_statement(parser);
+    }
+
+    advance(parser, T_BRACE_CLOSE);
+
+    return new_ast;
 }
 
 static inline AST *parse_matches_statement(Parser *parser, AST *argument) {
@@ -437,7 +488,8 @@ static inline AST *parse_expression(Parser *parser) {
     } else if (parser->current->type == T_K_TRUE || parser->current->type == T_K_FALSE ||
                parser->current->type == T_INT || parser->current->type == T_STRING ||
                parser->current->type == T_FLOAT || parser->current->type == T_PARENS_OPEN ||
-               parser->current->type == T_IDENTIFIER || parser->current->type == T_K_MATCHES) {
+               parser->current->type == T_IDENTIFIER || parser->current->type == T_K_MATCHES ||
+               parser->current->type == T_K_TRY) {
         return parse_primary(parser);
     } else if (parser->current->type == T_K_BOOL || parser->current->type == T_K_INT ||
                parser->current->type == T_K_STRING || parser->current->type == T_K_FLOAT ||
@@ -526,7 +578,7 @@ static inline AST *parse_primary(Parser *parser) {
     if (parser->current->type == T_K_TRUE || parser->current->type == T_K_FALSE || parser->current->type == T_INT ||
         parser->current->type == T_STRING || parser->current->type == T_FLOAT ||
         parser->current->type == T_IDENTIFIER || parser->current->type == T_K_MATCHES ||
-        parser->current->type == T_ARROW) {
+        parser->current->type == T_ARROW || parser->current->type == T_K_TRY) {
         return parse_literal(parser);
     } else if (parser->current->type == T_PARENS_OPEN) {
         advance(parser, T_PARENS_OPEN);
@@ -550,7 +602,17 @@ static inline AST *parse_literal(Parser *parser) {
     if (parser->current->type == T_K_TRUE || parser->current->type == T_K_FALSE || parser->current->type == T_INT ||
         parser->current->type == T_STRING || parser->current->type == T_FLOAT ||
         parser->current->type == T_IDENTIFIER || parser->current->type == T_K_MATCHES ||
-        parser->current->type == T_ARROW) {
+        parser->current->type == T_ARROW || parser->current->type == T_K_TRY) {
+
+        if (parser->current->type == T_K_TRY) {
+            AST *try_statement = ast_init_with_type(AST_TYPE_TRY_STATEMENT);
+            advance(parser, T_K_TRY);
+
+            try_statement->value.TryStatement.expression = parse_expression(parser);
+
+            return try_statement;
+        }
+
         tree->value.Literal.literal_value = parser->current;
         advance(parser, tree->value.Literal.literal_value->type);
 
