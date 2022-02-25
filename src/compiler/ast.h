@@ -143,6 +143,7 @@ typedef union {
         char *variable_name;
         struct AST *expression;
         bool is_expression;
+        Token *operator;
     } VariableCall;
 
     struct {

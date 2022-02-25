@@ -133,6 +133,8 @@ static inline void ast_print_switch_statement(AST *ast) {
         printf("\t\t");
         ast_print_switch_case_statement(ast->value.SwitchStatement.switch_cases[i]);
     }
+
+    printf("\n\t}\n");
 }
 
 static inline void ast_print_switch_case_statement(AST *ast) {
@@ -251,11 +253,8 @@ static inline void ast_print_grouping(AST *ast) {
 }
 
 static inline void ast_print_variable_call(AST *ast) {
-    printf("%s = ", ast->value.VariableCall.variable_name);
-
-    if (ast->value.VariableCall.is_expression) {
-        ast_print(ast->value.VariableCall.expression);
-    }
+    printf("%s %s ", ast->value.VariableCall.variable_name, ast->value.VariableCall.operator->value);
+    ast_print(ast->value.VariableCall.expression);
     printf("\n");
 }
 

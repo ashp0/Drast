@@ -340,6 +340,8 @@ static inline Token *is_identifier_token(char *identifier, Lexer *lexer) {
         return advance_token(T_K_CAST, identifier, lexer, true);
     else if (strcmp(identifier, "switch") == 0)
         return advance_token(T_K_SWITCH, identifier, lexer, true);
+    else if (strcmp(identifier, "matches") == 0)
+        return advance_token(T_K_MATCHES, identifier, lexer, true);
     else if (strcmp(identifier, "case") == 0)
         return advance_token(T_K_CASE, identifier, lexer, true);
     else if (strcmp(identifier, "break") == 0)

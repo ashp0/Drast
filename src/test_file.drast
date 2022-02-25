@@ -33,6 +33,7 @@ float :: multiply(float first, float second) {
 }
 
 int :: main(int argc, string[] argv) {
+
     int test = 5
     char test = "c"
     float[] sadfasdf?
@@ -63,8 +64,19 @@ int :: main(int argc, string[] argv) {
             float test3
     }
 
+    result = matches(operator)  {
+        '+': first_number + second_number
+        '-': first_number - second_number
+        '*': first_number * second_number
+        '/': first_number / second_number
+        '%': first_number % second_number
+       // _ {
+         //   throw("Invalid operator")
+        //}
+    }
+
     testing(hello, "testing")
-    lmao = 59 + 40
+    lmao += 59 + 40
 
     float test = (test + 50)
     int number = 50

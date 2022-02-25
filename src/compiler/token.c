@@ -35,6 +35,8 @@ char *token_print(int type) {
 
         case T_K_SWITCH:
             return "T_K_SWITCH";
+        case T_K_MATCHES:
+            return "T_K_MATCHES";
         case T_K_CASE:
             return "T_K_CASE";
         case T_K_BREAK:

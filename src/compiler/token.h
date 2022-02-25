@@ -35,6 +35,7 @@ typedef struct {
         T_K_TRUE,
 
         T_K_SWITCH,
+        T_K_MATCHES,
         T_K_CASE,
         T_K_BREAK,
         T_K_DEFAULT,

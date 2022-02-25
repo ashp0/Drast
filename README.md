@@ -6,7 +6,7 @@ simplicity
 ## TODO
 
 - [x] Lexing
-- [ ] Parsing (57% Done)
+- [ ] Parsing (71% Done)
     - [x] Variables
     - [x] If, Else, Else If
     - [x] Return
