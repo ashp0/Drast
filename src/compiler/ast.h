@@ -144,6 +144,10 @@ typedef union {
         struct AST *expression;
         bool is_expression;
         Token *operator;
+
+
+        bool is_cast;
+        struct AST *cast_value;
     } VariableCall;
 
     struct {

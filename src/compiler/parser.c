@@ -432,6 +432,10 @@ static inline AST *parse_expression(Parser *parser) {
                parser->current->type == T_FLOAT || parser->current->type == T_PARENS_OPEN ||
                parser->current->type == T_IDENTIFIER || parser->current->type == T_K_MATCHES) {
         return parse_primary(parser);
+    } else if (parser->current->type == T_K_BOOL || parser->current->type == T_K_INT ||
+               parser->current->type == T_K_STRING || parser->current->type == T_K_FLOAT ||
+               parser->current->type == T_K_VOID) {
+        return parse_type_name(parser);
     } else {
         return parse_equality(parser);
     }
@@ -514,7 +518,8 @@ static inline AST *parse_unary(Parser *parser) {
 static inline AST *parse_primary(Parser *parser) {
     if (parser->current->type == T_K_TRUE || parser->current->type == T_K_FALSE || parser->current->type == T_INT ||
         parser->current->type == T_STRING || parser->current->type == T_FLOAT ||
-        parser->current->type == T_IDENTIFIER || parser->current->type == T_K_MATCHES) {
+        parser->current->type == T_IDENTIFIER || parser->current->type == T_K_MATCHES ||
+        parser->current->type == T_ARROW) {
         return parse_literal(parser);
     } else if (parser->current->type == T_PARENS_OPEN) {
         advance(parser, T_PARENS_OPEN);
@@ -537,12 +542,21 @@ static inline AST *parse_literal(Parser *parser) {
 
     if (parser->current->type == T_K_TRUE || parser->current->type == T_K_FALSE || parser->current->type == T_INT ||
         parser->current->type == T_STRING || parser->current->type == T_FLOAT ||
-        parser->current->type == T_IDENTIFIER || parser->current->type == T_K_MATCHES) {
+        parser->current->type == T_IDENTIFIER || parser->current->type == T_K_MATCHES ||
+        parser->current->type == T_ARROW) {
         tree->value.Literal.literal_value = parser->current;
         advance(parser, tree->value.Literal.literal_value->type);
 
         if (parser->current->type == T_PARENS_OPEN) {
             return parse_function_call(parser);
+        } else if (parser->current->type == T_ARROW) {
+            AST *binary_tree = ast_init_with_type(AST_TYPE_BINARY);
+            binary_tree->value.Binary.left = tree;
+            binary_tree->value.Binary.operator = parser->current;
+            advance(parser, T_ARROW);
+            binary_tree->value.Binary.right = parse_expression(parser);
+
+            return binary_tree;
         }
 
         return tree;
@@ -588,8 +602,15 @@ static inline AST *parse_variable_call(Parser *parser) {
     new_ast->value.VariableCall.variable_name = parser->previous->value;
 
     new_ast->value.VariableCall.is_expression = true;
+
+//    if (parser->current->type == T_ARROW) {
+//        advance(parser, T_ARROW);
+//        new_ast->value.VariableCall.is_cast = true;
+//        new_ast->value.VariableCall.cast_value = parse_type_name(parser);
+//    } else {
     new_ast->value.VariableCall.operator = advance_without_check(parser);
     new_ast->value.VariableCall.expression = parse_expression(parser);
+//    }
 
     return new_ast;
 }

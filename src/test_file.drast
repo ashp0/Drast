@@ -64,6 +64,8 @@ int :: main(int argc, string[] argv) {
             float test3
     }
 
+    testVar = firstName -> int
+
     result = matches(operator)  {
         '+': first_number + second_number
         '-': first_number - second_number

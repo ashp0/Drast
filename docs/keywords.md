@@ -78,4 +78,4 @@ asm {
 - Optional Variables, you can use `?` at the declaration of a variable to make it optional. Also, at function return
   types
 - Do, Catch, Try (TODO)
-- `(myVariable -> Int)`, for casting
+- `myVariable -> int`, for casting

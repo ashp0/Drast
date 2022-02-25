@@ -6,12 +6,12 @@ simplicity
 ## TODO
 
 - [x] Lexing
-- [ ] Parsing (78% Done)
+- [ ] Parsing (86% Done)
     - [x] Variables
     - [x] If, Else, Else If
     - [x] Return
     - [x] ASM
-    - [ ] Cast
+    - [x] Cast
     - [x] Switch, break, case, default
     - [ ] For, While, Continue (50%)
     - [x] Union

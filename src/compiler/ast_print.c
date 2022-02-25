@@ -256,9 +256,15 @@ static inline void ast_print_grouping(AST *ast) {
 }
 
 static inline void ast_print_variable_call(AST *ast) {
-    printf("%s %s ", ast->value.VariableCall.variable_name, ast->value.VariableCall.operator->value);
-    ast_print(ast->value.VariableCall.expression);
-    printf("\n");
+    if (ast->value.VariableCall.is_cast) {
+        printf("%s ->", ast->value.VariableCall.variable_name);
+        ast_print(ast->value.VariableCall.cast_value);
+        printf(" \n");
+    } else {
+        printf("%s %s ", ast->value.VariableCall.variable_name, ast->value.VariableCall.operator->value);
+        ast_print(ast->value.VariableCall.expression);
+        printf("\n");
+    }
 }
 
 static inline void ast_print_if_else_statement(AST *ast) {
