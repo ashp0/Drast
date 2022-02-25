@@ -36,7 +36,9 @@ float :: multiply(float first, float second) {
     return first * second
 }
 
-int :: main(int argc, string[] argv) {
+private int :: main(int argc, string[] argv) {
+    volatile int test = 3203
+    private volatile int test = 320342
     int test = 5
     char test = 'c'
     float[] sadfasdf?

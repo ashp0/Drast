@@ -7,6 +7,7 @@
 
 #include "lexer.h"
 
+
 static inline char advance(Lexer *lexer);
 
 static inline Token *advance_token(int token_type, char *value, Lexer *lexer, bool does_not_advance);
@@ -49,7 +50,7 @@ Lexer *lexer_init(char *source) {
     return lexer;
 }
 
-Token *lexer_get_next_token_without_advance(Lexer *lexer) {
+Lexer *lexer_duplicate(Lexer *lexer) {
     Lexer *new_lexer = lexer_init(lexer->source);
     new_lexer->current = lexer->current;
     new_lexer->source = lexer->source;
@@ -57,6 +58,22 @@ Token *lexer_get_next_token_without_advance(Lexer *lexer) {
     new_lexer->position = lexer->position;
     new_lexer->line = lexer->line;
     new_lexer->source_length = lexer->source_length;
+
+    return new_lexer;
+}
+
+Token *lexer_get_next_token_without_advance(Lexer *lexer) {
+    Lexer *new_lexer = lexer_duplicate(lexer);
+
+    return lexer_get_next_token(new_lexer);
+}
+
+Token *lexer_get_next_token_without_advance_offset(Lexer *lexer, uintptr_t offset) {
+    Lexer *new_lexer = lexer_duplicate(lexer);
+
+    for (int i = 0; i < offset - 1; ++i) {
+        lexer_get_next_token(new_lexer);
+    }
 
     return lexer_get_next_token(new_lexer);
 }

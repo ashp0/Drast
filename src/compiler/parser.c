@@ -63,6 +63,12 @@ static inline AST *parse_for_loop(Parser *parser);
 
 static inline AST *parse_do_catch_statement(Parser *parser);
 
+static inline AST *parse_variable_or_function_definition(Parser *parser);
+
+static inline AST *parse_attributes(Parser *parser);
+
+static inline AST *parse_attributes_variable(Parser *parser);
+
 Parser *parser_init(Lexer *lexer) {
     Parser *parser = malloc(sizeof(Parser));
     parser->lexer = lexer;
@@ -74,15 +80,6 @@ Parser *parser_init(Lexer *lexer) {
 
 AST *parser_parse(Parser *parser) {
     return parse_statement(parser);
-}
-
-static inline AST *parse_variable_or_function_definition(Parser *parser) {
-    if (lexer_get_next_token_without_advance(parser->lexer)->type == T_DOUBLE_COLON) {
-        return parse_function(parser);
-    } else {
-        return parse_variable(parser, false);
-    }
-
 }
 
 static inline AST *parse_statement(Parser *parser) {
@@ -104,6 +101,9 @@ static inline AST *parse_statement(Parser *parser) {
             return parse_struct_or_union(parser, true);
         case T_K_ENUM:
             return parse_enum(parser);
+        case T_K_VOLATILE:
+        case T_K_PRIVATE:
+            return parse_attributes(parser);
         default:
             fprintf(stderr, "Parser: Token not parsible or declaracted out of scope: `%s`\n",
                     token_print(parser->current->type));
@@ -138,6 +138,9 @@ static inline AST *parse_inner_statement(Parser *parser) {
             return parse_for_loop(parser);
         case T_K_MATCHES:
             return parse_function_call(parser);
+        case T_K_VOLATILE:
+        case T_K_PRIVATE:
+            return parse_attributes(parser);
         default:
             fprintf(stderr, "Parser: Token `%s`, is not supposed to be declared inside the scope\n",
                     token_print(parser->current->type));
@@ -159,6 +162,65 @@ static inline AST *parse_struct_statements(Parser *parser) {
                     token_print(parser->current->type));
             exit(-2);
     }
+}
+
+static inline AST *parse_attributes(Parser *parser) {
+    bool is_private;
+    AST *new_tree;
+
+    if (lexer_get_next_token_without_advance_offset(parser->lexer, 2)->type == T_DOUBLE_COLON) {
+        while (parser->current->type == T_K_PRIVATE) {
+            if (parser->current->type == T_K_PRIVATE) {
+                advance(parser, T_K_PRIVATE);
+
+                is_private = true;
+            }
+        }
+
+        new_tree = parse_function(parser);
+        new_tree->value.FunctionDeclaration.is_private = is_private;
+
+        return new_tree;
+    } else {
+        return parse_attributes_variable(parser);
+    }
+}
+
+static inline AST *parse_attributes_variable(Parser *parser) {
+    // private volatile int myVariable
+    AST *variable_ast;
+
+    bool is_volatile;
+    bool is_private;
+
+    Token *next_token = lexer_get_next_token_without_advance(parser->lexer);
+    while (parser->current->type == T_K_VOLATILE || parser->current->type == T_K_PRIVATE) {
+        if (parser->current->type == T_K_VOLATILE) {
+            advance(parser, T_K_VOLATILE);
+
+            is_volatile = true;
+        } else if (parser->current->type == T_K_PRIVATE) {
+            advance(parser, T_K_PRIVATE);
+
+            is_private = true;
+        }
+    }
+
+    variable_ast = parse_variable(parser, false);
+
+    variable_ast->value.VariableDeclaration.is_private = is_private;
+    variable_ast->value.VariableDeclaration.is_volatile = is_volatile;
+
+    return variable_ast;
+}
+
+static inline AST *parse_variable_or_function_definition(Parser *parser) {
+    if (lexer_get_next_token_without_advance(parser->lexer)->type == T_DOUBLE_COLON) {
+        return parse_function(parser);
+    } else {
+        return parse_variable(parser, false);
+    }
+
 }
 
 static inline AST *parse_do_catch_statement(Parser *parser) {
@@ -677,12 +739,6 @@ static inline AST *parse_variable(Parser *parser, bool is_constant) {
     // volatile float myVariable = 3
     AST *tree = is_constant ? ast_init_with_type(AST_TYPE_LET_DEFINITION) : ast_init_with_type(
             AST_TYPE_VARIABLE_DEFINITION);
-    if (parser->current->type == T_K_VOLATILE) {
-        tree->value.VariableDeclaration.is_volatile = true;
-        advance(parser, T_K_VOLATILE);
-    } else {
-        tree->value.VariableDeclaration.is_volatile = false;
-    }
     tree->value.VariableDeclaration.type = parse_type_name(parser);
     char *identifier = advance(parser, T_IDENTIFIER)->value;
     tree->value.VariableDeclaration.identifier = identifier;

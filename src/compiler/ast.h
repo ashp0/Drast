@@ -63,6 +63,7 @@ typedef union {
         bool is_constant;
         bool is_initialized;
         bool is_volatile;
+        bool is_private;
         struct AST *value;
         struct AST *type;
     } VariableDeclaration;

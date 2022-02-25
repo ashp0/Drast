@@ -168,9 +168,18 @@ static inline void ast_print_import(AST *ast, uintptr_t indent) {
 }
 
 static inline void ast_print_variable(AST *ast, bool new_line, uintptr_t indent) {
-//    for (int i = 0; i < indent; ++i)
-//        printf("\t");
-    ast_print_type_name(ast->value.VariableDeclaration.type, indent);
+    for (int i = 0; i < indent; ++i)
+        printf("\t");
+
+    if (ast->value.VariableDeclaration.is_private)
+        printf("private ");
+
+    if (ast->value.VariableDeclaration.is_volatile) {
+        printf("volatile ");
+    }
+
+    ast_print_type_name(ast->value.VariableDeclaration.type, 0);
+
     printf(" %s", ast->value.VariableDeclaration.identifier);
 
     if (ast->value.VariableDeclaration.is_initialized) {
@@ -226,7 +235,11 @@ static inline void ast_print_function_declaration(AST *ast, uintptr_t indent) {
     for (int i = 0; i < indent; ++i)
         printf("\t");
 
-    ast_print(ast->value.FunctionDeclaration.return_type);
+    if (ast->value.FunctionDeclaration.is_private)
+        printf("private ");
+
+    ast_print_type_name(ast->value.FunctionDeclaration.return_type, 0);
+
     printf(" :: %s(", ast->value.FunctionDeclaration.function_name);
     ast_print_function_arguments(ast, 0);
     printf(" {\n");
