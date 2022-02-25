@@ -69,6 +69,8 @@ static inline AST *parse_attributes(Parser *parser);
 
 static inline AST *parse_attributes_variable(Parser *parser, bool is_private, bool is_volatile);
 
+static inline AST *parse_struct_member_call(Parser *parser, AST *variable_or_function);
+
 Parser *parser_init(Lexer *lexer) {
     Parser *parser = malloc(sizeof(Parser));
     parser->lexer = lexer;
@@ -280,8 +282,7 @@ static inline AST *parse_do_catch_statement(Parser *parser) {
         advance(parser, T_BRACE_CLOSE);
         advance_semi(parser);
     } else {
-        fprintf(stderr, "Parser: Expected `catch` or `while` after `do` statement\n",
-                token_print(parser->current->type));
+        fprintf(stderr, "Parser: Expected `catch` or `while` after `do` statement\n");
         exit(-2);
     }
 
@@ -293,8 +294,7 @@ static inline AST *parse_matches_statement(Parser *parser, AST *argument) {
     new_tree->value.SwitchStatement.is_matches_statement = true;
 
     if (argument->value.FunctionCall.arguments_size != 1) {
-        fprintf(stderr, "Parser: Matches Token Must Have Only 1 Parameter\n",
-                token_print(parser->current->type));
+        fprintf(stderr, "Parser: Matches Token Must Have Only 1 Parameter\n");
         exit(-2);
     }
 
@@ -633,6 +633,11 @@ static inline AST *parse_variable_call(Parser *parser) {
 
     new_ast->value.VariableCall.is_expression = true;
 
+    if (parser->current->type == T_PERIOD) {
+        AST *literal_ast = ast_init_with_type(AST_TYPE_LITERAL);
+        literal_ast->value.Literal.literal_value = parser->previous;
+        return parse_struct_member_call(parser, literal_ast);
+    }
     new_ast->value.VariableCall.operator = advance_without_check(parser);
     new_ast->value.VariableCall.expression = parse_expression(parser);
     advance_semi(parser);
@@ -903,6 +908,9 @@ static inline AST *parse_expression(Parser *parser) {
         next_token->type == T_BITWISE_SHIFT_LEFT || next_token->type == T_BITWISE_SHIFT_RIGHT ||
         next_token->type == T_BITWISE_POWER || next_token->type == T_BITWISE_NOT) {
         return parse_term(parser);
+    } else if (next_token->type == T_PERIOD) {
+        printf("lkmeflakwmeflkawmeflakwmef3iorjow4mklweaf");
+        return parse_struct_member_call(parser, parser->previous->value);
     } else if (next_token->type == T_EQUAL_EQUAL || next_token->type == T_NOT_EQUAL ||
                next_token->type == T_GREATER_THAN || next_token->type == T_GREATER_THAN_EQUAL ||
                next_token->type == T_LESS_THAN || next_token->type == T_LESS_THAN_EQUAL ||
@@ -928,6 +936,22 @@ static inline AST *parse_expression(Parser *parser) {
     } else {
         return parse_equality(parser);
     }
+}
+
+static inline AST *parse_struct_member_call(Parser *parser, AST *variable_or_function) {
+    // myStruct.print_hello_world()
+    AST *ast_tree = ast_init_with_type(AST_TYPE_STRUCT_OR_UNION_MEMBER_CALL);
+
+    ast_tree->value.StructOrUnionMemberCall.struct_or_variable_name = variable_or_function;
+
+    advance(parser, T_PERIOD);
+
+    ast_tree->value.StructOrUnionMemberCall.expression = parse_expression(parser);
+
+//    if (parser->current->type == T_PERIOD)
+//        return parse_struct_member_call(parser, ast_tree->value.StructOrUnionMemberCall.struct_or_variable_name);
+
+    return ast_tree;
 }
 
 static inline AST *parse_equality(Parser *parser) {
@@ -1061,7 +1085,19 @@ static inline AST *parse_literal(Parser *parser) {
         advance(parser, tree->value.Literal.literal_value->type);
 
         if (parser->current->type == T_PARENS_OPEN) {
-            return parse_function_call(parser);
+            AST *function_call = parse_function_call(parser);
+
+            if (parser->current->type == T_PERIOD) {
+//                AST *binary_tree = ast_init_with_type(AST_TYPE_BINARY);
+//                binary_tree->value.Binary.left = function_call;
+//                binary_tree->value.Binary.operator = parser->current;
+//                advance(parser, T_PERIOD);
+//                binary_tree->value.Binary.right = parse_expression(parser);
+
+//                return binary_tree;
+                return parse_struct_member_call(parser, function_call);
+            }
+            return function_call;
         } else if (parser->current->type == T_ARROW) {
             AST *binary_tree = ast_init_with_type(AST_TYPE_BINARY);
             binary_tree->value.Binary.left = tree;
@@ -1082,7 +1118,7 @@ static inline AST *parse_literal(Parser *parser) {
 static inline Token *advance(Parser *parser, uintptr_t type) {
     if (parser->current->type != type) {
         fprintf(stderr, "Parser: Unexpected Token: `%s`, was expecting `%s`, line: %lu\n",
-                token_print(parser->current->type), parser->current->value,
+                token_print(parser->current->type),
                 token_print((int) type),
                 parser->lexer->line);
         exit(-2);

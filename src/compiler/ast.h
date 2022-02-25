@@ -27,6 +27,7 @@ typedef enum {
     AST_TYPE_VALUE_KEYWORD,
 
     AST_TYPE_STRUCT_OR_UNION_DECLARATION,
+    AST_TYPE_STRUCT_OR_UNION_MEMBER_CALL,
 
     AST_TYPE_ENUM_DECLARATION,
     AST_TYPE_ENUM_ITEM,
@@ -110,6 +111,11 @@ typedef union {
 
         bool is_private;
     } StructOrUnionDeclaration;
+
+    struct {
+        struct AST *struct_or_variable_name;
+        struct AST *expression;
+    } StructOrUnionMemberCall;
 
     struct {
         char *enum_name;

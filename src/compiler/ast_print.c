@@ -53,6 +53,8 @@ static inline void ast_print_do_catch_statement(AST *ast, uintptr_t indent);
 
 static inline void ast_print_try_statement(AST *ast, uintptr_t indent);
 
+static inline void ast_print_struct_member_call(AST *ast, uintptr_t indent);
+
 void ast_print(AST *ast) {
     _ast_print(ast, 0);
 }
@@ -120,10 +122,22 @@ static inline void _ast_print(AST *ast, uintptr_t indent) {
         case AST_TYPE_TRY_STATEMENT:
             ast_print_try_statement(ast, indent);
             break;
+        case AST_TYPE_STRUCT_OR_UNION_MEMBER_CALL:
+            ast_print_struct_member_call(ast, indent);
+            break;
         default:
             printf("Cannot Print AST %d\n", ast->type);
             break;
     }
+}
+
+static inline void ast_print_struct_member_call(AST *ast, uintptr_t indent) {
+//    for (int i = 0; i < indent; ++i)
+//        printf("\t");
+    _ast_print(ast->value.StructOrUnionMemberCall.struct_or_variable_name, indent);
+    printf(".");
+    _ast_print(ast->value.StructOrUnionMemberCall.expression, 0);
+    printf("\n");
 }
 
 static inline void ast_print_try_statement(AST *ast, uintptr_t indent) {

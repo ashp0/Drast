@@ -37,6 +37,7 @@ float :: multiply(float first, float second) {
 }
 
 private int :: main(int argc, string[] argv) {
+    Hello.print_hello_world().ksafm().myVariable
     volatile int test = 3203
     private volatile int test = 320342
     int test = 5
