@@ -9,7 +9,7 @@
 
 static inline void ast_print_import(AST *ast);
 
-static inline void ast_print_variable(AST *ast);
+static inline void ast_print_variable(AST *ast, bool new_line);
 
 static inline void ast_print_function_declaration(AST *ast);
 
@@ -45,6 +45,8 @@ static inline void ast_print_switch_statement(AST *ast);
 
 static inline void ast_print_switch_case_statement(AST *ast);
 
+static inline void ast_print_for_loop(AST *ast);
+
 void ast_print(AST *ast) {
     switch (ast->type) {
         case AST_TYPE_IMPORT:
@@ -52,7 +54,7 @@ void ast_print(AST *ast) {
             break;
         case AST_TYPE_VARIABLE_DEFINITION:
         case AST_TYPE_LET_DEFINITION:
-            ast_print_variable(ast);
+            ast_print_variable(ast, true);
             break;
         case AST_TYPE_FUNCTION_DECLARATION:
             ast_print_function_declaration(ast);
@@ -93,6 +95,9 @@ void ast_print(AST *ast) {
         case AST_TYPE_WHILE_STATEMENT:
             ast_print_while_statement(ast);
             break;
+        case AST_TYPE_FOR_LOOP:
+            ast_print_for_loop(ast);
+            break;
         case AST_TYPE_INLINE_ASSEMBLY:
             ast_print_inline_assembly(ast);
             break;
@@ -110,7 +115,7 @@ static inline void ast_print_import(AST *ast) {
     printf("import %s\n", ast->value.Import.file);
 }
 
-static inline void ast_print_variable(AST *ast) {
+static inline void ast_print_variable(AST *ast, bool new_line) {
     ast_print_type_name(ast->value.VariableDeclaration.type);
     printf(" %s", ast->value.VariableDeclaration.identifier);
 
@@ -121,7 +126,8 @@ static inline void ast_print_variable(AST *ast) {
     if (ast->value.VariableDeclaration.type->value.ValueKeyword.is_optional) {
         printf("?");
     }
-    printf("\n");
+    if (new_line)
+        printf("\n");
 }
 
 static inline void ast_print_switch_statement(AST *ast) {
@@ -201,7 +207,7 @@ static inline void ast_print_struct_declaration(AST *ast) {
 
     for (int i = 0; i < ast->value.StructOrUnionDeclaration.member_size; ++i) {
         printf("\t");
-        ast_print_variable(ast->value.StructOrUnionDeclaration.members[i]);
+        ast_print_variable(ast->value.StructOrUnionDeclaration.members[i], true);
     }
 
     printf("}\n\n");
@@ -222,6 +228,24 @@ static inline void ast_print_return(AST *ast) {
     printf("return ");
     ast_print(ast->value.Return.return_expression);
     printf("\n");
+}
+
+static inline void ast_print_for_loop(AST *ast) {
+    printf("for (");
+    ast_print_variable(ast->value.ForLoop.variable, false);
+    printf(", ");
+    ast_print(ast->value.ForLoop.condition);
+    printf(", ");
+    ast_print(ast->value.ForLoop.condition2);
+    printf(") {\n");
+
+    for (int i = 0; i < ast->value.ForLoop.body_size; i++) {
+        printf("\t\t");
+        ast_print(ast->value.ForLoop.body[i]);
+        printf("\n");
+    }
+
+    printf("\n\t}\n");
 }
 
 static inline void ast_print_type_name(AST *ast) {

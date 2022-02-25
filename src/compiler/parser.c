@@ -59,6 +59,8 @@ static inline AST *parse_asm(Parser *parser);
 
 static inline AST *parse_switch_statement(Parser *parser);
 
+static inline AST *parse_for_loop(Parser *parser);
+
 Parser *parser_init(Lexer *lexer) {
     Parser *parser = malloc(sizeof(Parser));
     parser->lexer = lexer;
@@ -137,6 +139,8 @@ static inline AST *parse_inner_statement(Parser *parser) {
             return parse_if_else_statement(parser, true);
         case T_K_WHILE:
             return parse_while_statement(parser);
+        case T_K_FOR:
+            return parse_for_loop(parser);
         case T_K_MATCHES:
             return parse_function_call(parser);
         default:
@@ -382,8 +386,16 @@ static inline AST *parse_while_statement(Parser *parser) {
                                                      new_ast->value.WhileStatement.body_size *
                                                      sizeof(AST *));
 
-        new_ast->value.WhileStatement.body[new_ast->value.WhileStatement.body_size -
-                                           1] = parse_inner_statement(parser);
+        if (parser->current->type == T_K_CONTINUE || parser->current->type == T_K_BREAK) {
+            AST *literal_value = ast_init_with_type(AST_TYPE_LITERAL);
+            literal_value->value.Literal.literal_value = parser->current;
+            new_ast->value.WhileStatement.body[new_ast->value.WhileStatement.body_size -
+                                               1] = literal_value;
+            advance_without_check(parser);
+        } else {
+            new_ast->value.WhileStatement.body[new_ast->value.WhileStatement.body_size -
+                                               1] = parse_inner_statement(parser);
+        }
     }
 
     advance(parser, T_BRACE_CLOSE);
@@ -564,6 +576,49 @@ static inline AST *parse_literal(Parser *parser) {
         fprintf(stderr, "Parser: Not a literal %s\n", token_print(parser->current->type));
         exit(-2);
     }
+}
+
+static inline AST *parse_for_loop(Parser *parser) {
+    AST *tree = ast_init_with_type(AST_TYPE_FOR_LOOP);
+
+    // Parse the arguments
+    advance(parser, T_K_FOR);
+    advance(parser, T_PARENS_OPEN);
+    tree->value.ForLoop.variable = parse_variable(parser, false);
+    advance(parser, T_COMMA);
+    tree->value.ForLoop.condition = parse_expression(parser);
+    advance(parser, T_COMMA);
+    tree->value.ForLoop.condition2 = parse_expression(parser);
+    advance(parser, T_PARENS_CLOSE);
+
+    advance(parser, T_BRACE_OPEN);
+
+    // Parse the body
+    tree->value.ForLoop.body_size = 0;
+    tree->value.ForLoop.body = calloc(1, sizeof(AST *));
+
+    while (parser->current->type != T_BRACE_CLOSE) {
+        tree->value.ForLoop.body_size += 1;
+
+        tree->value.ForLoop.body = realloc(tree->value.ForLoop.body,
+                                           tree->value.ForLoop.body_size *
+                                           sizeof(AST *));
+
+        if (parser->current->type == T_K_CONTINUE || parser->current->type == T_K_BREAK) {
+            AST *literal_value = ast_init_with_type(AST_TYPE_LITERAL);
+            literal_value->value.Literal.literal_value = parser->current;
+            tree->value.ForLoop.body[tree->value.ForLoop.body_size -
+                                     1] = literal_value;
+            advance_without_check(parser);
+        } else {
+            tree->value.ForLoop.body[tree->value.ForLoop.body_size -
+                                     1] = parse_inner_statement(parser);
+        }
+    }
+
+    advance(parser, T_BRACE_CLOSE);
+
+    return tree;
 }
 
 static inline AST *parse_import(Parser *parser) {

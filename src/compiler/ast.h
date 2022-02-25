@@ -41,6 +41,7 @@ typedef enum {
     AST_TYPE_IF_ELSE_STATEMENT,
 
     AST_TYPE_WHILE_STATEMENT,
+    AST_TYPE_FOR_LOOP,
 
     AST_TYPE_INLINE_ASSEMBLY,
 
@@ -187,6 +188,15 @@ typedef union {
         struct AST **body;
         uintptr_t body_size;
     } SwitchCase;
+
+    struct {
+        struct AST *variable;
+        struct AST *condition;
+        struct AST *condition2;
+
+        struct AST **body;
+        uintptr_t body_size;
+    } ForLoop;
 } ASTValue;
 
 typedef struct AST {
