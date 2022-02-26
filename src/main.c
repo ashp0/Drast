@@ -36,23 +36,24 @@ int main(int argc, char **argv) {
     Parser *parser = parser_init(lexer);
 
     double time = 0;
-    while (parser->lexer->index < parser->lexer->source_length) {
-        clock_t t;
-        t = clock();
+
+    clock_t t;
+    t = clock();
+    for (;;) {
         Token *next_token = lexer_get_next_token(lexer);
-        double time_taken = ((double) t) / CLOCKS_PER_SEC;
-        time += time_taken;
         if (next_token->type == T_EOF)
             break;
-        printf("%s(`%s`)\n", token_print(next_token->type), next_token->value);
+//        printf("%s(`%s`)\n", token_print(next_token->type), next_token->value);
 //        if (parser->current->type == T_EOF)
 //            break;
 //        AST *ast = parser_parse(parser);
 //        ast_print(ast);
 //        free(ast);
     }
+    t = clock() - t;
+    double time_taken = ((double)t)/CLOCKS_PER_SEC;
 
-    printf("time: %f\n", time / CLOCKS_PER_SEC);
+    printf("%f seconds to lex the file \n", time_taken);
 
     return 0;
 }
