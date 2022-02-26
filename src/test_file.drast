@@ -18,7 +18,7 @@ struct Hello {
     string test
     void *myTest?
 
-    private void :: print_hello_world() {
+    void :: print_hello_world() {
         print("Hello World")
     }
 }
@@ -83,7 +83,7 @@ private int :: main(int argc, string[] argv) {
         continue
     }
 
-    testVar = firstName -> int
+    testVar = firstName + 30
 
     result = matches(operator) {
         '+': first_number + second_number
@@ -132,3 +132,4 @@ private int :: main(int argc, string[] argv) {
 skf
 8239rq83rwuids%^&*(394wq
 */
+

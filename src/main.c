@@ -39,21 +39,21 @@ int main(int argc, char **argv) {
 
     clock_t t;
     t = clock();
-    for (;;) {
-        Token *next_token = lexer_get_next_token(lexer);
+    while (parser->lexer->index < parser->lexer->source_length) {
+        Token *next_token = lexer_get_next_token_without_advance(parser->lexer);
+//        if (next_token->type == T_EOF)
+//            break;
+//        printf("%s(`%s`)\n", token_print(next_token->type), next_token->value);
         if (next_token->type == T_EOF)
             break;
-//        printf("%s(`%s`)\n", token_print(next_token->type), next_token->value);
-//        if (parser->current->type == T_EOF)
-//            break;
-//        AST *ast = parser_parse(parser);
-//        ast_print(ast);
-//        free(ast);
+        AST *ast = parser_parse(parser);
+        ast_print(ast);
+        free(ast);
     }
     t = clock() - t;
-    double time_taken = ((double)t)/CLOCKS_PER_SEC;
+    double time_taken = ((double) t) / CLOCKS_PER_SEC;
 
-    printf("%f seconds to lex the file \n", time_taken);
+    printf("\n%f seconds to lex and parse the file \n", time_taken);
 
     return 0;
 }

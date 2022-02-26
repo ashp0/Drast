@@ -25,6 +25,7 @@ typedef struct {
         T_K_ASM,
         T_K_VOLATILE,
         T_K_CAST,
+
         T_K_INT,
         T_K_FLOAT,
         T_K_VOID,

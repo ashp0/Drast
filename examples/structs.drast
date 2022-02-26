@@ -9,6 +9,12 @@ struct Person {
     string last_name
     int age
 
+    .init(string first_name, string last_name, int age) {
+        self.first_name = first_name
+        self.last_name = last_name
+        self.age = age
+    }
+
     void :: print() {
         // Parse Variable Call
         print(self.first_name, self.last_name, self.age)
@@ -16,12 +22,7 @@ struct Person {
 }
 
 int :: main(int argc, string[] argv) {
-    // Add More Support
-    Person john_doe
-
-    john_doe.first_name = "John"
-    john_doe.last_name = "Doe"
-    john_doe.age = 25
+    Person john_doe = .init("John", "Doe", 25)
 
     john_doe.print()
 

@@ -34,7 +34,7 @@ Lexer *lexer_duplicate(Lexer *lexer) {
     return new_lexer;
 }
 
-Token *lexer_get_next_token_without_lexer_advance(Lexer *lexer) {
+Token *lexer_get_next_token_without_advance(Lexer *lexer) {
     Lexer *new_lexer = lexer_duplicate(lexer);
 
     return lexer_get_next_token(new_lexer);
@@ -251,7 +251,7 @@ Token *lexer_get_next_token(Lexer *lexer) {
 
 Token *lexer_parse_character(Lexer *lexer) {
     lexer_advance(lexer);
-    char value[2];
+    char *value = calloc(2, sizeof(char));
     value[0] = lexer_advance(lexer);
     value[1] = '\0';
     if (lexer_advance(lexer) != '\'') {

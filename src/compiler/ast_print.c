@@ -7,59 +7,11 @@
 
 #include "ast_print.h"
 
-static inline void ast_print_import(AST *ast, uintptr_t indent);
-
-static inline void ast_print_variable(AST *ast, bool new_line, uintptr_t indent);
-
-static inline void ast_print_function_declaration(AST *ast, uintptr_t indent);
-
-static inline void ast_print_function_arguments(AST *ast, uintptr_t indent);
-
-static inline void ast_print_type_name(AST *ast, uintptr_t indent);
-
-static inline void ast_print_struct_declaration(AST *ast, uintptr_t indent);
-
-static inline void ast_print_enum_declaration(AST *ast, uintptr_t indent);
-
-static inline void ast_print_binary(AST *ast, uintptr_t indent);
-
-static inline void ast_print_unary(AST *ast, uintptr_t indent);
-
-static inline void ast_print_literal(AST *ast, uintptr_t indent);
-
-static inline void ast_print_grouping(AST *ast, uintptr_t indent);
-
-static inline void ast_print_return(AST *ast, uintptr_t indent);
-
-static inline void ast_print_function_call(AST *ast, uintptr_t indent);
-
-static inline void ast_print_variable_call(AST *ast, uintptr_t indent);
-
-static inline void ast_print_if_else_statement(AST *ast, uintptr_t indent);
-
-static inline void ast_print_while_statement(AST *ast, uintptr_t indent);
-
-static inline void ast_print_inline_assembly(AST *ast, uintptr_t indent);
-
-static inline void ast_print_switch_statement(AST *ast, uintptr_t indent);
-
-static inline void ast_print_switch_case_statement(AST *ast, uintptr_t indent);
-
-static inline void ast_print_for_loop(AST *ast, uintptr_t indent);
-
-static inline void _ast_print(AST *ast, uintptr_t indent);
-
-static inline void ast_print_do_catch_statement(AST *ast, uintptr_t indent);
-
-static inline void ast_print_try_statement(AST *ast, uintptr_t indent);
-
-static inline void ast_print_struct_member_call(AST *ast, uintptr_t indent);
-
 void ast_print(AST *ast) {
     _ast_print(ast, 0);
 }
 
-static inline void _ast_print(AST *ast, uintptr_t indent) {
+void _ast_print(AST *ast, uintptr_t indent) {
     switch (ast->type) {
         case AST_TYPE_DO_CATCH:
             ast_print_do_catch_statement(ast, indent);
@@ -82,9 +34,6 @@ static inline void _ast_print(AST *ast, uintptr_t indent) {
             break;
         case AST_TYPE_BINARY:
             ast_print_binary(ast, indent);
-            break;
-        case AST_TYPE_UNARY:
-            ast_print_unary(ast, indent);
             break;
         case AST_TYPE_LITERAL:
             ast_print_literal(ast, indent);
@@ -125,13 +74,22 @@ static inline void _ast_print(AST *ast, uintptr_t indent) {
         case AST_TYPE_STRUCT_OR_UNION_MEMBER_CALL:
             ast_print_struct_member_call(ast, indent);
             break;
+        case AST_TYPE_BODY:
+            ast_print_body(ast, indent);
+            break;
         default:
             printf("Cannot Print AST %d\n", ast->type);
             break;
     }
 }
 
-static inline void ast_print_struct_member_call(AST *ast, uintptr_t indent) {
+void ast_print_body(AST *ast, uintptr_t indent) {
+    for (int i = 0; i < ast->value.Body.body_size; ++i) {
+        _ast_print(ast->value.Body.body[i], indent + 1);
+    }
+}
+
+void ast_print_struct_member_call(AST *ast, uintptr_t indent) {
 //    for (int i = 0; i < indent; ++i)
 //        printf("\t");
     _ast_print(ast->value.StructOrUnionMemberCall.struct_or_variable_name, indent);
@@ -140,12 +98,12 @@ static inline void ast_print_struct_member_call(AST *ast, uintptr_t indent) {
     printf("\n");
 }
 
-static inline void ast_print_try_statement(AST *ast, uintptr_t indent) {
+void ast_print_try_statement(AST *ast, uintptr_t indent) {
     printf("try ");
     ast_print(ast->value.TryStatement.expression);
 }
 
-static inline void ast_print_do_catch_statement(AST *ast, uintptr_t indent) {
+void ast_print_do_catch_statement(AST *ast, uintptr_t indent) {
     for (int i = 0; i < indent; ++i)
         printf("\t");
 
@@ -174,14 +132,14 @@ static inline void ast_print_do_catch_statement(AST *ast, uintptr_t indent) {
     }
 }
 
-static inline void ast_print_import(AST *ast, uintptr_t indent) {
+void ast_print_import(AST *ast, uintptr_t indent) {
 //    printf("import %s, is library: %d", ast->value.Import.file, ast->value.Import.is_library);
     for (int i = 0; i < indent; ++i)
         printf("\t");
     printf("import %s\n", ast->value.Import.file);
 }
 
-static inline void ast_print_variable(AST *ast, bool new_line, uintptr_t indent) {
+void ast_print_variable(AST *ast, bool new_line, uintptr_t indent) {
     for (int i = 0; i < indent; ++i)
         printf("\t");
 
@@ -207,7 +165,7 @@ static inline void ast_print_variable(AST *ast, bool new_line, uintptr_t indent)
         printf("\n");
 }
 
-static inline void ast_print_switch_statement(AST *ast, uintptr_t indent) {
+void ast_print_switch_statement(AST *ast, uintptr_t indent) {
     for (int i = 0; i < indent; ++i)
         printf("\t");
 
@@ -225,7 +183,7 @@ static inline void ast_print_switch_statement(AST *ast, uintptr_t indent) {
     printf("\n\t}\n");
 }
 
-static inline void ast_print_switch_case_statement(AST *ast, uintptr_t indent) {
+void ast_print_switch_case_statement(AST *ast, uintptr_t indent) {
     if (!ast->value.SwitchCase.is_default) {
         printf("\n");
         for (int i = 0; i < indent; ++i)
@@ -245,7 +203,7 @@ static inline void ast_print_switch_case_statement(AST *ast, uintptr_t indent) {
     }
 }
 
-static inline void ast_print_function_declaration(AST *ast, uintptr_t indent) {
+void ast_print_function_declaration(AST *ast, uintptr_t indent) {
     for (int i = 0; i < indent; ++i)
         printf("\t");
 
@@ -258,16 +216,15 @@ static inline void ast_print_function_declaration(AST *ast, uintptr_t indent) {
     ast_print_function_arguments(ast, 0);
     printf(" {\n");
 
-    for (int i = 0; i < ast->value.FunctionDeclaration.body_size; i++) {
-        _ast_print(ast->value.FunctionDeclaration.body[i], indent + 1);
-    }
+    _ast_print(ast->value.FunctionDeclaration.body, indent + 1);
 
+    printf("\n");
     for (int i = 0; i < indent; ++i)
         printf("\t");
     printf("}\n\n");
 }
 
-static inline void ast_print_function_arguments(AST *ast, uintptr_t indent) {
+void ast_print_function_arguments(AST *ast, uintptr_t indent) {
     if (ast->value.FunctionDeclaration.argument_size == 0) {
         printf(")");
     } else {
@@ -283,7 +240,7 @@ static inline void ast_print_function_arguments(AST *ast, uintptr_t indent) {
     }
 }
 
-static inline void ast_print_function_call(AST *ast, uintptr_t indent) {
+void ast_print_function_call(AST *ast, uintptr_t indent) {
     for (int i = 0; i < indent; ++i)
         printf("\t");
     printf("%s(", ast->value.FunctionCall.function_call_name);
@@ -294,12 +251,12 @@ static inline void ast_print_function_call(AST *ast, uintptr_t indent) {
     }
 
     if (ast->value.FunctionCall.arguments_size == 0)
-        printf(")\n");
+        printf(")");
     else
-        printf("\b\b)\n");
+        printf("\b\b)");
 }
 
-static inline void ast_print_struct_declaration(AST *ast, uintptr_t indent) {
+void ast_print_struct_declaration(AST *ast, uintptr_t indent) {
     if (ast->value.StructOrUnionDeclaration.is_private) {
         printf("private ");
     }
@@ -312,10 +269,11 @@ static inline void ast_print_struct_declaration(AST *ast, uintptr_t indent) {
         _ast_print(ast->value.StructOrUnionDeclaration.members[i], indent + 1);
     }
 
+    // Don't need to use indent, because struct will always be outside
     printf("}\n\n");
 }
 
-static inline void ast_print_enum_declaration(AST *ast, uintptr_t indent) {
+void ast_print_enum_declaration(AST *ast, uintptr_t indent) {
     for (int i = 0; i < indent; ++i)
         printf("\t");
     if (ast->value.EnumDeclaration.is_private) {
@@ -331,7 +289,7 @@ static inline void ast_print_enum_declaration(AST *ast, uintptr_t indent) {
     printf("}\n\n");
 }
 
-static inline void ast_print_return(AST *ast, uintptr_t indent) {
+void ast_print_return(AST *ast, uintptr_t indent) {
     for (int i = 0; i < indent; ++i)
         printf("\t");
     printf("return ");
@@ -339,7 +297,7 @@ static inline void ast_print_return(AST *ast, uintptr_t indent) {
     printf("\n");
 }
 
-static inline void ast_print_for_loop(AST *ast, uintptr_t indent) {
+void ast_print_for_loop(AST *ast, uintptr_t indent) {
     for (int i = 0; i < indent; ++i)
         printf("\t");
     printf("for (");
@@ -361,7 +319,7 @@ static inline void ast_print_for_loop(AST *ast, uintptr_t indent) {
     printf("}\n");
 }
 
-static inline void ast_print_type_name(AST *ast, uintptr_t indent) {
+void ast_print_type_name(AST *ast, uintptr_t indent) {
     for (int i = 0; i < indent; ++i)
         printf("\t");
     if (ast->value.ValueKeyword.is_array) {
@@ -374,7 +332,7 @@ static inline void ast_print_type_name(AST *ast, uintptr_t indent) {
         printf("*");
 }
 
-static inline void ast_print_binary(AST *ast, uintptr_t indent) {
+void ast_print_binary(AST *ast, uintptr_t indent) {
     for (int i = 0; i < indent; ++i)
         printf("\t");
     ast_print(ast->value.Binary.left);
@@ -382,23 +340,19 @@ static inline void ast_print_binary(AST *ast, uintptr_t indent) {
     ast_print(ast->value.Binary.right);
 }
 
-static inline void ast_print_unary(AST *ast, uintptr_t indent) {
-    printf("ast_print_unary");
-}
-
-static inline void ast_print_literal(AST *ast, uintptr_t indent) {
+void ast_print_literal(AST *ast, uintptr_t indent) {
     for (int i = 0; i < indent; ++i)
         printf("\t");
     printf("%s", ast->value.Literal.literal_value->value);
 }
 
-static inline void ast_print_grouping(AST *ast, uintptr_t indent) {
+void ast_print_grouping(AST *ast, uintptr_t indent) {
     printf("(");
     _ast_print(ast->value.Grouping.expression, indent);
     printf(")");
 }
 
-static inline void ast_print_variable_call(AST *ast, uintptr_t indent) {
+void ast_print_variable_call(AST *ast, uintptr_t indent) {
     for (int i = 0; i < indent; ++i)
         printf("\t");
     if (ast->value.VariableCall.is_cast) {
@@ -410,9 +364,11 @@ static inline void ast_print_variable_call(AST *ast, uintptr_t indent) {
         _ast_print(ast->value.VariableCall.expression, 0);
         printf("\n");
     }
+    if (indent != 0)
+        printf("\n");
 }
 
-static inline void ast_print_if_else_statement(AST *ast, uintptr_t indent) {
+void ast_print_if_else_statement(AST *ast, uintptr_t indent) {
     for (int i = 0; i < indent; ++i)
         printf("\t");
     if (ast->value.IfElseStatement.is_else_if_statement)
@@ -425,27 +381,21 @@ static inline void ast_print_if_else_statement(AST *ast, uintptr_t indent) {
     if (ast->value.IfElseStatement.expression)
         ast_print(ast->value.IfElseStatement.expression);
     ast->value.IfElseStatement.is_else_statement ? printf(" {\n") : printf(") {\n");
-    for (int i = 0; i < ast->value.IfElseStatement.body_size; i++) {
-        printf("\t\t");
-        ast_print(ast->value.IfElseStatement.body[i]);
-    }
+    _ast_print(ast->value.IfElseStatement.body, indent + 1);
     printf("\t}\n");
 }
 
-static inline void ast_print_while_statement(AST *ast, uintptr_t indent) {
+void ast_print_while_statement(AST *ast, uintptr_t indent) {
     for (int i = 0; i < indent; ++i)
         printf("\t");
     printf("while (");
     ast_print(ast->value.WhileStatement.expression);
     printf(") {\n");
-    for (int i = 0; i < ast->value.WhileStatement.body_size; i++) {
-        printf("\t\t");
-        ast_print(ast->value.WhileStatement.body[i]);
-    }
+    _ast_print(ast->value.WhileStatement.body, indent + 1);
     printf("\t}\n");
 }
 
-static inline void ast_print_inline_assembly(AST *ast, uintptr_t indent) {
+void ast_print_inline_assembly(AST *ast, uintptr_t indent) {
     printf("asm {\n");
     for (int i = 0; i < ast->value.InlineAssembly.instructions_size; ++i) {
         for (int i = 0; i < indent + 1; ++i)

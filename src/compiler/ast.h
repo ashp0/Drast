@@ -33,7 +33,6 @@ typedef enum {
     AST_TYPE_ENUM_ITEM,
 
     AST_TYPE_BINARY,
-    AST_TYPE_UNARY,
     AST_TYPE_LITERAL,
     AST_TYPE_GROUPING,
 
@@ -51,6 +50,8 @@ typedef enum {
 
     AST_TYPE_DO_CATCH,
     AST_TYPE_TRY_STATEMENT,
+
+    AST_TYPE_BODY,
 } ASTType;
 
 typedef union {
@@ -80,15 +81,13 @@ typedef union {
         char *function_name;
 
         struct AST *return_type;
-        bool has_return_type;
 
         bool is_private;
 
         struct AST **arguments;
         uintptr_t argument_size;
 
-        struct AST **body;
-        uintptr_t body_size;
+        struct AST *body;
     } FunctionDeclaration;
 
     struct {
@@ -129,17 +128,13 @@ typedef union {
         int case_value;
     } EnumItem;
 
+    //
     struct {
         struct AST *left;
         Token *operator;
         struct AST *right;
         char *from;
     } Binary;
-
-    struct {
-        struct AST *right;
-        Token *operator;
-    } Unary;
 
     struct {
         Token *literal_value;
@@ -169,16 +164,22 @@ typedef union {
         bool is_else_if_statement;
         bool is_else_statement;
 
-        struct AST **body;
-        uintptr_t body_size;
+        struct AST *body;
     } IfElseStatement;
 
     struct {
         struct AST *expression;
+        struct AST *body;
+    } WhileStatement;
+
+    struct {
+        struct AST *variable;
+        struct AST *condition;
+        struct AST *condition2;
 
         struct AST **body;
         uintptr_t body_size;
-    } WhileStatement;
+    } ForLoop;
 
     struct {
         char **instruction;
@@ -203,15 +204,6 @@ typedef union {
     } SwitchCase;
 
     struct {
-        struct AST *variable;
-        struct AST *condition;
-        struct AST *condition2;
-
-        struct AST **body;
-        uintptr_t body_size;
-    } ForLoop;
-
-    struct {
         // Do Statement
         struct AST **do_body;
         uintptr_t do_body_size;
@@ -227,6 +219,11 @@ typedef union {
     struct {
         struct AST *expression;
     } TryStatement;
+
+    struct {
+        struct AST **body;
+        uintptr_t body_size;
+    } Body;
 } ASTValue;
 
 typedef struct AST {
