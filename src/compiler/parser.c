@@ -65,6 +65,7 @@ AST *parser_parse_inner_statement(Parser *parser) {
         case T_IDENTIFIER:
         case T_K_PRIVATE:
         case T_K_VOLATILE:
+        case T_K_SELF:
             return parser_parse_function_or_variable_declaration(parser, true);
         case T_K_RETURN:
             return parser_parse_return(parser);
@@ -98,6 +99,9 @@ AST *parser_parse_struct_statement(Parser *parser) {
         case T_K_PRIVATE:
         case T_K_VOLATILE:
             return parser_parse_struct_members(parser);
+        case T_AT:
+            return parser_parse_struct_initializer(parser);
+
         default:
             parser_show_error(parser, "Token cannot be defined inside struct");
     }
@@ -163,6 +167,51 @@ AST *parser_parse_struct_members(Parser *parser) {
     } // TODO: Error Message
 
     return type;
+}
+
+AST *parser_parse_struct_initializer(Parser *parser) {
+    AST *struct_initializer_ast = ast_init_with_type(AST_TYPE_FUNCTION_DECLARATION);
+    struct_initializer_ast->value.FunctionDeclaration.is_struct_initializer = true;
+
+    parser_advance(parser, T_AT);
+    if (strcmp(parser_advance(parser, T_IDENTIFIER)->value, "init") != 0)
+        parser_show_error(parser, "@ sign can only be `init`");
+
+
+    parser_advance(parser, T_PARENS_OPEN);
+
+    // Allocate the Parameters
+    struct_initializer_ast->value.FunctionDeclaration.argument_size = 0;
+    struct_initializer_ast->value.FunctionDeclaration.arguments = calloc(1, sizeof(AST *));
+
+    while (parser->current->type != T_PARENS_CLOSE) {
+        // Re-size the array
+        struct_initializer_ast->value.FunctionDeclaration.argument_size += 1;
+        struct_initializer_ast->value.FunctionDeclaration.arguments = realloc(
+                struct_initializer_ast->value.FunctionDeclaration.arguments,
+                struct_initializer_ast->value.FunctionDeclaration.argument_size *
+                sizeof(AST *));
+
+        // Create item
+        AST *parameter_ast = ast_init_with_type(AST_TYPE_FUNCTION_ARGUMENT);
+        parameter_ast->value.FunctionDeclarationArgument.argument_type = parser_parse_type(parser);
+        parameter_ast->value.FunctionDeclarationArgument.argument_name = parser_advance(parser, T_IDENTIFIER)->value;
+
+        // Insert the item
+        struct_initializer_ast->value.FunctionDeclaration.arguments[
+                struct_initializer_ast->value.FunctionDeclaration.argument_size -
+                1] = parameter_ast;
+
+        // Advance to the next argument
+        if (parser->current->type == T_COMMA)
+            parser_advance(parser, T_COMMA);
+    }
+
+    parser_advance(parser, T_PARENS_CLOSE);
+
+    struct_initializer_ast->value.FunctionDeclaration.body = parser_parse_body(parser);
+
+    return struct_initializer_ast;
 }
 
 AST *parser_parse_struct(Parser *parser, bool is_private) {
@@ -746,6 +795,7 @@ AST *parser_parse_expression(Parser *parser) {
         case T_HEX:
         case T_OCTAL:
         case T_IDENTIFIER:
+        case T_K_SELF:
             return parser_parse_expression_literal(parser);
         case T_PARENS_OPEN:
             return parser_parse_expression_grouping(parser);
@@ -757,6 +807,10 @@ AST *parser_parse_expression(Parser *parser) {
             return parser_parse_matches_statement(parser);
         case T_K_TRY:
             return parser_parse_expression_try(parser);
+        case T_PERIOD:
+            // TODO: Create a `init` type in the AST
+            parser_advance(parser, T_PERIOD);
+            return parser_parse_expression(parser);
         default:
             parser_show_error(parser, "Cannot Parse Expression");
     }

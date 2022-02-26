@@ -210,9 +210,13 @@ void ast_print_function_declaration(AST *ast, uintptr_t indent) {
     if (ast->value.FunctionDeclaration.is_private)
         printf("private ");
 
-    ast_print_type_name(ast->value.FunctionDeclaration.return_type, 0);
+    if (ast->value.FunctionDeclaration.is_struct_initializer) {
+        printf("@init(");
+    } else {
+        ast_print_type_name(ast->value.FunctionDeclaration.return_type, 0);
+        printf(" :: %s(", ast->value.FunctionDeclaration.function_name);
+    }
 
-    printf(" :: %s(", ast->value.FunctionDeclaration.function_name);
     ast_print_function_arguments(ast, 0);
     printf(" {\n");
 

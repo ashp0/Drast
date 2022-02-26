@@ -29,6 +29,8 @@ AST *parser_parse_struct_statement(Parser *parser);
 
 AST *parser_parse_struct_members(Parser *parser);
 
+AST *parser_parse_struct_initializer(Parser *parser);
+
 // Maybe add support for __attribute_((packed))?
 AST *parser_parse_struct(Parser *parser, bool is_private);
 

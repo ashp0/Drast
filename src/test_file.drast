@@ -18,6 +18,11 @@ struct Hello {
     string test
     void *myTest?
 
+    @init(string first_name, string last_name, int age) {
+        float inithahah
+        self.test = 540
+    }
+
     void :: print_hello_world() {
         print("Hello World")
     }
@@ -113,11 +118,7 @@ private int :: main(int argc, string[] argv) {
         float hello2 = 5
     }
 
-    Person john_doe
-
-    john_doe.first_name = "John"
-    john_doe.last_name = "Doe"
-    john_doe.age = 25
+    Person john_doe = .init("John", "Doe", 25)
 
     myHexValue = 0x30592F
     myOctalValue = 0123

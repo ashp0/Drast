@@ -83,6 +83,7 @@ typedef union {
         struct AST *return_type;
 
         bool is_private;
+        bool is_struct_initializer;
 
         struct AST **arguments;
         uintptr_t argument_size;
