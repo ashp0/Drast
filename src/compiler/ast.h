@@ -22,7 +22,7 @@ typedef enum {
 
     AST_TYPE_LET_DEFINITION,
     AST_TYPE_VARIABLE_DEFINITION,
-    AST_TYPE_VARIABLE_CALL, // This applies to both `let` and `var`
+    AST_TYPE_VARIABLE_CALL,
 
     AST_TYPE_VALUE_KEYWORD,
 

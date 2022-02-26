@@ -15,6 +15,7 @@
 #include <stdbool.h>
 #include <ctype.h>
 #include "token.h"
+#include "../utils/string.h"
 
 typedef struct {
     char *source;
@@ -39,5 +40,38 @@ bool is_next_token_operator(Lexer *lexer);
 
 Lexer *lexer_duplicate(Lexer *lexer);
 
+// Lexer Functions
+
+Token *lexer_parse_character(Lexer *lexer);
+
+Token *lexer_parse_string(Lexer *lexer);
+
+uintptr_t lexer_get_line_count(Lexer *lexer);
+
+Token *lexer_parse_number(Lexer *lexer);
+
+Token *lexer_parse_identifier(Lexer *lexer);
+
+Token *lexer_is_keyword(char *identifier, Lexer *lexer);
+
+void lexer_skip_line(Lexer *lexer);
+
+void lexer_skip_block_comment(Lexer *lexer);
+
+char lexer_advance(Lexer *lexer);
+
+void lexer_check_eof(Lexer *lexer, char *error_message);
+
+bool lexer_is_eof(Lexer *lexer);
+
+Token *lexer_advance_token(int token_type, char *value, Lexer *lexer, bool does_not_advance);
+
+char lexer_peek_next(Lexer *lexer);
+
+bool lexer_is_whitespace(Lexer *lexer);
+
+char lexer_peek_next(Lexer *lexer);
+
+void lexer_skip_whitespace(Lexer *lexer);
 
 #endif // __DRAST_COMPILER_LEXER_H__

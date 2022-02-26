@@ -15,6 +15,7 @@ typedef struct {
     enum {
         // Keywords
         T_K_STRUCT,
+        T_K_SELF,
         T_K_ENUM,
         T_K_ALIAS,
         T_K_RETURN,
@@ -47,6 +48,9 @@ typedef struct {
         T_INT,
         T_FLOAT,
         T_STRING,
+        T_CHAR,
+        T_HEX,
+        T_OCTAL,
         T_IDENTIFIER,
 
         T_K_GOTO,

@@ -5,7 +5,7 @@
 //  Created by Ashwin Paudel on 2022-02-05.
 //
 
-#include "../argument_parser.h"
+#include "../utils/argument_parser.h"
 
 const char *long_name_list[] = {"version", "help"};
 

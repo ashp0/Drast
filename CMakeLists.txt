@@ -6,8 +6,8 @@ set(CMAKE_C_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsani
 set(CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
 
 add_executable(drast src/main.c
-        src/argument_parser.c
-        src/argument_parser.h
+        src/utils/argument_parser.c
+        src/utils/argument_parser.h
 
         src/compiler/lexer.c
         src/compiler/lexer.h
@@ -20,4 +20,6 @@ add_executable(drast src/main.c
         src/compiler/ast_print.c
         src/compiler/ast_print.h
         src/compiler/semantic_analyzer.c
-        src/compiler/semantic_analyzer.h)
+        src/compiler/semantic_analyzer.h
+        src/utils/string.c
+        src/utils/string.h)

@@ -10,6 +10,9 @@ private enum Test {
     case Test,
 }
 
+// to do:
+// alias myValue : Test // #define myValue Test
+
 struct Hello {
     int test
     string test
@@ -32,7 +35,7 @@ asm {
     "jmp loop"
 }
 
-float :: multiply(float first, float second) {
+float :: multiply(Hello2 first, float second) {
     return first * second
 }
 
@@ -109,6 +112,15 @@ private int :: main(int argc, string[] argv) {
     } catch {
         float hello2 = 5
     }
+
+    Person john_doe
+
+    john_doe.first_name = "John"
+    john_doe.last_name = "Doe"
+    john_doe.age = 25
+
+    myHexValue = 0x30592F
+    myOctalValue = 0123
 
     return 0
 }

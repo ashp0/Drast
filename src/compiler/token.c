@@ -12,6 +12,8 @@ char *token_print(int type) {
         // Keywords
         case T_K_STRUCT:
             return "T_K_STRUCT";
+        case T_K_SELF:
+            return "T_K_SELF";
         case T_K_ENUM:
             return "T_K_ENUM";
         case T_K_ALIAS:
@@ -66,6 +68,10 @@ char *token_print(int type) {
             return "T_K_STRING";
         case T_K_CHAR:
             return "T_K_CHAR";
+        case T_HEX:
+            return "T_HEX";
+        case T_OCTAL:
+            return "T_OCTAL";
         case T_IDENTIFIER:
             return "T_IDENTIFIER";
 

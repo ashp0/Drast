@@ -6,6 +6,7 @@
 //
 
 #include <stdio.h>
+#include <time.h>
 #include "compiler/lexer.h"
 #include "compiler/parser.h"
 #include "compiler/ast.h"
@@ -34,18 +35,24 @@ int main(int argc, char **argv) {
     Lexer *lexer = lexer_init(file_contents);
     Parser *parser = parser_init(lexer);
 
-
+    double time = 0;
     while (parser->lexer->index < parser->lexer->source_length) {
-//        Token *next_token = lexer_get_next_token(lexer);
-//        if (next_token->type == T_EOF)
-//            break;
-//        printf("%s(`%s`)\n", token_print(next_token->type), next_token->value);
-        if (parser->current->type == T_EOF)
+        clock_t t;
+        t = clock();
+        Token *next_token = lexer_get_next_token(lexer);
+        double time_taken = ((double) t) / CLOCKS_PER_SEC;
+        time += time_taken;
+        if (next_token->type == T_EOF)
             break;
-        AST *ast = parser_parse(parser);
-        ast_print(ast);
-        free(ast);
+        printf("%s(`%s`)\n", token_print(next_token->type), next_token->value);
+//        if (parser->current->type == T_EOF)
+//            break;
+//        AST *ast = parser_parse(parser);
+//        ast_print(ast);
+//        free(ast);
     }
+
+    printf("time: %f\n", time / CLOCKS_PER_SEC);
 
     return 0;
 }

@@ -61,6 +61,67 @@ asm {
 - If you're building an operating system, you can use inline assembler to build your kernel or run special nasm
   instructions.
 
+## enum
+
+**Enumeration**
+
+> `<attributes> enum [<enum_cases>]`
+
+- `attributes` The attributes to the enum, support: `private`
+
+```C
+private enum Test {
+    case Test = 10,
+    case Test,
+    case Test,
+}
+```
+
+**Note:**
+
+- Comma's are required,
+- `case` token is also required
+- You can set the value of the enum using the `=` operator
+
+**Use Cases:**
+
+- Selecting Different Data Type
+
+## struct & union
+
+**Structures and Unions**
+
+Structs and Unions support functions and variable declarations
+
+> `<attributes> (struct/union) [<member>]`
+
+- `attributes` The attributes to the enum, support: `private`
+
+```C
+struct Hello {
+    int test
+    string test
+    void *myTest?
+
+    private void :: print_hello_world() {
+        print("Hello World")
+    }
+}
+
+private union Hello2 {
+    int test1
+    string[] test2
+}
+```
+
+**Note:**
+
+- Variables and Functions are supported
+
+**Use Cases:**
+
+- Creating Objects
+
 ## C
 
 **C Keywords that are used in drast**
@@ -69,9 +130,6 @@ asm {
 - Do, While, For
 - If, Else, Else If
 - Break, Continue, Return
-- Structs ( With Functions and Initializers )
-- Unions ( With Functions and Initializers )
-- Enums
 - Typealias = Typedefs
 - Variables and constants ( Except instead of const, you have to use let )
 - Import = #include, for libraries, you don't use `<`, `>` tokens, you just type the library name `import io`
