@@ -31,6 +31,22 @@ void semantic_analyzer_check_function_declarations(UNMap *table);
 
 void semantic_analyzer_check_function_declaration_argument(UNMap *table, AST **arguments, uintptr_t argument_size);
 
+void semantic_analyzer_check_function_declaration_body(UNMap *table, AST *function_declaration);
+
+void semantic_analyzer_check_variable_definition(UNMap *table, AST *body, AST *variable_definition_ast,
+                                                 AST *function_declaration);
+
+void semantic_analyzer_check_expression(UNMap *table, AST *expression, int position_inside_body, AST *body,
+                                        AST *function_declaration);
+
+void semantic_analyzer_check_expression_binary(UNMap *table, AST *expression, int position_inside_body, AST *body,
+                                               AST *function_declaration);
+
+void semantic_analyzer_check_expression_literal(UNMap *table, AST *expression, int position_inside_body, AST *body,
+                                                AST *function_declaration);
+
+bool semantic_analyzer_check_if_identifier_is_valid_type(UNMap *table, char *identifier, bool displays_error);
+
 UNMap *semantic_analyzer_create_declaration_table(SemanticAnalyzerASTItems *ast_items);
 
 char *semantic_analyzer_declaration_name(AST *ast);

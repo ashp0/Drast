@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
         if (next_token->type == T_EOF)
             break;
         AST *ast = parser_parse(parser);
-        // ast_print(ast);
+//         ast_print(ast);
 
         // Add the item into the array
         ast_items->item_size += 1;

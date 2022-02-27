@@ -938,7 +938,14 @@ bool parser_is_expression(Token *token) {
 AST *parser_parse_type(Parser *parser) {
     AST *type = ast_init_with_type(AST_TYPE_VALUE_KEYWORD);
 
-    type->value.ValueKeyword.token = parser_advance_without_check(parser);
+    if (parser->current->type == T_K_INT || parser->current->type == T_K_FLOAT || parser->current->type == T_K_VOID ||
+        parser->current->type == T_K_STRING || parser->current->type == T_K_CHAR || parser->current->type == T_K_BOOL ||
+        parser->current->type == T_IDENTIFIER) {
+        type->value.ValueKeyword.token = parser_advance_without_check(parser);
+    } else {
+        fprintf(stderr, "Parser: Invalid Type");
+        parser_show_error(parser);
+    }
 
     if (parser->current->type == T_SQUARE_OPEN) {
         parser_advance(parser, T_SQUARE_OPEN);
