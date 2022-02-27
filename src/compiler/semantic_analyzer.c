@@ -42,6 +42,8 @@ void semantic_analyzer_check_function_declarations(UNMap *table) {
 
 void semantic_analyzer_check_function_declaration_argument(UNMap *table, AST **arguments, uintptr_t argument_size) {
     // Duplicate Function Argument Names
+    if (argument_size == 0)
+        return;
     for (int i = 0; i < argument_size - 1; i++) {
         char *argument_i = arguments[i]->value.FunctionDeclarationArgument.argument_name;
         for (int j = i + 1; j < argument_size; j++) {
@@ -126,6 +128,10 @@ void semantic_analyzer_check_expression(UNMap *table, AST *expression, int posit
             semantic_analyzer_check_expression_literal(table, expression, position_inside_body, body,
                                                        function_declaration);
             break;
+        case AST_TYPE_FUNCTION_CALL:
+            semantic_analyzer_check_expression_function_call(table, expression, position_inside_body, body,
+                                                             function_declaration);
+            break;
         default:
             printf("Cannot parse binary %d\n", expression->type);
     }
@@ -153,35 +159,28 @@ void semantic_analyzer_check_expression_literal(UNMap *table, AST *expression, i
             break;
         case T_IDENTIFIER:
             // Check for variable names before the variable definition or a struct name
-            if (!semantic_analyzer_check_if_identifier_is_valid_type(table,
-                                                                     expression->value.Literal.literal_value->value,
-                                                                     false)) {
-                for (int i = position_inside_body; i > 0; i--) {
-                    if (body->value.Body.body[i]->type == AST_TYPE_VARIABLE_DEFINITION) {
-                        if (strcmp(body->value.Body.body[i - 1]->value.VariableDeclaration.identifier,
-                                   expression->value.Literal.literal_value->value) == 0) {
-                            return;
-                        } else if (i >= position_inside_body) {
-                            // Check for function arguments
-                            for (int j = 0; j < function_declaration->value.FunctionDeclaration.argument_size; j++) {
-                                char *argument_name = function_declaration->value.FunctionDeclaration.arguments[j]->value.FunctionDeclarationArgument.argument_name;
-                                if (strcmp(expression->value.Literal.literal_value->value,
-                                           argument_name) == 0) {
-                                    return;
-                                } else if (j >= function_declaration->value.FunctionDeclaration.argument_size) {
-                                    fprintf(stderr, "Semantic Analyzer: `%s` isn't a valid type\n",
-                                            expression->value.Literal.literal_value->value);
-                                    exit(-3);
-                                }
+            for (int i = position_inside_body; i > 0; i--) {
+                if (body->value.Body.body[i]->type == AST_TYPE_VARIABLE_DEFINITION) {
+                    if (strcmp(body->value.Body.body[i - 1]->value.VariableDeclaration.identifier,
+                               expression->value.Literal.literal_value->value) == 0) {
+                        return;
+                    } else if (i >= position_inside_body) {
+                        // Check for function arguments
+                        for (int j = 0; j < function_declaration->value.FunctionDeclaration.argument_size; j++) {
+                            char *argument_name = function_declaration->value.FunctionDeclaration.arguments[j]->value.FunctionDeclarationArgument.argument_name;
+                            if (strcmp(expression->value.Literal.literal_value->value,
+                                       argument_name) == 0) {
+                                return;
+                            } else if (j >= function_declaration->value.FunctionDeclaration.argument_size) {
+                                // Error, not a function argument
                             }
-
-                            fprintf(stderr, "Semantic Analyzer: `%s` isn't a valid type\n",
-                                    expression->value.Literal.literal_value->value);
-                            exit(-3);
                         }
+                        // Error, not a variable
                     }
                 }
             }
+            semantic_analyzer_check_if_identifier_is_valid_type(table, expression->value.Literal.literal_value->value,
+                                                                true);
             break;
         default:
             fprintf(stderr, "Semantic Analyzer: `%s` isn't a valid type\n",
@@ -190,21 +189,66 @@ void semantic_analyzer_check_expression_literal(UNMap *table, AST *expression, i
     }
 }
 
+void
+semantic_analyzer_check_expression_function_call(UNMap *table, AST *expression, int position_inside_body, AST *body,
+                                                 AST *function_declaration) {
+    for (int j = 0; j < table->items; j++) {
+        char *table_item_name = table->pair_values[j]->key;
+
+        if (strcmp(table_item_name, expression->value.FunctionCall.function_call_name) == 0 &&
+            table_item_name[0] != '\0') {
+            if (((SemanticAnalyzerDeclarationTable *) table->pair_values[j]->value)->declaration_type ==
+                AST_TYPE_FUNCTION_DECLARATION) {
+                // Check the arguments
+                // TODO: Check the argument types
+                if (expression->value.FunctionCall.arguments_size !=
+                    ((SemanticAnalyzerDeclarationTable *) table->pair_values[j]->value)->declaration_value->value.FunctionDeclaration.argument_size) {
+                    fprintf(stderr, "Semantic Analyzer: `%s` invalid number of arguments",
+                            expression->value.FunctionCall.function_call_name);
+                    exit(-3);
+                }
+
+                break;
+            } else {
+                fprintf(stderr, "Semantic Analyzer: `%s` is not a valid function",
+                        expression->value.FunctionCall.function_call_name);
+                exit(-3);
+            }
+        } else {
+            if ((j + 1) >= table->items) {
+                fprintf(stderr, "Semantic Analyzer: `%s` is not a valid function",
+                        expression->value.FunctionCall.function_call_name);
+                exit(-3);
+            }
+        }
+    }
+}
+
 bool semantic_analyzer_check_if_identifier_is_valid_type(UNMap *table, char *identifier, bool displays_error) {
-    for (int j = 0; j < table->items; ++j) {
+    for (int j = 0; j < table->items; j++) {
         char *table_item_name = table->pair_values[j]->key;
 
         if (strcmp(table_item_name, identifier) == 0 &&
             table_item_name[0] != '\0') {
+
+            // Check if it's a function definition
+            if (((SemanticAnalyzerDeclarationTable *) table->pair_values[j]->value)->declaration_type ==
+                AST_TYPE_FUNCTION_DECLARATION) {
+                fprintf(stderr, "Semantic Analyzer: `%s` is a function name, which cannot be used as a type",
+                        identifier);
+                exit(-3);
+            }
+
             return true;
         } else {
             if ((j + 1) >= table->items && displays_error) {
                 fprintf(stderr, "Semantic Analyzer: `%s` isn't a valid type", identifier);
                 exit(-3);
             }
-            return false;
         }
     }
+
+    return false;
 }
 
 UNMap *semantic_analyzer_create_declaration_table(SemanticAnalyzerASTItems *ast_items) {

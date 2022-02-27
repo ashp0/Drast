@@ -6,8 +6,13 @@ struct myTestStruct {
 
 }
 
+int :: test() {
+    int test = 3203 + myTestStruct
+    int test2 = test + myTestStruct
+}
+
 private int :: main(int argc, string[] argv) {
     int test = 3203 + myTestStruct
     int test2 = test + myTestStruct
-    int test3 = argv
+    int test3 = test() + 40
 }

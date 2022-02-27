@@ -45,6 +45,10 @@ void semantic_analyzer_check_expression_binary(UNMap *table, AST *expression, in
 void semantic_analyzer_check_expression_literal(UNMap *table, AST *expression, int position_inside_body, AST *body,
                                                 AST *function_declaration);
 
+void
+semantic_analyzer_check_expression_function_call(UNMap *table, AST *expression, int position_inside_body, AST *body,
+                                                 AST *function_declaration);
+
 bool semantic_analyzer_check_if_identifier_is_valid_type(UNMap *table, char *identifier, bool displays_error);
 
 UNMap *semantic_analyzer_create_declaration_table(SemanticAnalyzerASTItems *ast_items);
