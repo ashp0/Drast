@@ -22,4 +22,6 @@ add_executable(drast src/main.c
         src/compiler/semantic_analyzer.c
         src/compiler/semantic_analyzer.h
         src/utils/string.c
-        src/utils/string.h)
+        src/utils/string.h
+        src/utils/unmap.c
+        src/utils/unmap.h)
