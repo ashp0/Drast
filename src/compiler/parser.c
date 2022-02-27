@@ -20,9 +20,9 @@ AST *parser_parse(Parser *parser) {
     return parser_parse_statement(parser);
 }
 
-void parser_show_error(Parser *parser, char *message) {
-    fprintf(stderr, "Parser: %s PARSER(CURRENT: %s) LEXER(LINE: %lu)\n", message, token_print(parser->current->type),
-            parser->lexer->line);
+void parser_show_error(Parser *parser) {
+    // Parser: Token cannot be parsed || Line: 15, Position: 4
+    fprintf(stderr, " || Line: %lu, Position %lu", parser->lexer->line, parser->lexer->position);
     exit(-2);
 }
 
@@ -47,11 +47,13 @@ AST *parser_parse_statement(Parser *parser) {
         case T_K_STRUCT:
         case T_K_UNION:
             return parser_parse_struct(parser, false);
+        case T_K_ALIAS:
+            return parser_parse_alias(parser);
         default:
-            parser_show_error(parser, "Cannot Parse Token, or declared out of scope");
+            fprintf(stderr, "Parser: Token `%s`, cannot be declared outside the scope",
+                    token_print(parser->current->type));
+            parser_show_error(parser);
     }
-
-    parser_show_error(parser, "Cannot Parse Token");
 }
 
 AST *parser_parse_inner_statement(Parser *parser) {
@@ -81,10 +83,10 @@ AST *parser_parse_inner_statement(Parser *parser) {
         case T_K_SWITCH:
             return parser_parse_switch_statement(parser);
         default:
-            parser_show_error(parser, "Cannot Parse Token");
+            fprintf(stderr, "Parser: Token `%s`, cannot be declared inside the scope",
+                    token_print(parser->current->type));
+            parser_show_error(parser);
     }
-
-    parser_show_error(parser, "Cannot Parse Token");
 }
 
 AST *parser_parse_struct_statement(Parser *parser) {
@@ -101,12 +103,11 @@ AST *parser_parse_struct_statement(Parser *parser) {
             return parser_parse_struct_members(parser);
         case T_AT:
             return parser_parse_struct_initializer(parser);
-
         default:
-            parser_show_error(parser, "Token cannot be defined inside struct");
+            fprintf(stderr, "Parser: Token `%s`, cannot be declared inside the struct or union",
+                    token_print(parser->current->type));
+            parser_show_error(parser);
     }
-
-    parser_show_error(parser, "Cannot Parse Token");
 }
 
 AST *parser_parse_function_call(Parser *parser, char *function_name) {
@@ -142,7 +143,12 @@ AST *parser_parse_struct_members(Parser *parser) {
     bool is_volatile = false;
 
     while (parser->current->type == T_K_PRIVATE || parser->current->type == T_K_VOLATILE) {
-        // TODO: Check if user declared private or volatile more than once
+        if (is_private && parser->current->type == T_K_PRIVATE ||
+            is_volatile && parser->current->type == T_K_VOLATILE) {
+            fprintf(stderr, "Parser: Token `%s`, has been declared more than once", token_print(parser->current->type));
+            parser_show_error(parser);
+        }
+
         if (parser->current->type == T_K_PRIVATE) {
             parser_advance(parser, T_K_PRIVATE);
             is_private = true;
@@ -159,12 +165,17 @@ AST *parser_parse_struct_members(Parser *parser) {
 
     if (parser->current->type == T_DOUBLE_COLON) {
         parser_advance(parser, T_DOUBLE_COLON);
-        if (is_volatile)
-            parser_show_error(parser, "Functions cannot be declared as volatile");
+        if (is_volatile) {
+            fprintf(stderr, "Parser: Function cannot be declared as volatile");
+            parser_show_error(parser);
+        }
         return parser_parse_function_declaration(parser, type, is_private);
     } else if (parser->current->type == T_IDENTIFIER) {
         return parser_parse_variable_declaration(parser, type, is_private, is_volatile);
-    } // TODO: Error Message
+    } else {
+        fprintf(stderr, "Parser: Token `%s`, is not parseable", token_print(parser->current->type));
+        parser_show_error(parser);
+    }
 
     return type;
 }
@@ -174,9 +185,10 @@ AST *parser_parse_struct_initializer(Parser *parser) {
     struct_initializer_ast->value.FunctionDeclaration.is_struct_initializer = true;
 
     parser_advance(parser, T_AT);
-    if (strcmp(parser_advance(parser, T_IDENTIFIER)->value, "init") != 0)
-        parser_show_error(parser, "@ sign can only be `init`");
-
+    if (strcmp(parser_advance(parser, T_IDENTIFIER)->value, "init") != 0) {
+        fprintf(stderr, "Parser: `@` sign can only be used for structure initialization");
+        parser_show_error(parser);
+    }
 
     parser_advance(parser, T_PARENS_OPEN);
 
@@ -257,7 +269,11 @@ AST *parser_parse_function_or_variable_declaration(Parser *parser, bool is_inner
     bool is_volatile = false;
 
     while (parser->current->type == T_K_PRIVATE || parser->current->type == T_K_VOLATILE) {
-        // TODO: Check if user declared private or volatile more than once
+        if (is_private && parser->current->type == T_K_PRIVATE ||
+            is_volatile && parser->current->type == T_K_VOLATILE) {
+            fprintf(stderr, "Parser: Token `%s`, has been declared more than once", token_print(parser->current->type));
+            parser_show_error(parser);
+        }
         if (parser->current->type == T_K_PRIVATE) {
             parser_advance(parser, T_K_PRIVATE);
             is_private = true;
@@ -285,12 +301,17 @@ AST *parser_parse_function_or_variable_declaration(Parser *parser, bool is_inner
         return parser_parse_function_call(parser, type->value.Literal.literal_value->value);
     } else if (parser->current->type == T_DOUBLE_COLON && !is_inner_statement) {
         parser_advance(parser, T_DOUBLE_COLON);
-        if (is_volatile)
-            parser_show_error(parser, "Functions cannot be declared as volatile");
+        if (is_volatile) {
+            fprintf(stderr, "Parser: Function cannot be declared as volatile");
+            parser_show_error(parser);
+        }
         return parser_parse_function_declaration(parser, type, is_private);
     } else if (parser->current->type == T_IDENTIFIER && is_inner_statement) {
         return parser_parse_variable_declaration(parser, type, is_private, is_volatile);
-    } // TODO: Error Message
+    } else {
+        fprintf(stderr, "Parser: Token `%s`, is cannot be parsed", token_print(parser->current->type));
+        parser_show_error(parser);
+    }
 
     return type;
 }
@@ -606,8 +627,8 @@ AST *parser_parse_do_catch_statement(Parser *parser) {
 
         parser_advance(parser, T_BRACE_CLOSE);
     } else {
-        fprintf(stderr, "Parser: Expected `catch` or `while` after `do` statement\n");
-        exit(-2);
+        fprintf(stderr, "Parser: Expected `catch` or `while` after `do` statement");
+        parser_show_error(parser);
     }
 
     return do_catch_ast;
@@ -762,6 +783,16 @@ AST *parser_parse_expression_try(Parser *parser) {
     return try_statement;
 }
 
+AST *parser_parse_alias(Parser *parser) {
+    AST *alias_ast = ast_init_with_type(AST_TYPE_ALIAS);
+    parser_advance(parser, T_K_ALIAS);
+    alias_ast->value.Alias.alias_name = parser_advance(parser, T_IDENTIFIER)->value;
+    parser_advance(parser, T_COLON);
+    alias_ast->value.Alias.alias_value = parser_parse_expression(parser);
+
+    return alias_ast;
+}
+
 AST *parser_parse_body(Parser *parser) {
     AST *body_ast = ast_init_with_type(AST_TYPE_BODY);
 
@@ -800,19 +831,22 @@ AST *parser_parse_expression(Parser *parser) {
         case T_PARENS_OPEN:
             return parser_parse_expression_grouping(parser);
         case T_NOT:
-            // TODO: Create a `not` type in the AST
             parser_advance(parser, T_NOT);
-            return parser_parse_expression(parser);
+            AST *not_ast = ast_init_with_type(AST_TYPE_NOT);
+            not_ast->value.Not.expression = parser_parse_expression(parser);
+            return not_ast;
         case T_K_MATCHES:
             return parser_parse_matches_statement(parser);
         case T_K_TRY:
             return parser_parse_expression_try(parser);
         case T_PERIOD:
-            // TODO: Create a `init` type in the AST
             parser_advance(parser, T_PERIOD);
-            return parser_parse_expression(parser);
+            AST *init_ast = ast_init_with_type(AST_TYPE_STRUCT_INITIALIZER);
+            init_ast->value.StructInitializer.function_call = parser_parse_expression(parser);
+            return init_ast;
         default:
-            parser_show_error(parser, "Cannot Parse Expression");
+            fprintf(stderr, "Parser: Expression is cannot be parsed");
+            parser_show_error(parser);
     }
 }
 
@@ -906,7 +940,6 @@ AST *parser_parse_type(Parser *parser) {
 
     type->value.ValueKeyword.token = parser_advance_without_check(parser);
 
-    // TODO: Maybe show error messages if the user defined in the wrong pattern
     if (parser->current->type == T_SQUARE_OPEN) {
         parser_advance(parser, T_SQUARE_OPEN);
         parser_advance(parser, T_SQUARE_CLOSE);
@@ -918,13 +951,19 @@ AST *parser_parse_type(Parser *parser) {
         type->value.ValueKeyword.is_pointer = true;
     }
 
+    if (parser->current->type == T_SQUARE_OPEN || parser->current->type == T_OPERATOR_MUL) {
+        fprintf(stderr, "Parser: Type is declared incorrectly, pattern is `int<array><pointer>`");
+        parser_show_error(parser);
+    }
+
     return type;
 }
 
 Token *parser_advance(Parser *parser, int token_type) {
     if (parser->current->type != token_type) {
-        printf("%s :: %s", parser->current->value, token_print(token_type));
-        parser_show_error(parser, "Didn't Expect that token");
+        fprintf(stderr, "Parser: Expected `%s`, instead got `%s`", token_print(token_type),
+                token_print(parser->current->type));
+        parser_show_error(parser);
     }
     parser->previous = parser->current;
     parser->current = lexer_get_next_token(parser->lexer);

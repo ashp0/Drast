@@ -460,7 +460,6 @@ void lexer_skip_line(Lexer *lexer) {
 
     if (lexer_is_whitespace(lexer))
         lexer_skip_whitespace(lexer);
-    lexer->line++;
     lexer->position = 0;
 }
 

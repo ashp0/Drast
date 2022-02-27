@@ -20,7 +20,6 @@ typedef enum {
 
     AST_TYPE_FUNCTION_CALL,
 
-    AST_TYPE_LET_DEFINITION,
     AST_TYPE_VARIABLE_DEFINITION,
     AST_TYPE_VARIABLE_CALL,
 
@@ -28,6 +27,7 @@ typedef enum {
 
     AST_TYPE_STRUCT_OR_UNION_DECLARATION,
     AST_TYPE_STRUCT_OR_UNION_MEMBER_CALL,
+    AST_TYPE_STRUCT_INITIALIZER,
 
     AST_TYPE_ENUM_DECLARATION,
     AST_TYPE_ENUM_ITEM,
@@ -35,6 +35,7 @@ typedef enum {
     AST_TYPE_BINARY,
     AST_TYPE_LITERAL,
     AST_TYPE_GROUPING,
+    AST_TYPE_NOT,
 
     AST_TYPE_RETURN,
 
@@ -52,6 +53,8 @@ typedef enum {
     AST_TYPE_TRY_STATEMENT,
 
     AST_TYPE_BODY,
+
+    AST_TYPE_ALIAS,
 } ASTType;
 
 typedef union {
@@ -62,7 +65,6 @@ typedef union {
 
     struct {
         char *identifier;
-        bool is_constant;
         bool is_initialized;
         bool is_volatile;
         bool is_private;
@@ -118,6 +120,10 @@ typedef union {
     } StructOrUnionMemberCall;
 
     struct {
+        struct AST *function_call;
+    } StructInitializer;
+
+    struct {
         char *enum_name;
         struct AST **cases;
         uintptr_t case_size;
@@ -144,6 +150,10 @@ typedef union {
     struct {
         struct AST *expression;
     } Grouping;
+
+    struct {
+        struct AST *expression;
+    } Not;
 
     struct {
         struct AST *return_expression;
@@ -225,6 +235,11 @@ typedef union {
         struct AST **body;
         uintptr_t body_size;
     } Body;
+
+    struct {
+        char *alias_name;
+        struct AST *alias_value;
+    } Alias;
 } ASTValue;
 
 typedef struct AST {

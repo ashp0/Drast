@@ -11,7 +11,7 @@ private enum Test {
 }
 
 // to do:
-// alias myValue : Test // #define myValue Test
+alias myValue : 6 + 60 // #define myValue Test
 
 struct Hello {
     int test
@@ -122,6 +122,7 @@ private int :: main(int argc, string[] argv) {
 
     myHexValue = 0x30592F
     myOctalValue = 0123
+    myTestVariable = !testing
 
     return 0
 }

@@ -64,6 +64,8 @@ AST *parser_parse_matches_statement(Parser *parser);
 
 AST *parser_parse_expression_try(Parser *parser);
 
+AST *parser_parse_alias(Parser *parser);
+
 AST *parser_parse_body(Parser *parser);
 
 AST *parser_parse_expression(Parser *parser);

@@ -1,0 +1,20 @@
+//
+// Drast Programming Language Examples
+//
+
+import io
+
+int :: main(int argc, string[] argv) {
+    int random_number = random_int_between(1, 10)
+
+    print("Type in a random number between 1 and 10")
+    float user_input = getInt()
+
+    if (user_input == random_number) {
+        print("You have guessed the correct number!")
+    } else {
+        print("You have guess the wrong number, the number was: ", random_number)
+    }
+
+    return 0
+}

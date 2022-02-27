@@ -20,7 +20,6 @@ void _ast_print(AST *ast, uintptr_t indent) {
             ast_print_import(ast, indent);
             break;
         case AST_TYPE_VARIABLE_DEFINITION:
-        case AST_TYPE_LET_DEFINITION:
             ast_print_variable(ast, true, indent);
             break;
         case AST_TYPE_FUNCTION_DECLARATION:
@@ -76,6 +75,15 @@ void _ast_print(AST *ast, uintptr_t indent) {
             break;
         case AST_TYPE_BODY:
             ast_print_body(ast, indent);
+            break;
+        case AST_TYPE_NOT:
+            ast_print_not(ast, indent);
+            break;
+        case AST_TYPE_STRUCT_INITIALIZER:
+            ast_print_struct_initializer(ast, indent);
+            break;
+        case AST_TYPE_ALIAS:
+            ast_print_alias(ast);
             break;
         default:
             printf("Cannot Print AST %d\n", ast->type);
@@ -410,4 +418,25 @@ void ast_print_inline_assembly(AST *ast, uintptr_t indent) {
     for (int i = 0; i < indent; ++i)
         printf("\t");
     printf("}\n");
+}
+
+void ast_print_not(AST *ast, uintptr_t indent) {
+    for (int i = 0; i < indent; ++i)
+        printf("\t");
+    printf("!");
+    ast_print(ast->value.Not.expression);
+}
+
+void ast_print_struct_initializer(AST *ast, uintptr_t indent) {
+    for (int i = 0; i < indent; ++i)
+        printf("\t");
+    printf(".");
+    _ast_print(ast->value.StructInitializer.function_call, indent);
+    printf("\n");
+}
+
+void ast_print_alias(AST *ast) {
+    printf("alias %s : ", ast->value.Alias.alias_name);
+    _ast_print(ast->value.Alias.alias_value, 0);
+    printf("\n");
 }
