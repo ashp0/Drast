@@ -9,6 +9,7 @@
 #define __DRAST_COMPILER_TOKEN_H__
 
 #include "stdio.h"
+#include "../utils/unmap.h"
 
 typedef struct {
     char *value;

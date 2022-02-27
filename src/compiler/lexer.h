@@ -16,6 +16,7 @@
 #include <ctype.h>
 #include "token.h"
 #include "../utils/string.h"
+#include "../utils/unmap.h"
 
 typedef struct {
     char *source;

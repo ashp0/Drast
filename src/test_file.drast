@@ -15,4 +15,5 @@ private int :: main(int argc, string[] argv) {
     int test = 3203 + myTestStruct
     int test2 = test + myTestStruct
     int test3 = test() + 40
+    int test_string = "wlfkmalwekfm"
 }

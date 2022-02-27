@@ -41,21 +41,24 @@ int main(int argc, char **argv) {
     clock_t t;
     t = clock();
     SemanticAnalyzerASTItems *ast_items = calloc(1, sizeof(SemanticAnalyzerASTItems));
+    Token *next_token;
     while (parser->lexer->index < parser->lexer->source_length) {
-        Token *next_token = lexer_get_next_token_without_advance(parser->lexer);
+        next_token = lexer_get_next_token_without_advance(parser->lexer);
 //        if (next_token->type == T_EOF)
 //            break;
 //        printf("%s(`%s`)\n", token_print(next_token->type), next_token->value);
         if (next_token->type == T_EOF)
             break;
         AST *ast = parser_parse(parser);
-//         ast_print(ast);
+        ast_print(ast);
 
         // Add the item into the array
         ast_items->item_size += 1;
         ast_items->items = realloc(ast_items->items, ast_items->item_size * sizeof(AST *));
 
         ast_items->items[ast_items->item_size - 1] = ast;
+
+        free(next_token);
     }
     /*
      t = clock() - t;
@@ -66,6 +69,12 @@ int main(int argc, char **argv) {
 
     UNMap *map = semantic_analyzer_create_declaration_table(ast_items);
     semantic_analyzer_run_analysis(map);
+
+    free(lexer);
+    free(parser->current);
+    free(parser);
+    unmap_destroy(map);
+    free(ast_items);
 
 
     return 0;

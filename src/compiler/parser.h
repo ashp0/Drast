@@ -14,7 +14,6 @@
 typedef struct {
     Lexer *lexer;
     Token *current;
-    Token *previous;
 } Parser;
 
 Parser *parser_init(Lexer *lexer);

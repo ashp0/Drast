@@ -36,8 +36,11 @@ Lexer *lexer_duplicate(Lexer *lexer) {
 
 Token *lexer_get_next_token_without_advance(Lexer *lexer) {
     Lexer *new_lexer = lexer_duplicate(lexer);
+    Token *next_token = lexer_get_next_token(new_lexer);
 
-    return lexer_get_next_token(new_lexer);
+    free(new_lexer);
+
+    return next_token;
 }
 
 Token *lexer_get_next_token_without_advance_offset(Lexer *lexer, uintptr_t offset) {
@@ -126,7 +129,7 @@ Token *lexer_get_next_token(Lexer *lexer) {
             } else if (lexer_peek_next(lexer) == '>') {
                 lexer_advance(lexer);
                 return lexer_advance_token(T_ARROW, "->", lexer, false);
-            } else if (isnumber(lexer_peek_next(lexer))) {
+            } else if (isdigit(lexer_peek_next(lexer))) {
                 return lexer_parse_number(lexer);
             } else {
                 return lexer_advance_token(T_OPERATOR_SUB, "-", lexer, false);
@@ -296,16 +299,20 @@ Token *lexer_parse_string(Lexer *lexer) {
 }
 
 Token *lexer_parse_number(Lexer *lexer) {
-    char *value = calloc(1, sizeof(char));
+    uintptr_t line_size = lexer_get_line_count(lexer);
+
+    char *value = calloc(line_size + 2, sizeof(char));
     uintptr_t value_count = 0;
 
     while (isdigit(lexer->current) || lexer->current == '.' || lexer->current == '-' || lexer->current == '+' ||
            isxdigit(lexer->current) || lexer->current == 'x' || lexer->current == 'X') {
-        value = realloc(value, (value_count + 2) * sizeof(char));
         value_count++;
         strcat(value, (char[2]) {lexer->current, 0});
+
         lexer_advance(lexer);
     }
+
+    value = realloc(value, (value_count + 2) * sizeof(char));
 
     if (string_is_float(value))
         return lexer_advance_token(T_FLOAT, value, lexer, true);
@@ -318,15 +325,19 @@ Token *lexer_parse_number(Lexer *lexer) {
 }
 
 Token *lexer_parse_identifier(Lexer *lexer) {
-    char *value = calloc(1, sizeof(char));
+    uintptr_t line_size = lexer_get_line_count(lexer);
+
+    char *value = calloc(line_size + 1, sizeof(char));
     uintptr_t value_count = 0;
 
     while (isalnum(lexer->current) || lexer->current == '_') {
-        value = realloc(value, (value_count + 2) * sizeof(char));
         value_count++;
         strcat(value, (char[2]) {lexer->current, 0});
+
         lexer_advance(lexer);
     }
+
+    value = realloc(value, (value_count + 1) * sizeof(char));
 
     return lexer_is_keyword(value, lexer);
 }
@@ -411,6 +422,8 @@ uintptr_t lexer_get_line_count(Lexer *lexer) {
         lexer_advance(fake_lexer);
     }
 
+    free(fake_lexer);
+
     return line_size;
 }
 
@@ -481,7 +494,7 @@ char lexer_advance(Lexer *lexer) {
 }
 
 Token *lexer_advance_token(int token_type, char *value, Lexer *lexer, bool does_not_advance) {
-    Token *new_token = malloc(sizeof(Token));
+    Token *new_token = calloc(1, sizeof(Token));
     new_token->value = value;
     new_token->type = token_type;
 

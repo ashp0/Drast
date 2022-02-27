@@ -10,6 +10,7 @@
 
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include "token.h"
 
 typedef enum {
