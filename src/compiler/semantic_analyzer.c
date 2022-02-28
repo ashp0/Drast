@@ -10,6 +10,7 @@
 void semantic_analyzer_run_analysis(UNMap *table) {
     semantic_analyzer_check_for_duplicate_declarations(table);
     semantic_analyzer_check_function_declarations(table);
+    semantic_analyzer_check_struct_declarations(table);
 }
 
 void semantic_analyzer_check_for_duplicate_declarations(UNMap *table) {
@@ -22,6 +23,59 @@ void semantic_analyzer_check_for_duplicate_declarations(UNMap *table) {
                     exit(-3);
                 }
             }
+        }
+    }
+}
+
+void semantic_analyzer_check_struct_declarations(UNMap *table) {
+    for (int i = 0; i < table->items; ++i) {
+        SemanticAnalyzerDeclarationTable *declaration_table = (SemanticAnalyzerDeclarationTable *) table->pair_values[i]->value;
+        if (declaration_table->declaration_type == AST_TYPE_STRUCT_OR_UNION_DECLARATION) {
+            printf("FOUND STRUCT\n");
+            // Create a new struct table
+
+            SemanticAnalyzerASTItems *ast_items = calloc(1, sizeof(SemanticAnalyzerASTItems));
+
+            for (int j = 0; j < declaration_table->declaration_value->value.StructOrUnionDeclaration.member_size; ++j) {
+                ast_items->item_size += 1;
+                ast_items->items = realloc(ast_items->items, ast_items->item_size * sizeof(AST *));
+
+                ast_items->items[ast_items->item_size -
+                                 1] = declaration_table->declaration_value->value.StructOrUnionDeclaration.members[j];
+            }
+
+            UNMap *map = semantic_analyzer_create_declaration_table(ast_items);
+
+            semantic_analyzer_run_analysis(map);
+            // Already checked for duplicate definitions
+//            for (int j = 0; j < declaration_table->declaration_value->value.StructOrUnionDeclaration.member_size; ++j) {
+//                if (declaration_table->declaration_value->value.StructOrUnionDeclaration.members[j]->type == AST_TYPE_VARIABLE_DEFINITION) {
+//                    semantic_analyzer_check_variable_definition(table,
+//                                                                declaration_table->declaration_value->value.StructOrUnionDeclaration.members,
+//                                                                declaration_table->declaration_value->value.StructOrUnionDeclaration.member_size,
+//                                                                declaration_table->declaration_value,
+//                                                                declaration_table->declaration_value->value.StructOrUnionDeclaration.members[j]);
+//                }
+////                else if (declaration_table->declaration_value->value.StructOrUnionDeclaration.members[j]->type == AST_TYPE_FUNCTION_DECLARATION) {
+////                    for (int k = 0; k < declaration_table->declaration_value->value.StructOrUnionDeclaration.member_size; ++k) {
+////                        AST *member = declaration_table->declaration_value->value.StructOrUnionDeclaration.members[k];
+////
+////                        SemanticAnalyzerASTItems *ast_items = calloc(1, sizeof(SemanticAnalyzerASTItems));
+////                        Token *next_token;
+////
+////                        for (int l = 0; l < member->value.FunctionDeclaration.body->value.Body.body_size; ++l) {
+////                            ast_items->item_size += 1;
+////                            ast_items->items = realloc(ast_items->items, ast_items->item_size * sizeof(AST *));
+////
+////                            ast_items->items[ast_items->item_size - 1] = member->value.FunctionDeclaration.body->value.Body.body[l];
+////                        }
+////
+////                        UNMap *map = semantic_analyzer_create_declaration_table(ast_items);
+////
+////                        semantic_analyzer_check_function_declarations(table);
+////                    }
+//                }
+//            }
         }
     }
 }
@@ -74,9 +128,11 @@ void semantic_analyzer_check_function_declaration_body(UNMap *table, AST *functi
     for (int i = 0; i < function_declaration->value.FunctionDeclaration.body->value.Body.body_size; ++i) {
         switch (function_declaration->value.FunctionDeclaration.body->value.Body.body[i]->type) {
             case AST_TYPE_VARIABLE_DEFINITION:
-                semantic_analyzer_check_variable_definition(table, function_declaration->value.FunctionDeclaration.body,
-                                                            function_declaration->value.FunctionDeclaration.body->value.Body.body[i],
-                                                            function_declaration);
+                semantic_analyzer_check_variable_definition(table,
+                                                            function_declaration->value.FunctionDeclaration.body->value.Body.body,
+                                                            function_declaration->value.FunctionDeclaration.body->value.Body.body_size,
+                                                            function_declaration,
+                                                            function_declaration->value.FunctionDeclaration.body->value.Body.body[i]);
                 break;
             default:
                 printf("Function body cannot be checked by semantic analyzer %d\n",
@@ -85,8 +141,9 @@ void semantic_analyzer_check_function_declaration_body(UNMap *table, AST *functi
     }
 }
 
-void semantic_analyzer_check_variable_definition(UNMap *table, AST *body, AST *variable_definition_ast,
-                                                 AST *function_declaration) {
+void
+semantic_analyzer_check_variable_definition(UNMap *table, AST **body, uintptr_t body_size, AST *function_declaration,
+                                            AST *variable_definition_ast) {
     // Variable Type
     if (variable_definition_ast->value.VariableDeclaration.type->value.ValueKeyword.token->type == T_IDENTIFIER) {
         semantic_analyzer_check_if_identifier_is_valid_type(table,
@@ -96,14 +153,14 @@ void semantic_analyzer_check_variable_definition(UNMap *table, AST *body, AST *v
 
     // Check if the variable name is used elsewhere in the body
     int position_inside_body = 0;
-    for (int i = 0; i < body->value.Body.body_size; ++i) {
-        if (body->value.Body.body[i]->type == AST_TYPE_VARIABLE_DEFINITION) {
-            if (body->value.Body.body[i] == variable_definition_ast) {
+    for (int i = 0; i < body_size; ++i) {
+        if (body[i]->type == AST_TYPE_VARIABLE_DEFINITION) {
+            if (body[i] == variable_definition_ast) {
                 position_inside_body = i;
             }
             if ((strcmp(variable_definition_ast->value.VariableDeclaration.identifier,
-                        body->value.Body.body[i]->value.VariableDeclaration.identifier) == 0) &&
-                body->value.Body.body[i] != variable_definition_ast) {
+                        body[i]->value.VariableDeclaration.identifier) == 0) &&
+                body[i] != variable_definition_ast) {
                 fprintf(stderr, "Semantic Analyzer: Variable `%s`, has been defined more than once\n",
                         variable_definition_ast->value.VariableDeclaration.identifier);
                 exit(-3);
@@ -112,43 +169,77 @@ void semantic_analyzer_check_variable_definition(UNMap *table, AST *body, AST *v
     }
 
     if (variable_definition_ast->value.VariableDeclaration.is_initialized) {
-        semantic_analyzer_check_expression(table, variable_definition_ast->value.VariableDeclaration.value,
-                                           position_inside_body, body, function_declaration);
+        int variable_type = variable_definition_ast->value.VariableDeclaration.type->value.ValueKeyword.token->type;
+        int expression_type = semantic_analyzer_check_expression(table,
+                                                                 variable_definition_ast->value.VariableDeclaration.value,
+                                                                 position_inside_body, body, body_size,
+                                                                 function_declaration);
+        if (!semantic_analyzer_types_are_allowed(variable_type, expression_type)) {
+            fprintf(stderr, "Semantic Analyzer: Variable `%s`, has a type of `%s`, but was asigned type of `%s`\n",
+                    variable_definition_ast->value.VariableDeclaration.identifier, token_print(variable_type),
+                    token_print(expression_type));
+            exit(-3);
+        }
     }
 }
 
-void semantic_analyzer_check_expression(UNMap *table, AST *expression, int position_inside_body, AST *body,
-                                        AST *function_declaration) {
+int semantic_analyzer_check_expression(UNMap *table, AST *expression, int position_inside_body, AST **body,
+                                       uintptr_t body_size,
+                                       AST *function_declaration) {
     switch (expression->type) {
         case AST_TYPE_BINARY:
-            semantic_analyzer_check_expression_binary(table, expression, position_inside_body, body,
-                                                      function_declaration);
-            break;
-        case AST_TYPE_LITERAL:
-            semantic_analyzer_check_expression_literal(table, expression, position_inside_body, body,
-                                                       function_declaration);
-            break;
-        case AST_TYPE_FUNCTION_CALL:
-            semantic_analyzer_check_expression_function_call(table, expression, position_inside_body, body,
+            return semantic_analyzer_check_expression_binary(table, expression, position_inside_body, body, body_size,
                                                              function_declaration);
-            break;
+        case AST_TYPE_LITERAL:
+            return semantic_analyzer_check_expression_literal(table, expression, position_inside_body, body, body_size,
+                                                              function_declaration);
+        case AST_TYPE_FUNCTION_CALL:
+            return semantic_analyzer_check_expression_function_call(table, expression, position_inside_body, body,
+                                                                    body_size,
+                                                                    function_declaration);
+        case AST_TYPE_GROUPING:
+            return semantic_analyzer_check_expression_grouping(table, expression, position_inside_body, body, body_size,
+                                                               function_declaration);
         default:
             printf("Cannot parse binary %d\n", expression->type);
+            break;
     }
 }
 
-void semantic_analyzer_check_expression_binary(UNMap *table, AST *expression, int position_inside_body, AST *body,
-                                               AST *function_declaration) {
-    // Check the left side
-    semantic_analyzer_check_expression(table, expression->value.Binary.left, position_inside_body, body,
-                                       function_declaration);
-    // The token is already validated by the parser
-    semantic_analyzer_check_expression(table, expression->value.Binary.right, position_inside_body, body,
-                                       function_declaration);
+int semantic_analyzer_check_expression_grouping(UNMap *table, AST *expression, int position_inside_body, AST **body,
+                                                uintptr_t body_size,
+                                                AST *function_declaration) {
+    return semantic_analyzer_check_expression(table, expression->value.Grouping.expression, position_inside_body, body,
+                                              body_size,
+                                              function_declaration);
 }
 
-void semantic_analyzer_check_expression_literal(UNMap *table, AST *expression, int position_inside_body, AST *body,
-                                                AST *function_declaration) {
+int semantic_analyzer_check_expression_binary(UNMap *table, AST *expression, int position_inside_body, AST **body,
+                                              uintptr_t body_size,
+                                              AST *function_declaration) {
+    // Check the left side
+    int left_type = semantic_analyzer_check_expression(table, expression->value.Binary.left, position_inside_body, body,
+                                                       body_size,
+                                                       function_declaration);
+    // The token is already validated by the parser
+    // Check if the left side and right side are valid.
+
+    int right_type = semantic_analyzer_check_expression(table, expression->value.Binary.right, position_inside_body,
+                                                        body, body_size,
+                                                        function_declaration);
+
+    if (!semantic_analyzer_types_are_allowed(left_type, right_type)) {
+        fprintf(stderr, "Semantic Analyzer: expressions have different types: %s :: %s\n", token_print(left_type),
+                token_print(right_type));
+        exit(-3);
+    }
+
+    return left_type;
+}
+
+int semantic_analyzer_check_expression_literal(UNMap *table, AST *expression, int position_inside_body, AST **body,
+                                               uintptr_t body_size,
+                                               AST *function_declaration) {
     switch (expression->value.Literal.literal_value->type) {
         case T_INT:
         case T_FLOAT:
@@ -156,29 +247,31 @@ void semantic_analyzer_check_expression_literal(UNMap *table, AST *expression, i
         case T_CHAR:
         case T_HEX:
         case T_OCTAL:
-            break;
+            return expression->value.Literal.literal_value->type;
         case T_IDENTIFIER:
             // Check for variable names before the variable definition or a struct name
             for (int i = position_inside_body; i > 0; i--) {
-                if (body->value.Body.body[i]->type == AST_TYPE_VARIABLE_DEFINITION) {
-                    if (strcmp(body->value.Body.body[i - 1]->value.VariableDeclaration.identifier,
+                if (body[i]->type == AST_TYPE_VARIABLE_DEFINITION) {
+                    if (strcmp(body[i - 1]->value.VariableDeclaration.identifier,
                                expression->value.Literal.literal_value->value) == 0) {
-                        return;
+                        return body[i - 1]->value.VariableDeclaration.type->value.ValueKeyword.token->type;
                     } else if (i >= position_inside_body) {
-                        // Check for function arguments
-                        for (int j = 0; j < function_declaration->value.FunctionDeclaration.argument_size; j++) {
-                            char *argument_name = function_declaration->value.FunctionDeclaration.arguments[j]->value.FunctionDeclarationArgument.argument_name;
-                            if (strcmp(expression->value.Literal.literal_value->value,
-                                       argument_name) == 0) {
-                                return;
-                            } else if (j >= function_declaration->value.FunctionDeclaration.argument_size) {
-                                // Error, not a function argument
-                            }
-                        }
                         // Error, not a variable
                     }
                 }
             }
+
+            // Check for function arguments
+            for (int j = 0; j < function_declaration->value.FunctionDeclaration.argument_size; j++) {
+                AST *argument_name = function_declaration->value.FunctionDeclaration.arguments[j];
+                if (strcmp(expression->value.Literal.literal_value->value,
+                           argument_name->value.FunctionDeclarationArgument.argument_name) == 0) {
+                    return argument_name->value.FunctionDeclarationArgument.argument_type->value.ValueKeyword.token->type;
+                } else if (j >= function_declaration->value.FunctionDeclaration.argument_size) {
+                    // Error, not a function argument
+                }
+            }
+
             semantic_analyzer_check_if_identifier_is_valid_type(table, expression->value.Literal.literal_value->value,
                                                                 true);
             break;
@@ -189,9 +282,9 @@ void semantic_analyzer_check_expression_literal(UNMap *table, AST *expression, i
     }
 }
 
-void
-semantic_analyzer_check_expression_function_call(UNMap *table, AST *expression, int position_inside_body, AST *body,
-                                                 AST *function_declaration) {
+int
+semantic_analyzer_check_expression_function_call(UNMap *table, AST *expression, int position_inside_body, AST **body,
+                                                 uintptr_t body_size, AST *function_declaration) {
     for (int j = 0; j < table->items; j++) {
         char *table_item_name = table->pair_values[j]->key;
 
@@ -201,14 +294,15 @@ semantic_analyzer_check_expression_function_call(UNMap *table, AST *expression, 
                 AST_TYPE_FUNCTION_DECLARATION) {
                 // Check the arguments
                 // TODO: Check the argument types
+
+                AST *function = ((SemanticAnalyzerDeclarationTable *) table->pair_values[j]->value)->declaration_value;
                 if (expression->value.FunctionCall.arguments_size !=
-                    ((SemanticAnalyzerDeclarationTable *) table->pair_values[j]->value)->declaration_value->value.FunctionDeclaration.argument_size) {
+                    function->value.FunctionDeclaration.argument_size) {
                     fprintf(stderr, "Semantic Analyzer: `%s` invalid number of arguments",
                             expression->value.FunctionCall.function_call_name);
                     exit(-3);
                 }
-
-                break;
+                return function->value.FunctionDeclaration.return_type->value.ValueKeyword.token->type;
             } else {
                 fprintf(stderr, "Semantic Analyzer: `%s` is not a valid function",
                         expression->value.FunctionCall.function_call_name);
@@ -271,6 +365,14 @@ UNMap *semantic_analyzer_create_declaration_table(SemanticAnalyzerASTItems *ast_
     }
 
     return map;
+}
+
+bool semantic_analyzer_types_are_allowed(int type1, int type2) {
+    if ((type1 == T_INT || type1 == T_FLOAT || type1 == T_K_INT || type1 == T_K_FLOAT) &&
+        (type2 == T_INT || type2 == T_FLOAT || type2 == T_K_INT || type2 == T_K_FLOAT))
+        return true;
+    else
+        return false;
 }
 
 char *semantic_analyzer_declaration_name(AST *ast) {

@@ -3,17 +3,26 @@
 //
 
 struct myTestStruct {
+    string first_name
+    string last_name
+    int age
+    int age
 
+    string :: test(int lmao) {
+        int test2 = age
+    }
 }
 
-int :: test() {
-    int test = 3203 + myTestStruct
-    int test2 = test + myTestStruct
+string :: test(int lmao) {
+    int test = 3203 + lmao
+    int test2 = test + lmao
 }
 
 private int :: main(int argc, string[] argv) {
-    int test = 3203 + myTestStruct
-    int test2 = test + myTestStruct
-    int test3 = test() + 40
-    int test_string = "wlfkmalwekfm"
+    int test4 = (40.4 + 20.4 + 4.30) // TODO: Add support for casting, -> int
+    int test = argc
+
+    int main = 40
+    int main2 = test + main + 40
+
 }
