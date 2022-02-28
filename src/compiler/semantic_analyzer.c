@@ -46,36 +46,25 @@ void semantic_analyzer_check_struct_declarations(UNMap *table) {
 
             UNMap *map = semantic_analyzer_create_declaration_table(ast_items);
 
+            for (int l = 0; l < map->items; ++l) {
+                SemanticAnalyzerDeclarationTable *declaration_table2 = (SemanticAnalyzerDeclarationTable *) map->pair_values[l]->value;
+                switch (declaration_table2->declaration_type) {
+                    case AST_TYPE_VARIABLE_DEFINITION:
+                        semantic_analyzer_check_variable_definition(map,
+                                                                    declaration_table->declaration_value->value.StructOrUnionDeclaration.members,
+                                                                    declaration_table->declaration_value->value.StructOrUnionDeclaration.member_size,
+                                                                    declaration_table->declaration_value,
+                                                                    declaration_table->declaration_value->value.StructOrUnionDeclaration.members[l]);
+                        break;
+                    case AST_TYPE_FUNCTION_DECLARATION:
+                        break;
+                    default:
+                        printf("Semantic Analyzer: Struct cannot be checked\n");
+                        exit(-4);
+                }
+            }
+
             semantic_analyzer_run_analysis(map);
-            // Already checked for duplicate definitions
-//            for (int j = 0; j < declaration_table->declaration_value->value.StructOrUnionDeclaration.member_size; ++j) {
-//                if (declaration_table->declaration_value->value.StructOrUnionDeclaration.members[j]->type == AST_TYPE_VARIABLE_DEFINITION) {
-//                    semantic_analyzer_check_variable_definition(table,
-//                                                                declaration_table->declaration_value->value.StructOrUnionDeclaration.members,
-//                                                                declaration_table->declaration_value->value.StructOrUnionDeclaration.member_size,
-//                                                                declaration_table->declaration_value,
-//                                                                declaration_table->declaration_value->value.StructOrUnionDeclaration.members[j]);
-//                }
-////                else if (declaration_table->declaration_value->value.StructOrUnionDeclaration.members[j]->type == AST_TYPE_FUNCTION_DECLARATION) {
-////                    for (int k = 0; k < declaration_table->declaration_value->value.StructOrUnionDeclaration.member_size; ++k) {
-////                        AST *member = declaration_table->declaration_value->value.StructOrUnionDeclaration.members[k];
-////
-////                        SemanticAnalyzerASTItems *ast_items = calloc(1, sizeof(SemanticAnalyzerASTItems));
-////                        Token *next_token;
-////
-////                        for (int l = 0; l < member->value.FunctionDeclaration.body->value.Body.body_size; ++l) {
-////                            ast_items->item_size += 1;
-////                            ast_items->items = realloc(ast_items->items, ast_items->item_size * sizeof(AST *));
-////
-////                            ast_items->items[ast_items->item_size - 1] = member->value.FunctionDeclaration.body->value.Body.body[l];
-////                        }
-////
-////                        UNMap *map = semantic_analyzer_create_declaration_table(ast_items);
-////
-////                        semantic_analyzer_check_function_declarations(table);
-////                    }
-//                }
-//            }
         }
     }
 }
