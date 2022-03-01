@@ -11,7 +11,6 @@ simplicity
     - [x] If, Else, Else If
     - [x] Return
     - [x] ASM
-    - [ ] Cast ( Still need to fix a few things )
     - [x] Switch, break, case, default
     - [x] For, While, Continue
     - [x] Union
@@ -26,6 +25,8 @@ simplicity
     - [x] Parser: Improvements with Optional Semi-colons
     - [x] Parser: Problem where using brackets in expressions didn't work
     - [x] Improve the if statement AST
+    - [ ] Add support for booleans
+    - [ ] Add support for casting
 - [ ] Semantic Analyzer
     - [x] Duplicate Variable and Functions
     - [x] Check if expression is valid

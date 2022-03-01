@@ -30,7 +30,7 @@ AST *parser_parse_struct_members(Parser *parser);
 AST *parser_parse_struct_initializer(Parser *parser);
 
 // Maybe add support for __attribute_((packed))?
-AST *parser_parse_struct(Parser *parser, bool is_private);
+AST *parser_parse_struct(Parser *parser, __attribute__((unused)) bool is_private);
 
 AST *parser_parse_function_call(Parser *parser, char *function_name);
 
@@ -74,10 +74,10 @@ AST *parser_parse_expression_literal(Parser *parser);
 
 AST *parser_parse_expression_identifier(Parser *parser);
 
-bool parser_is_expression(Token *token);
+bool parser_is_binary_operator(Token *token);
 
 AST *parser_parse_type(Parser *parser);
 
-Token *parser_advance(Parser *parser, int token_type);
+void parser_advance(Parser *parser, int token_type);
 
-Token *parser_advance_without_check(Parser *parser);
+void parser_advance_without_check(Parser *parser);

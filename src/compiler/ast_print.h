@@ -56,7 +56,7 @@ void _ast_print(AST *ast, uintptr_t indent);
 
 void ast_print_do_catch_statement(AST *ast, uintptr_t indent);
 
-void ast_print_try_statement(AST *ast, uintptr_t indent);
+void ast_print_try_statement(AST *ast, __attribute__((unused)) uintptr_t indent);
 
 void ast_print_struct_member_call(AST *ast, uintptr_t indent);
 

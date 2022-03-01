@@ -9,7 +9,7 @@
 
 static void argument_parser_error(ArgumentParser *arguments);
 
-ArgumentParser *argument_parser_init(int argc, const char **argv, const char **long_name_list) {
+__attribute__((unused)) ArgumentParser *argument_parser_init(int argc, const char **argv, const char **long_name_list) {
     ArgumentParser *argument_parser = malloc(sizeof(ArgumentParser));
     argument_parser->argc = argc;
     argument_parser->argv = argv;
@@ -28,8 +28,9 @@ ArgumentParser *argument_parser_init(int argc, const char **argv, const char **l
     return argument_parser;
 }
 
-void argument_parser_parse_arguments(ArgumentParser *arguments, void (*parse_short_argument)(const char, const char *),
-                                     void (*parse_long_argument)(const char *, const char *)) {
+__attribute__((unused)) void
+argument_parser_parse_arguments(ArgumentParser *arguments, void (*parse_short_argument)(const char, const char *),
+                                void (*parse_long_argument)(const char *, const char *)) {
     while (!argument_parser_is_finished(arguments))
         argument_parser_parse_argument(arguments, parse_short_argument, parse_long_argument);
 }

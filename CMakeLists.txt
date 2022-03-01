@@ -24,4 +24,6 @@ add_executable(drast src/main.c
         src/utils/string.c
         src/utils/string.h
         src/utils/unmap.c
-        src/utils/unmap.h)
+        src/utils/unmap.h
+        src/utils/mxDynamicArray.c
+        src/utils/mxDynamicArray.h)

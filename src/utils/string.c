@@ -7,7 +7,7 @@
 
 #include "string.h"
 
-bool string_is_hex(char *s) {
+bool string_is_hex(const char *s) {
     if (s[0] == '0' && (s[1] == 'x' || s[1] == 'X'))
         return true;
     else

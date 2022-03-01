@@ -18,7 +18,7 @@ UNMap *unmap_init(void) {
     return map;
 }
 
-void unmap_insert_at(UNMap *map, uintptr_t index, UNMapPairValue *pair) {
+__attribute__((unused)) void unmap_insert_at(UNMap *map, uintptr_t index, UNMapPairValue *pair) {
     if (map->items >= map->capacity) {
         map->capacity *= 2;
         map->pair_values = realloc(map->pair_values, sizeof(UNMapPairValue *) * map->capacity);
@@ -42,7 +42,7 @@ void unmap_push_back(UNMap *map, UNMapPairValue *pair) {
     map->pair_values[map->items - 1] = pair;
 }
 
-UNMapPairValue *unmap_pop_back(UNMap *map) {
+__attribute__((unused)) UNMapPairValue *unmap_pop_back(UNMap *map) {
     if (map->items == 0)
         return NULL;
     UNMapPairValue *old_pair = map->pair_values[map->items - 1];
@@ -56,7 +56,7 @@ UNMapPairValue *unmap_pop_back(UNMap *map) {
     return old_pair;
 }
 
-void unmap_append(UNMap *map, UNMap *other) {
+__attribute__((unused)) void unmap_append(UNMap *map, UNMap *other) {
     for (int i = 0; i < other->items; i++)
         unmap_push_back(map, other->pair_values[i]);
 }
@@ -68,7 +68,7 @@ void unmap_destroy(UNMap *map) {
     free(map);
 }
 
-void unmap_remove_all(UNMap *map) {
+__attribute__((unused)) void unmap_remove_all(UNMap *map) {
     for (int i = 0; i < map->items; i++)
         unmap_remove_at(map, i);
 }
@@ -87,7 +87,7 @@ void unmap_remove_at(UNMap *map, size_t index) {
     map->items--;
 }
 
-void unmap_swap(UNMap *map, size_t index1, size_t index2) {
+__attribute__((unused)) void unmap_swap(UNMap *map, size_t index1, size_t index2) {
     if (index1 < 0 || index1 >= map->items || index2 < 0 || index2 >= map->items)
         return;
 
@@ -98,13 +98,13 @@ void unmap_swap(UNMap *map, size_t index1, size_t index2) {
     map->pair_values[index2] = pair1;
 }
 
-UNMapPairValue *unmap_get_pair_at(UNMap *map, size_t index) {
+__attribute__((unused)) UNMapPairValue *unmap_get_pair_at(UNMap *map, size_t index) {
     if (index > 0 || index <= map->items)
         return map->pair_values[index];
     return NULL;
 }
 
-UNMapPairValue *unmap_get_pair_from_key(UNMap *map, char *key) {
+__attribute__((unused)) UNMapPairValue *unmap_get_pair_from_key(UNMap *map, char *key) {
     size_t low = 0;
     size_t high = map->items;
 
@@ -122,7 +122,7 @@ UNMapPairValue *unmap_get_pair_from_key(UNMap *map, char *key) {
     return NULL;
 }
 
-void *unmap_get_key_from_value(UNMap *map, void *value) {
+__attribute__((unused)) void *unmap_get_key_from_value(UNMap *map, void *value) {
     size_t low = 0;
     size_t high = map->items;
 
@@ -158,11 +158,11 @@ bool unmap_exists_key_and_value(UNMap *map, char *key, void *value) {
     return false;
 }
 
-bool unmap_exists_pair(UNMap *map, UNMapPairValue *pair) {
+__attribute__((unused)) bool unmap_exists_pair(UNMap *map, UNMapPairValue *pair) {
     return unmap_exists_key_and_value(map, pair->key, pair->value);
 }
 
-bool unmap_exists_key(UNMap *map, char *key) {
+__attribute__((unused)) bool unmap_exists_key(UNMap *map, char *key) {
     size_t low = 0;
     size_t high = map->items;
 
@@ -180,7 +180,7 @@ bool unmap_exists_key(UNMap *map, char *key) {
     return false;
 }
 
-bool unmap_compare(UNMap *map, UNMap *map2) {
+__attribute__((unused)) bool unmap_compare(UNMap *map, UNMap *map2) {
     if (map->items != map2->items)
         return false;
 
@@ -192,7 +192,7 @@ bool unmap_compare(UNMap *map, UNMap *map2) {
     return true;
 }
 
-bool unmap_has_duplicate_key(UNMap *map) {
+__attribute__((unused)) bool unmap_has_duplicate_key(UNMap *map) {
     for (int i = 0; i < map->items - 1; i++) {
         for (int j = i + 1; j < map->items; j++) {
             if (map->pair_values[i]->key != NULL) {
@@ -208,7 +208,7 @@ bool unmap_has_duplicate_key(UNMap *map) {
     return false;
 }
 
-void unmap_print(UNMap *map) {
+__attribute__((unused)) __attribute__((unused)) void unmap_print(UNMap *map) {
     for (int i = 0; i < map->items; i++) {
         UNMapPairValue *pair = map->pair_values[i];
         printf("%s: %s\n", (char *) pair->key, (char *) pair->value);

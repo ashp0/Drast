@@ -212,8 +212,8 @@ char *token_print(int type) {
 
         case T_EOF:
             return "T_EOF";
-    }
 
-    printf("%d ", type);
-    return "UNKNOWN TOKEN";
+        default:
+            return "UNKNOWN TOKEN";
+    }
 }

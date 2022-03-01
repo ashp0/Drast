@@ -27,36 +27,36 @@ typedef struct {
 
 UNMap *unmap_init(void);
 
-void unmap_insert_at(UNMap *map, uintptr_t index, UNMapPairValue *pair);
+__attribute__((unused)) void unmap_insert_at(UNMap *map, uintptr_t index, UNMapPairValue *pair);
 
 void unmap_push_back(UNMap *map, UNMapPairValue *pair);
 
-UNMapPairValue *unmap_pop_back(UNMap *map);
+__attribute__((unused)) UNMapPairValue *unmap_pop_back(UNMap *map);
 
-void unmap_append(UNMap *map, UNMap *other);
+__attribute__((unused)) void unmap_append(UNMap *map, UNMap *other);
 
 void unmap_destroy(UNMap *map);
 
-void unmap_remove_all(UNMap *map);
+__attribute__((unused)) void unmap_remove_all(UNMap *map);
 
 void unmap_remove_at(UNMap *map, size_t index);
 
-void unmap_swap(UNMap *map, size_t index1, size_t index2);
+__attribute__((unused)) void unmap_swap(UNMap *map, size_t index1, size_t index2);
 
-UNMapPairValue *unmap_get_pair_at(UNMap *map, size_t index);
+__attribute__((unused)) UNMapPairValue *unmap_get_pair_at(UNMap *map, size_t index);
 
-UNMapPairValue *unmap_get_pair_from_key(UNMap *map, char *key);
+__attribute__((unused)) UNMapPairValue *unmap_get_pair_from_key(UNMap *map, char *key);
 
-void *unmap_get_key_from_value(UNMap *map, void *value);
+__attribute__((unused)) void *unmap_get_key_from_value(UNMap *map, void *value);
 
 bool unmap_exists_key_and_value(UNMap *map, char *key, void *value);
 
-bool unmap_exists_pair(UNMap *map, UNMapPairValue *pair);
+__attribute__((unused)) bool unmap_exists_pair(UNMap *map, UNMapPairValue *pair);
 
-bool unmap_exists_key(UNMap *map, char *key);
+__attribute__((unused)) bool unmap_exists_key(UNMap *map, char *key);
 
-bool unmap_compare(UNMap *map, UNMap *map2);
+__attribute__((unused)) bool unmap_compare(UNMap *map, UNMap *map2);
 
-bool unmap_has_duplicate_key(UNMap *map);
+__attribute__((unused)) bool unmap_has_duplicate_key(UNMap *map);
 
-void unmap_print(UNMap *map);
+__attribute__((unused)) void unmap_print(UNMap *map);

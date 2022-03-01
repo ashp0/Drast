@@ -106,7 +106,7 @@ void ast_print_struct_member_call(AST *ast, uintptr_t indent) {
     printf("\n");
 }
 
-void ast_print_try_statement(AST *ast, uintptr_t indent) {
+void ast_print_try_statement(AST *ast, __attribute__((unused)) uintptr_t indent) {
     printf("try ");
     ast_print(ast->value.TryStatement.expression);
 }
@@ -228,7 +228,9 @@ void ast_print_function_declaration(AST *ast, uintptr_t indent) {
     ast_print_function_arguments(ast, 0);
     printf(" {\n");
 
-    _ast_print(ast->value.FunctionDeclaration.body, indent + 1);
+    for (int i = 0; i < ast->value.FunctionDeclaration.body->size; ++i) {
+        _ast_print(mxDynamicArrayGet(ast->value.FunctionDeclaration.body, i), indent + 1);
+    }
 
     printf("\n");
     for (int i = 0; i < indent; ++i)
@@ -237,15 +239,15 @@ void ast_print_function_declaration(AST *ast, uintptr_t indent) {
 }
 
 void ast_print_function_arguments(AST *ast, uintptr_t indent) {
-    if (ast->value.FunctionDeclaration.arguments_size == 0) {
+    if (ast->value.FunctionDeclaration.arguments->size == 0) {
         printf(")");
     } else {
-        for (int i = 0; i < ast->value.FunctionDeclaration.arguments_size; i++) {
-            ast_print_type_name(
-                    ast->value.FunctionDeclaration.arguments[i]->value.FunctionDeclarationArgument.argument_type,
-                    indent);
+        for (int i = 0; i < ast->value.FunctionDeclaration.arguments->size; i++) {
+            AST *argument = mxDynamicArrayGet(ast->value.FunctionDeclaration.arguments, i);
+            ast_print_type_name(argument->value.FunctionDeclarationArgument.argument_type, indent);
             printf(" %s, ",
-                   ast->value.FunctionDeclaration.arguments[i]->value.FunctionDeclarationArgument.argument_name);
+                   ((AST *) mxDynamicArrayGet(ast->value.FunctionDeclaration.arguments,
+                                              i))->value.FunctionDeclarationArgument.argument_name);
         }
 
         printf("\b\b)");
@@ -388,18 +390,21 @@ void ast_print_if_else_statement(AST *ast, uintptr_t indent) {
     ast_print(ast->value.IfElseStatement.if_condition);
     printf(") {\n");
     _ast_print(ast->value.IfElseStatement.if_body, indent + 1);
+    for (int i = 0; i < indent; ++i)
+        printf("\t");
     printf("}\n");
 
     if (ast->value.IfElseStatement.else_if_size != 0) {
-        for (int i = 0; i < indent; ++i)
-            printf("\t");
-
         // For each else if statement
         for (int i = 0; i < ast->value.IfElseStatement.else_if_size; ++i) {
+            for (int i = 0; i < indent; ++i)
+                printf("\t");
             printf("else if (");
             ast_print(ast->value.IfElseStatement.else_if_conditions[i]);
             printf(") {\n");
-            _ast_print(ast->value.IfElseStatement.else_if_bodys[i], indent + 1);
+            _ast_print(ast->value.IfElseStatement.else_if_bodies[i], indent + 1);
+            for (int i = 0; i < indent; ++i)
+                printf("\t");
             printf("}\n");
         }
     }
@@ -409,6 +414,8 @@ void ast_print_if_else_statement(AST *ast, uintptr_t indent) {
             printf("\t");
         printf("else {\n");
         _ast_print(ast->value.IfElseStatement.else_body, indent + 1);
+        for (int i = 0; i < indent; ++i)
+            printf("\t");
         printf("}\n");
     }
 }

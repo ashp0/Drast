@@ -23,9 +23,10 @@ void semantic_analyzer_check_struct_or_union_declaration(UNMap *table, SemanticA
 void semantic_analyzer_check_function_declaration(UNMap *table, AST *function_declaration,
                                                   bool is_struct_member);
 
-void semantic_analyzer_check_function_declaration_argument(UNMap *table, AST *function_declaration_ast,
+void semantic_analyzer_check_function_declaration_argument(UNMap *table,
+                                                           __attribute__((unused)) AST *function_declaration_ast,
                                                            AST **arguments, uintptr_t argument_size,
-                                                           bool is_struct_member);
+                                                           __attribute__((unused)) bool is_struct_member);
 
 void semantic_analyzer_check_function_declaration_body(UNMap *table, AST *function_declaration_ast,
                                                        bool is_struct_member);
@@ -44,15 +45,21 @@ int semantic_analyzer_check_expression_binary(UNMap *table, AST *expression, int
                                               uintptr_t body_size, AST *function_declaration, bool is_struct_member);
 
 int semantic_analyzer_check_expression_literal(UNMap *table, AST *expression, int position_inside_body, AST **body,
-                                               uintptr_t body_size, AST *function_declaration, bool is_struct_member);
+                                               __attribute__((unused)) uintptr_t body_size, AST *function_declaration,
+                                               bool is_struct_member);
 
 int
-semantic_analyzer_check_expression_function_call(UNMap *table, AST *expression, int position_inside_body, AST **body,
-                                                 uintptr_t body_size, AST *function_declaration);
+semantic_analyzer_check_expression_function_call(UNMap *table, AST *expression,
+                                                 __attribute__((unused)) int position_inside_body,
+                                                 __attribute__((unused)) AST **body,
+                                                 __attribute__((unused)) uintptr_t body_size,
+                                                 __attribute__((unused)) AST *function_declaration);
 
 void semantic_analyzer_check_if_type_exists(UNMap *symbol_table, char *type_name);
 
 bool semantic_analyzer_types_are_allowed(int type1, int type2);
+
+void semantic_analyzer_compare_types(AST *type1, AST *type2);
 
 void semantic_analyzer_check_duplicate_symbols(UNMap *table);
 

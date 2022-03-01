@@ -24,10 +24,11 @@ typedef struct {
     int long_name_list_length;
 } ArgumentParser;
 
-ArgumentParser *argument_parser_init(int argc, const char **argv, const char **long_name_list);
+__attribute__((unused)) ArgumentParser *argument_parser_init(int argc, const char **argv, const char **long_name_list);
 
-void argument_parser_parse_arguments(ArgumentParser *arguments, void (*parse_short_argument)(const char, const char *),
-                                     void (*parse_long_argument)(const char *, const char *));
+__attribute__((unused)) void
+argument_parser_parse_arguments(ArgumentParser *arguments, void (*parse_short_argument)(const char, const char *),
+                                void (*parse_long_argument)(const char *, const char *));
 
 void argument_parser_parse_argument(ArgumentParser *arguments, void (*parse_short_argument)(const char, const char *),
                                     void (*parse_long_argument)(const char *, const char *));

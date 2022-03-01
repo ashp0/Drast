@@ -10,7 +10,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-bool string_is_hex(char *s);
+bool string_is_hex(const char *s);
 
 bool string_is_float(char *s);
 

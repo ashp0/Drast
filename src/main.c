@@ -30,7 +30,7 @@ char *read_file_contents(char *file_name) {
     return buffer;
 }
 
-int main(int argc, char **argv) {
+int main(__attribute__((unused)) int argc, char **argv) {
     char *file_contents = read_file_contents(argv[1]);
 
     Lexer *lexer = lexer_init(file_contents);
@@ -38,8 +38,8 @@ int main(int argc, char **argv) {
 
     // double time = 0;
 
-    clock_t t;
-    t = clock();
+//    clock_t t;
+//    t = clock();
 
     AST **items = calloc(1, sizeof(AST *));
     uintptr_t item_size = 0;
@@ -75,7 +75,7 @@ int main(int argc, char **argv) {
     free(parser->current);
     free(parser);
     free(items);
-
+//    free(file_contents);
 
     return 0;
 }

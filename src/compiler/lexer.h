@@ -32,11 +32,11 @@ Lexer *lexer_init(char *source);
 
 Token *lexer_get_next_token_without_advance(Lexer *lexer);
 
-Token *lexer_get_next_token_without_advance_offset(Lexer *lexer, uintptr_t offset);
+__attribute__((unused)) Token *lexer_get_next_token_without_advance_offset(Lexer *lexer, uintptr_t offset);
 
 Token *lexer_get_next_token(Lexer *lexer);
 
-bool is_next_token_operator(Lexer *lexer);
+__attribute__((unused)) bool is_next_token_operator(Lexer *lexer);
 
 Lexer *lexer_duplicate(Lexer *lexer);
 
@@ -70,6 +70,5 @@ char lexer_peek_next(Lexer *lexer);
 
 bool lexer_is_whitespace(Lexer *lexer);
 
-char lexer_peek_next(Lexer *lexer);
 
 void lexer_skip_whitespace(Lexer *lexer);

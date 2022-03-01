@@ -11,6 +11,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "token.h"
+#include "../utils/mxDynamicArray.h"
 
 typedef enum {
     AST_TYPE_IMPORT,
@@ -87,10 +88,8 @@ typedef union {
         bool is_private;
         bool is_struct_initializer;
 
-        struct AST **arguments;
-        uintptr_t arguments_size;
-
-        struct AST *body;
+        mxDynamicArray *arguments;
+        mxDynamicArray *body;
     } FunctionDeclaration;
 
     struct {
@@ -176,7 +175,7 @@ typedef union {
 
         size_t else_if_size;
         struct AST **else_if_conditions;
-        struct AST **else_if_bodys; // Body structs
+        struct AST **else_if_bodies; // TODO: Make this a dynamic array
 
         bool has_else_statement;
         struct AST *else_body;
