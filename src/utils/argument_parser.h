@@ -5,8 +5,7 @@
 //  Created by Ashwin Paudel on 2022-02-05.
 //
 
-#ifndef __DRAST_ARGUMENT_PARSER_H__
-#define __DRAST_ARGUMENT_PARSER_H__
+#pragma once
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -38,5 +37,3 @@ bool argument_parser_exists(ArgumentParser *arguments);
 bool argument_parser_is_finished(ArgumentParser *arguments);
 
 const char *argument_parser_advance(ArgumentParser *arguments);
-
-#endif // __DRAST_ARGUMENT_PARSER_H__

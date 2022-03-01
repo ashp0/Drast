@@ -192,6 +192,22 @@ bool unmap_compare(UNMap *map, UNMap *map2) {
     return true;
 }
 
+bool unmap_has_duplicate_key(UNMap *map) {
+    for (int i = 0; i < map->items - 1; i++) {
+        for (int j = i + 1; j < map->items; j++) {
+            if (map->pair_values[i]->key != NULL) {
+                if (strcmp(map->pair_values[i]->key, map->pair_values[j]->key) == 0 &&
+                    map->pair_values[i]->key[0] != '\0') {
+                    map->duplicate_key = map->pair_values[j]->key;
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
 void unmap_print(UNMap *map) {
     for (int i = 0; i < map->items; i++) {
         UNMapPairValue *pair = map->pair_values[i];

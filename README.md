@@ -11,7 +11,7 @@ simplicity
     - [x] If, Else, Else If
     - [x] Return
     - [x] ASM
-    - [x] Cast
+    - [ ] Cast ( Still need to fix a few things )
     - [x] Switch, break, case, default
     - [x] For, While, Continue
     - [x] Union
@@ -26,7 +26,11 @@ simplicity
     - [x] Parser: Improvements with Optional Semi-colons
     - [x] Parser: Problem where using brackets in expressions didn't work
 - [ ] Semantic Analyzer
-    - [ ] Duplicate Variable and Functions
+    - [x] Duplicate Variable and Functions
+    - [ ] Check if expression is valid
+    - [ ] Struct initializers
+    - [ ] Alias Types
+- [ ] Optimizations? ( Might not do this stage since LLVM does this )
 - [ ] Code Generation
 - [ ] Improvements to the CLI
 - [ ] Standard Library

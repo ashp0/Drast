@@ -5,8 +5,7 @@
 //  Created by Ashwin Paudel on 2022-02-05.
 //
 
-#ifndef __DRAST_COMPILER_LEXER_H__
-#define __DRAST_COMPILER_LEXER_H__
+#pragma once
 
 #include <stdio.h>
 #include <stdint.h>
@@ -74,5 +73,3 @@ bool lexer_is_whitespace(Lexer *lexer);
 char lexer_peek_next(Lexer *lexer);
 
 void lexer_skip_whitespace(Lexer *lexer);
-
-#endif // __DRAST_COMPILER_LEXER_H__

@@ -5,8 +5,7 @@
 //  Created by Ashwin Paudel on 2022-02-05.
 //
 
-#ifndef __DRAST_COMPILER_TOKEN_H__
-#define __DRAST_COMPILER_TOKEN_H__
+#pragma once
 
 #include "stdio.h"
 #include "../utils/unmap.h"
@@ -138,5 +137,3 @@ typedef struct {
 } Token;
 
 char *token_print(int type);
-
-#endif // __DRAST_COMPILER_TOKEN_H__

@@ -5,8 +5,7 @@
 //  Created by Ashwin Paudel on 2022-02-05.
 //
 
-#ifndef __DRAST_COMPILER_PARSER_H__
-#define __DRAST_COMPILER_PARSER_H__
+#pragma once
 
 #include "lexer.h"
 #include "ast.h"
@@ -82,5 +81,3 @@ AST *parser_parse_type(Parser *parser);
 Token *parser_advance(Parser *parser, int token_type);
 
 Token *parser_advance_without_check(Parser *parser);
-
-#endif // __DRAST_COMPILER_PARSER_H__

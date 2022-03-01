@@ -5,8 +5,7 @@
 //  Created by Ashwin Paudel on 2022-02-05.
 //
 
-#ifndef __DRAST_COMPILER_AST_H__
-#define __DRAST_COMPILER_AST_H__
+#pragma once
 
 #include <stdlib.h>
 #include <stdbool.h>
@@ -251,5 +250,3 @@ typedef struct AST {
 AST *ast_init(void);
 
 AST *ast_init_with_type(ASTType type);
-
-#endif // __DRAST_COMPILER_AST_H__

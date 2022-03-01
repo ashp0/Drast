@@ -5,8 +5,7 @@
 //  Created by Ashwin Paudel on 2022-02-05.
 //
 
-#ifndef __DRAST_COMPILER_AST_PRINT_H__
-#define __DRAST_COMPILER_AST_PRINT_H__
+#pragma once
 
 #include <stdlib.h>
 #include <stdbool.h>
@@ -68,5 +67,3 @@ void ast_print_not(AST *ast, uintptr_t indent);
 void ast_print_struct_initializer(AST *ast, uintptr_t indent);
 
 void ast_print_alias(AST *ast);
-
-#endif //__DRAST_COMPILER_AST_PRINT_H__

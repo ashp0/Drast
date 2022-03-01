@@ -417,7 +417,7 @@ uintptr_t lexer_get_line_count(Lexer *lexer) {
     Lexer *fake_lexer = lexer_duplicate(lexer);
 
     uintptr_t line_size = 0;
-    while (fake_lexer->current != '\n') {
+    while (fake_lexer->current != '\n' && !lexer_is_eof(fake_lexer)) {
         line_size++;
         lexer_advance(fake_lexer);
     }

@@ -5,8 +5,7 @@
 //  Created by Ashwin Paudel on 2022-02-05.
 //
 
-#ifndef __DRAST_UTILS_UNMAP_H__
-#define __DRAST_UTILS_UNMAP_H__
+#pragma once
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -23,6 +22,7 @@ typedef struct {
     size_t items;
     size_t capacity;
     UNMapPairValue **pair_values;
+    char *duplicate_key;
 } UNMap;
 
 UNMap *unmap_init(void);
@@ -57,6 +57,6 @@ bool unmap_exists_key(UNMap *map, char *key);
 
 bool unmap_compare(UNMap *map, UNMap *map2);
 
-void unmap_print(UNMap *map);
+bool unmap_has_duplicate_key(UNMap *map);
 
-#endif // __DRAST_UTILS_UNMAP_H__
+void unmap_print(UNMap *map);
