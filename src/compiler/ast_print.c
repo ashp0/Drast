@@ -237,10 +237,10 @@ void ast_print_function_declaration(AST *ast, uintptr_t indent) {
 }
 
 void ast_print_function_arguments(AST *ast, uintptr_t indent) {
-    if (ast->value.FunctionDeclaration.argument_size == 0) {
+    if (ast->value.FunctionDeclaration.arguments_size == 0) {
         printf(")");
     } else {
-        for (int i = 0; i < ast->value.FunctionDeclaration.argument_size; i++) {
+        for (int i = 0; i < ast->value.FunctionDeclaration.arguments_size; i++) {
             ast_print_type_name(
                     ast->value.FunctionDeclaration.arguments[i]->value.FunctionDeclarationArgument.argument_type,
                     indent);
@@ -277,7 +277,7 @@ void ast_print_struct_declaration(AST *ast, uintptr_t indent) {
     else
         printf("struct %s {\n", ast->value.StructOrUnionDeclaration.name);
 
-    for (int i = 0; i < ast->value.StructOrUnionDeclaration.member_size; ++i) {
+    for (int i = 0; i < ast->value.StructOrUnionDeclaration.members_size; ++i) {
         _ast_print(ast->value.StructOrUnionDeclaration.members[i], indent + 1);
     }
 

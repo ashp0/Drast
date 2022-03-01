@@ -5,40 +5,34 @@
 //  Created by Ashwin Paudel on 2022-02-05.
 //
 
-#ifndef __DRAST_SEMANTIC_ANALYZER_H__
-#define __DRAST_SEMANTIC_ANALYZER_H__
-
 #include "ast.h"
-#include "ast_print.h"
-#include "../utils/unmap.h"
-#include "token.h"
+#include <stdlib.h>
+
+#pragma once
 
 typedef struct {
-    char *declaration_name;
-    ASTType declaration_type;
-    AST *declaration_value;
-} SemanticAnalyzerDeclarationTable;
+    char *symbol_name;
+    ASTType symbol_type;
+    AST *symbol_ast;
+} SemanticAnalyzerSymbol;
 
-typedef struct {
-    AST **items;
-    uintptr_t item_size;
-} SemanticAnalyzerASTItems;
+void semantic_analyzer_run_analysis(AST **ast_items, uintptr_t ast_items_size);
 
-void semantic_analyzer_run_analysis(UNMap *table);
+void semantic_analyzer_check_struct_or_union_declaration(UNMap *table, SemanticAnalyzerSymbol *symbol_struct);
 
-void semantic_analyzer_check_for_duplicate_declarations(UNMap *table);
+void semantic_analyzer_check_function_declaration(UNMap *table, AST *function_declaration,
+                                                  bool is_struct_member);
 
-void semantic_analyzer_check_struct_declarations(UNMap *table);
+void semantic_analyzer_check_function_declaration_argument(UNMap *table, AST *function_declaration_ast,
+                                                           AST **arguments, uintptr_t argument_size,
+                                                           bool is_struct_member);
 
-void semantic_analyzer_check_function_declarations(UNMap *table);
-
-void semantic_analyzer_check_function_declaration_argument(UNMap *table, AST **arguments, uintptr_t argument_size);
-
-void semantic_analyzer_check_function_declaration_body(UNMap *table, AST *function_declaration);
+void semantic_analyzer_check_function_declaration_body(UNMap *table, AST *function_declaration_ast,
+                                                       bool is_struct_member);
 
 void
-semantic_analyzer_check_variable_definition(UNMap *table, AST **body, uintptr_t body_size, AST *function_declaration,
-                                            AST *variable_definition_ast);
+semantic_analyzer_check_variable_definition(UNMap *symbol_table, AST *variable_ast, AST **body, uintptr_t body_size,
+                                            AST *function_declaration_ast, bool is_struct_member);
 
 int semantic_analyzer_check_expression(UNMap *table, AST *expression, int position_inside_body, AST **body,
                                        uintptr_t body_size,
@@ -60,12 +54,10 @@ int
 semantic_analyzer_check_expression_function_call(UNMap *table, AST *expression, int position_inside_body, AST **body,
                                                  uintptr_t body_size, AST *function_declaration);
 
-bool semantic_analyzer_check_if_identifier_is_valid_type(UNMap *table, char *identifier, bool displays_error);
-
-UNMap *semantic_analyzer_create_declaration_table(SemanticAnalyzerASTItems *ast_items);
+void semantic_analyzer_check_if_type_exists(UNMap *symbol_table, char *type_name);
 
 bool semantic_analyzer_types_are_allowed(int type1, int type2);
 
-char *semantic_analyzer_declaration_name(AST *ast);
+void semantic_analyzer_check_duplicate_symbols(UNMap *table);
 
-#endif //__DRAST_SEMANTIC_ANALYZER_H__
+UNMap *semantic_analyzer_create_symbol_table(AST **ast_items, uintptr_t ast_items_size);

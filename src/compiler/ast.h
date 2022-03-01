@@ -88,7 +88,7 @@ typedef union {
         bool is_struct_initializer;
 
         struct AST **arguments;
-        uintptr_t argument_size;
+        uintptr_t arguments_size;
 
         struct AST *body;
     } FunctionDeclaration;
@@ -109,7 +109,7 @@ typedef union {
         bool is_union;
 
         struct AST **members;
-        uintptr_t member_size;
+        uintptr_t members_size;
 
         bool is_private;
     } StructOrUnionDeclaration;

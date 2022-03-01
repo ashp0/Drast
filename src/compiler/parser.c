@@ -19,7 +19,7 @@ AST *parser_parse(Parser *parser) {
     return parser_parse_statement(parser);
 }
 
-void parser_show_error(Parser *parser) {
+static inline void parser_show_error(Parser *parser) {
     // Parser: Token cannot be parsed || Line: 15, Position: 4
     fprintf(stderr, " || Line: %lu, Position %lu", parser->lexer->line, parser->lexer->position);
     exit(-2);
@@ -53,6 +53,8 @@ AST *parser_parse_statement(Parser *parser) {
                     token_print(parser->current->type));
             parser_show_error(parser);
     }
+
+    exit(-2);
 }
 
 AST *parser_parse_inner_statement(Parser *parser) {
@@ -86,6 +88,8 @@ AST *parser_parse_inner_statement(Parser *parser) {
                     token_print(parser->current->type));
             parser_show_error(parser);
     }
+
+    exit(-2);
 }
 
 AST *parser_parse_struct_statement(Parser *parser) {
@@ -107,6 +111,8 @@ AST *parser_parse_struct_statement(Parser *parser) {
                     token_print(parser->current->type));
             parser_show_error(parser);
     }
+
+    exit(-2);
 }
 
 AST *parser_parse_function_call(Parser *parser, char *function_name) {
@@ -142,8 +148,8 @@ AST *parser_parse_struct_members(Parser *parser) {
     bool is_volatile = false;
 
     while (parser->current->type == T_K_PRIVATE || parser->current->type == T_K_VOLATILE) {
-        if (is_private && parser->current->type == T_K_PRIVATE ||
-            is_volatile && parser->current->type == T_K_VOLATILE) {
+        if ((is_private && parser->current->type == T_K_PRIVATE) ||
+            (is_volatile && parser->current->type == T_K_VOLATILE)) {
             fprintf(stderr, "Parser: Token `%s`, has been declared more than once", token_print(parser->current->type));
             parser_show_error(parser);
         }
@@ -192,15 +198,15 @@ AST *parser_parse_struct_initializer(Parser *parser) {
     parser_advance(parser, T_PARENS_OPEN);
 
     // Allocate the Parameters
-    struct_initializer_ast->value.FunctionDeclaration.argument_size = 0;
+    struct_initializer_ast->value.FunctionDeclaration.arguments_size = 0;
     struct_initializer_ast->value.FunctionDeclaration.arguments = calloc(1, sizeof(AST *));
 
     while (parser->current->type != T_PARENS_CLOSE) {
         // Re-size the array
-        struct_initializer_ast->value.FunctionDeclaration.argument_size += 1;
+        struct_initializer_ast->value.FunctionDeclaration.arguments_size += 1;
         struct_initializer_ast->value.FunctionDeclaration.arguments = realloc(
                 struct_initializer_ast->value.FunctionDeclaration.arguments,
-                struct_initializer_ast->value.FunctionDeclaration.argument_size *
+                struct_initializer_ast->value.FunctionDeclaration.arguments_size *
                 sizeof(AST *));
 
         // Create item
@@ -210,7 +216,7 @@ AST *parser_parse_struct_initializer(Parser *parser) {
 
         // Insert the item
         struct_initializer_ast->value.FunctionDeclaration.arguments[
-                struct_initializer_ast->value.FunctionDeclaration.argument_size -
+                struct_initializer_ast->value.FunctionDeclaration.arguments_size -
                 1] = parameter_ast;
 
         // Advance to the next argument
@@ -245,17 +251,17 @@ AST *parser_parse_struct(Parser *parser, bool is_private) {
     free(parser_advance(parser, T_BRACE_OPEN));
 
 
-    struct_ast->value.StructOrUnionDeclaration.member_size = 0;
+    struct_ast->value.StructOrUnionDeclaration.members_size = 0;
     struct_ast->value.StructOrUnionDeclaration.members = calloc(1, sizeof(AST *));
 
     while (parser->current->type != T_BRACE_CLOSE) {
-        struct_ast->value.StructOrUnionDeclaration.member_size += 1;
+        struct_ast->value.StructOrUnionDeclaration.members_size += 1;
 
         struct_ast->value.StructOrUnionDeclaration.members = realloc(struct_ast->value.StructOrUnionDeclaration.members,
-                                                                     struct_ast->value.StructOrUnionDeclaration.member_size *
+                                                                     struct_ast->value.StructOrUnionDeclaration.members_size *
                                                                      sizeof(AST *));
 
-        struct_ast->value.StructOrUnionDeclaration.members[struct_ast->value.StructOrUnionDeclaration.member_size -
+        struct_ast->value.StructOrUnionDeclaration.members[struct_ast->value.StructOrUnionDeclaration.members_size -
                                                            1] = parser_parse_struct_statement(parser);
     }
 
@@ -269,8 +275,8 @@ AST *parser_parse_function_or_variable_declaration(Parser *parser, bool is_inner
     bool is_volatile = false;
 
     while (parser->current->type == T_K_PRIVATE || parser->current->type == T_K_VOLATILE) {
-        if (is_private && parser->current->type == T_K_PRIVATE ||
-            is_volatile && parser->current->type == T_K_VOLATILE) {
+        if ((is_private && parser->current->type == T_K_PRIVATE) ||
+            (is_volatile && parser->current->type == T_K_VOLATILE)) {
             fprintf(stderr, "Parser: Token `%s`, has been declared more than once", token_print(parser->current->type));
             parser_show_error(parser);
         }
@@ -357,14 +363,14 @@ AST *parser_parse_function_declaration(Parser *parser, AST *return_type, bool is
     free(parser_advance(parser, T_PARENS_OPEN));
 
     // Allocate the Parameters
-    function_ast->value.FunctionDeclaration.argument_size = 0;
+    function_ast->value.FunctionDeclaration.arguments_size = 0;
     function_ast->value.FunctionDeclaration.arguments = calloc(1, sizeof(AST *));
 
     while (parser->current->type != T_PARENS_CLOSE) {
         // Re-size the array
-        function_ast->value.FunctionDeclaration.argument_size += 1;
+        function_ast->value.FunctionDeclaration.arguments_size += 1;
         function_ast->value.FunctionDeclaration.arguments = realloc(function_ast->value.FunctionDeclaration.arguments,
-                                                                    function_ast->value.FunctionDeclaration.argument_size *
+                                                                    function_ast->value.FunctionDeclaration.arguments_size *
                                                                     sizeof(AST *));
 
         // Create item
@@ -374,7 +380,7 @@ AST *parser_parse_function_declaration(Parser *parser, AST *return_type, bool is
         free(parser_advance(parser, T_IDENTIFIER));
 
         // Insert the item
-        function_ast->value.FunctionDeclaration.arguments[function_ast->value.FunctionDeclaration.argument_size -
+        function_ast->value.FunctionDeclaration.arguments[function_ast->value.FunctionDeclaration.arguments_size -
                                                           1] = parameter_ast;
 
         // Advance to the next argument
@@ -863,6 +869,7 @@ AST *parser_parse_expression(Parser *parser) {
             fprintf(stderr, "Parser: Expression is cannot be parsed");
             parser_show_error(parser);
     }
+    exit(-2);
 }
 
 AST *parser_parse_expression_grouping(Parser *parser) {

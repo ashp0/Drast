@@ -7,167 +7,174 @@
 
 #include "semantic_analyzer.h"
 
-void semantic_analyzer_run_analysis(UNMap *table) {
-    semantic_analyzer_check_for_duplicate_declarations(table);
-    semantic_analyzer_check_function_declarations(table);
-    semantic_analyzer_check_struct_declarations(table);
+void semantic_analyzer_error(void) {
+    fprintf(stderr, " || No available information\n");
+    exit(-4);
 }
 
-void semantic_analyzer_check_for_duplicate_declarations(UNMap *table) {
-    for (int i = 0; i < table->items - 1; i++) {
-        for (int j = i + 1; j < table->items; j++) {
-            if (table->pair_values[i]->key != NULL) {
-                if (strcmp(table->pair_values[i]->key, table->pair_values[j]->key) == 0 &&
-                    table->pair_values[i]->key[0] != '\0') {
-                    fprintf(stderr, "Semantic Analyzer: Found Duplicate Member: `%s`", table->pair_values[i]->key);
-                    exit(-3);
-                }
-            }
-        }
-    }
-}
+void semantic_analyzer_run_analysis(AST **ast_items, uintptr_t ast_items_size) {
+    UNMap *table = semantic_analyzer_create_symbol_table(ast_items, ast_items_size);
 
-void semantic_analyzer_check_struct_declarations(UNMap *table) {
-    for (int i = 0; i < table->items; ++i) {
-        SemanticAnalyzerDeclarationTable *declaration_table = (SemanticAnalyzerDeclarationTable *) table->pair_values[i]->value;
-        if (declaration_table->declaration_type == AST_TYPE_STRUCT_OR_UNION_DECLARATION) {
-            printf("FOUND STRUCT\n");
-            // Create a new struct table
+    semantic_analyzer_check_duplicate_symbols(table);
 
-            SemanticAnalyzerASTItems *ast_items = calloc(1, sizeof(SemanticAnalyzerASTItems));
-
-            for (int j = 0; j < declaration_table->declaration_value->value.StructOrUnionDeclaration.member_size; ++j) {
-                ast_items->item_size += 1;
-                ast_items->items = realloc(ast_items->items, ast_items->item_size * sizeof(AST *));
-
-                ast_items->items[ast_items->item_size -
-                                 1] = declaration_table->declaration_value->value.StructOrUnionDeclaration.members[j];
-            }
-
-            UNMap *map = semantic_analyzer_create_declaration_table(ast_items);
-
-            for (int l = 0; l < map->items; ++l) {
-                SemanticAnalyzerDeclarationTable *declaration_table2 = (SemanticAnalyzerDeclarationTable *) map->pair_values[l]->value;
-                switch (declaration_table2->declaration_type) {
-                    case AST_TYPE_VARIABLE_DEFINITION:
-                        semantic_analyzer_check_variable_definition(map,
-                                                                    declaration_table->declaration_value->value.StructOrUnionDeclaration.members,
-                                                                    declaration_table->declaration_value->value.StructOrUnionDeclaration.member_size,
-                                                                    declaration_table->declaration_value,
-                                                                    declaration_table->declaration_value->value.StructOrUnionDeclaration.members[l]);
-                        break;
-                    case AST_TYPE_FUNCTION_DECLARATION:
-                        break;
-                    default:
-                        printf("Semantic Analyzer: Struct cannot be checked\n");
-                        exit(-4);
-                }
-            }
-
-            semantic_analyzer_run_analysis(map);
-        }
-    }
-}
-
-void semantic_analyzer_check_function_declarations(UNMap *table) {
     for (int i = 0; i < table->items; i++) {
-        SemanticAnalyzerDeclarationTable *declaration_table = (SemanticAnalyzerDeclarationTable *) table->pair_values[i]->value;
-        if (declaration_table->declaration_type == AST_TYPE_FUNCTION_DECLARATION) {
-            // Duplicate Function Names were already checked, now we just have to check the parameters
-            // We need to check the parameters
-            semantic_analyzer_check_function_declaration_argument(table,
-                                                                  declaration_table->declaration_value->value.FunctionDeclaration.arguments,
-                                                                  declaration_table->declaration_value->value.FunctionDeclaration.argument_size);
-            semantic_analyzer_check_function_declaration_body(table, declaration_table->declaration_value);
-        }
-    }
-}
+        SemanticAnalyzerSymbol *symbol_struct = (SemanticAnalyzerSymbol *) table->pair_values[i]->value;
 
-void semantic_analyzer_check_function_declaration_argument(UNMap *table, AST **arguments, uintptr_t argument_size) {
-    // Duplicate Function Argument Names
-    if (argument_size == 0)
-        return;
-    for (int i = 0; i < argument_size - 1; i++) {
-        char *argument_i = arguments[i]->value.FunctionDeclarationArgument.argument_name;
-        for (int j = i + 1; j < argument_size; j++) {
-            char *argument_j = arguments[j]->value.FunctionDeclarationArgument.argument_name;
-            if (strcmp(argument_i, argument_j) == 0) {
-                fprintf(stderr, "Semantic Analyzer: Found Duplicate Function Parameter: `%s`", argument_i);
-                exit(-3);
-            }
-        }
-    }
-
-    // If the function type exits
-    for (int i = 0; i < argument_size; ++i) {
-        AST *argument_type = arguments[i]->value.FunctionDeclarationArgument.argument_type;
-        if (argument_type->type != AST_TYPE_VALUE_KEYWORD) {
-            fprintf(stderr, "Semantic Analyzer: Function Arguments must be a type %d", argument_type->type);
-            exit(-3);
-        }
-
-        if (argument_type->value.ValueKeyword.token->type == T_IDENTIFIER) {
-            semantic_analyzer_check_if_identifier_is_valid_type(table, argument_type->value.ValueKeyword.token->value,
-                                                                true);
-        }
-    }
-}
-
-void semantic_analyzer_check_function_declaration_body(UNMap *table, AST *function_declaration) {
-    for (int i = 0; i < function_declaration->value.FunctionDeclaration.body->value.Body.body_size; ++i) {
-        switch (function_declaration->value.FunctionDeclaration.body->value.Body.body[i]->type) {
-            case AST_TYPE_VARIABLE_DEFINITION:
-                semantic_analyzer_check_variable_definition(table,
-                                                            function_declaration->value.FunctionDeclaration.body->value.Body.body,
-                                                            function_declaration->value.FunctionDeclaration.body->value.Body.body_size,
-                                                            function_declaration,
-                                                            function_declaration->value.FunctionDeclaration.body->value.Body.body[i]);
+        switch (symbol_struct->symbol_type) {
+            case AST_TYPE_FUNCTION_DECLARATION:
+                semantic_analyzer_check_function_declaration(table, symbol_struct->symbol_ast, false);
+                break;
+            case AST_TYPE_STRUCT_OR_UNION_DECLARATION:
+                semantic_analyzer_check_struct_or_union_declaration(table, symbol_struct);
                 break;
             default:
-                printf("Function body cannot be checked by semantic analyzer %d\n",
-                       function_declaration->value.FunctionDeclaration.body->value.Body.body[i]->type);
+//                fprintf(stderr, "Semantic Analyzer: Cannot check type `%d`", symbol_struct->symbol_type);
+//                semantic_analyzer_error();
+                break;
+        }
+    }
+
+    unmap_destroy(table);
+}
+
+void semantic_analyzer_check_struct_or_union_declaration(UNMap *table, SemanticAnalyzerSymbol *symbol_struct) {
+    // Create a new map, so we will iterate through the members of the struct and append them and their types to the new map
+
+    // Check for duplicate members
+    UNMap *new_map = semantic_analyzer_create_symbol_table(
+            symbol_struct->symbol_ast->value.StructOrUnionDeclaration.members,
+            symbol_struct->symbol_ast->value.StructOrUnionDeclaration.members_size);
+    semantic_analyzer_check_duplicate_symbols(new_map);
+
+    free(new_map);
+
+    for (int i = 0; i < symbol_struct->symbol_ast->value.StructOrUnionDeclaration.members_size; i++) {
+        AST *ast_member = symbol_struct->symbol_ast->value.StructOrUnionDeclaration.members[i];
+        // Check if the member is a function
+        if (ast_member->type == AST_TYPE_FUNCTION_DECLARATION) {
+            semantic_analyzer_check_function_declaration(table, ast_member, true);
+        } else if (ast_member->type == AST_TYPE_VARIABLE_DEFINITION) {
+            semantic_analyzer_check_variable_definition(table, ast_member,
+                                                        symbol_struct->symbol_ast->value.StructOrUnionDeclaration.members,
+                                                        symbol_struct->symbol_ast->value.StructOrUnionDeclaration.members_size,
+                                                        symbol_struct->symbol_ast, true);
+        }
+    }
+}
+
+void semantic_analyzer_check_function_declaration(UNMap *table, AST *function_declaration,
+                                                  bool is_struct_member) {
+    semantic_analyzer_check_function_declaration_argument(table, function_declaration,
+                                                          function_declaration->value.FunctionDeclaration.arguments,
+                                                          function_declaration->value.FunctionDeclaration.arguments_size,
+                                                          is_struct_member);
+    semantic_analyzer_check_function_declaration_body(table, function_declaration, false);
+}
+
+void semantic_analyzer_check_function_declaration_argument(UNMap *table, AST *function_declaration_ast,
+                                                           AST **arguments, uintptr_t argument_size,
+                                                           bool is_struct_member) {
+    if (argument_size == 0)
+        return;
+
+    for (int i = 0; i < argument_size; i++) {
+        char *argument_i = arguments[i]->value.FunctionDeclarationArgument.argument_name;
+        AST *argument_type_i = arguments[i]->value.FunctionDeclarationArgument.argument_type;
+
+        if (argument_type_i->type != AST_TYPE_VALUE_KEYWORD) {
+            fprintf(stderr, "Semantic Analyzer: Function Arguments must be a type `%d`", argument_type_i->type);
+            semantic_analyzer_error();
+        }
+
+        if (argument_type_i->value.ValueKeyword.token->type == T_IDENTIFIER) {
+            semantic_analyzer_check_if_type_exists(table, argument_type_i->value.ValueKeyword.token->value);
+        }
+
+        for (int j = i + 1; j < argument_size; j++) {
+            char *argument_j = arguments[j]->value.FunctionDeclarationArgument.argument_name;
+
+            AST *argument_type_j = arguments[i]->value.FunctionDeclarationArgument.argument_type;
+
+            if (argument_type_j->type != AST_TYPE_VALUE_KEYWORD) {
+                fprintf(stderr, "Semantic Analyzer: Function Arguments must be a type `%d`", argument_type_j->type);
+                semantic_analyzer_error();
+            }
+
+            if (argument_type_j->value.ValueKeyword.token->type == T_IDENTIFIER) {
+                semantic_analyzer_check_if_type_exists(table, argument_type_j->value.ValueKeyword.token->value);
+            }
+
+            if (strcmp(argument_i, argument_j) == 0) {
+                fprintf(stderr, "Semantic Analyzer: Found Duplicate Function Parameter: `%s`", argument_j);
+                semantic_analyzer_error();
+
+            }
+        }
+    }
+}
+
+void semantic_analyzer_check_function_declaration_body(UNMap *table, AST *function_declaration_ast,
+                                                       bool is_struct_member) {
+    for (int i = 0; i < function_declaration_ast->value.FunctionDeclaration.body->value.Body.body_size; ++i) {
+        AST *body = function_declaration_ast->value.FunctionDeclaration.body;
+
+        switch (body->value.Body.body[i]->type) {
+            case AST_TYPE_VARIABLE_DEFINITION:
+                semantic_analyzer_check_variable_definition(table, body->value.Body.body[i],
+                                                            body->value.Body.body, body->value.Body.body_size,
+                                                            function_declaration_ast, is_struct_member);
+            default:
+//                fprintf(stderr, "Semantic Analyzer: Cannot check type `%d`", symbol_struct->symbol_type);
+//                semantic_analyzer_error();
+                break;
         }
     }
 }
 
 void
-semantic_analyzer_check_variable_definition(UNMap *table, AST **body, uintptr_t body_size, AST *function_declaration,
-                                            AST *variable_definition_ast) {
-    // Variable Type
-    if (variable_definition_ast->value.VariableDeclaration.type->value.ValueKeyword.token->type == T_IDENTIFIER) {
-        semantic_analyzer_check_if_identifier_is_valid_type(table,
-                                                            variable_definition_ast->value.VariableDeclaration.type->value.ValueKeyword.token->value,
-                                                            true);
+semantic_analyzer_check_variable_definition(UNMap *symbol_table, AST *variable_ast, AST **body, uintptr_t body_size,
+                                            AST *function_declaration_ast, bool is_struct_member) {
+    // If `is_struct_member` we will check the variables in the struct, in the last though, if it doesn't match any other variables,
+    // or we could show an error saying re-defined variable?
+    // or we can force the user to type self (choses)
+
+    // Check the variable type
+    if (variable_ast->value.VariableDeclaration.type->value.ValueKeyword.token->type == T_IDENTIFIER) {
+        semantic_analyzer_check_if_type_exists(symbol_table,
+                                               variable_ast->value.VariableDeclaration.type->value.ValueKeyword.token->value);
     }
 
-    // Check if the variable name is used elsewhere in the body
-    int position_inside_body = 0;
-    for (int i = 0; i < body_size; ++i) {
-        if (body[i]->type == AST_TYPE_VARIABLE_DEFINITION) {
-            if (body[i] == variable_definition_ast) {
-                position_inside_body = i;
-            }
-            if ((strcmp(variable_definition_ast->value.VariableDeclaration.identifier,
-                        body[i]->value.VariableDeclaration.identifier) == 0) &&
-                body[i] != variable_definition_ast) {
-                fprintf(stderr, "Semantic Analyzer: Variable `%s`, has been defined more than once\n",
-                        variable_definition_ast->value.VariableDeclaration.identifier);
-                exit(-3);
+    if (!is_struct_member) {
+        // Check if the variable is defined elsewhere in the body
+        // We will increment up the body
+        int position_inside_body = 0;
+        for (int i = 0; i < body_size; ++i) {
+            if (body[i]->type == AST_TYPE_VARIABLE_DEFINITION) {
+                if (body[i] == variable_ast) {
+                    position_inside_body = i;
+                }
+                if ((strcmp(variable_ast->value.VariableDeclaration.identifier,
+                            body[i]->value.VariableDeclaration.identifier) == 0) &&
+                    body[i] != variable_ast) {
+                    fprintf(stderr, "Semantic Analyzer: Variable `%s`, has been defined more than once",
+                            variable_ast->value.VariableDeclaration.identifier);
+                    semantic_analyzer_error();
+
+                }
             }
         }
-    }
 
-    if (variable_definition_ast->value.VariableDeclaration.is_initialized) {
-        int variable_type = variable_definition_ast->value.VariableDeclaration.type->value.ValueKeyword.token->type;
-        int expression_type = semantic_analyzer_check_expression(table,
-                                                                 variable_definition_ast->value.VariableDeclaration.value,
-                                                                 position_inside_body, body, body_size,
-                                                                 function_declaration);
-        if (!semantic_analyzer_types_are_allowed(variable_type, expression_type)) {
-            fprintf(stderr, "Semantic Analyzer: Variable `%s`, has a type of `%s`, but was asigned type of `%s`\n",
-                    variable_definition_ast->value.VariableDeclaration.identifier, token_print(variable_type),
-                    token_print(expression_type));
-            exit(-3);
+        if (variable_ast->value.VariableDeclaration.is_initialized) {
+            semantic_analyzer_check_expression(symbol_table, variable_ast->value.VariableDeclaration.value,
+                                               position_inside_body,
+                                               body, body_size, function_declaration_ast);
+        }
+    } else {
+        // Struct member variable
+        if (variable_ast->value.VariableDeclaration.is_initialized) {
+            fprintf(stderr, "Semantic Analyzer: Variable `%s`, must not be initialized inside a struct",
+                    variable_ast->value.VariableDeclaration.identifier);
+            semantic_analyzer_error();
         }
     }
 }
@@ -190,9 +197,11 @@ int semantic_analyzer_check_expression(UNMap *table, AST *expression, int positi
             return semantic_analyzer_check_expression_grouping(table, expression, position_inside_body, body, body_size,
                                                                function_declaration);
         default:
-            printf("Cannot parse binary %d\n", expression->type);
-            break;
+            fprintf(stderr, "Semantic Analyzer: Expression cannot be checked");
+            semantic_analyzer_error();
     }
+
+    return 0;
 }
 
 int semantic_analyzer_check_expression_grouping(UNMap *table, AST *expression, int position_inside_body, AST **body,
@@ -218,9 +227,9 @@ int semantic_analyzer_check_expression_binary(UNMap *table, AST *expression, int
                                                         function_declaration);
 
     if (!semantic_analyzer_types_are_allowed(left_type, right_type)) {
-        fprintf(stderr, "Semantic Analyzer: expressions have different types: %s :: %s\n", token_print(left_type),
+        fprintf(stderr, "Semantic Analyzer: expressions have different types: %s :: %s", token_print(left_type),
                 token_print(right_type));
-        exit(-3);
+        semantic_analyzer_error();
     }
 
     return left_type;
@@ -251,24 +260,25 @@ int semantic_analyzer_check_expression_literal(UNMap *table, AST *expression, in
             }
 
             // Check for function arguments
-            for (int j = 0; j < function_declaration->value.FunctionDeclaration.argument_size; j++) {
+            for (int j = 0; j < function_declaration->value.FunctionDeclaration.arguments_size; j++) {
                 AST *argument_name = function_declaration->value.FunctionDeclaration.arguments[j];
                 if (strcmp(expression->value.Literal.literal_value->value,
                            argument_name->value.FunctionDeclarationArgument.argument_name) == 0) {
                     return argument_name->value.FunctionDeclarationArgument.argument_type->value.ValueKeyword.token->type;
-                } else if (j >= function_declaration->value.FunctionDeclaration.argument_size) {
+                } else if (j >= function_declaration->value.FunctionDeclaration.arguments_size) {
                     // Error, not a function argument
                 }
             }
 
-            semantic_analyzer_check_if_identifier_is_valid_type(table, expression->value.Literal.literal_value->value,
-                                                                true);
+            semantic_analyzer_check_if_type_exists(table, expression->value.Literal.literal_value->value);
             break;
         default:
-            fprintf(stderr, "Semantic Analyzer: `%s` isn't a valid type\n",
+            fprintf(stderr, "Semantic Analyzer: `%s` isn't a valid type",
                     expression->value.Literal.literal_value->value);
-            exit(-3);
+            semantic_analyzer_error();
     }
+
+    return 0;
 }
 
 int
@@ -279,102 +289,121 @@ semantic_analyzer_check_expression_function_call(UNMap *table, AST *expression, 
 
         if (strcmp(table_item_name, expression->value.FunctionCall.function_call_name) == 0 &&
             table_item_name[0] != '\0') {
-            if (((SemanticAnalyzerDeclarationTable *) table->pair_values[j]->value)->declaration_type ==
+            if (((SemanticAnalyzerSymbol *) table->pair_values[j]->value)->symbol_type ==
                 AST_TYPE_FUNCTION_DECLARATION) {
                 // Check the arguments
                 // TODO: Check the argument types
 
-                AST *function = ((SemanticAnalyzerDeclarationTable *) table->pair_values[j]->value)->declaration_value;
+                AST *function = ((SemanticAnalyzerSymbol *) table->pair_values[j]->value)->symbol_ast;
                 if (expression->value.FunctionCall.arguments_size !=
-                    function->value.FunctionDeclaration.argument_size) {
+                    function->value.FunctionDeclaration.arguments_size) {
                     fprintf(stderr, "Semantic Analyzer: `%s` invalid number of arguments",
                             expression->value.FunctionCall.function_call_name);
-                    exit(-3);
+                    semantic_analyzer_error();
                 }
                 return function->value.FunctionDeclaration.return_type->value.ValueKeyword.token->type;
             } else {
                 fprintf(stderr, "Semantic Analyzer: `%s` is not a valid function",
                         expression->value.FunctionCall.function_call_name);
-                exit(-3);
+                semantic_analyzer_error();
             }
         } else {
             if ((j + 1) >= table->items) {
                 fprintf(stderr, "Semantic Analyzer: `%s` is not a valid function",
                         expression->value.FunctionCall.function_call_name);
-                exit(-3);
+                semantic_analyzer_error();
             }
         }
     }
+
+    return 0;
 }
 
-bool semantic_analyzer_check_if_identifier_is_valid_type(UNMap *table, char *identifier, bool displays_error) {
-    for (int j = 0; j < table->items; j++) {
-        char *table_item_name = table->pair_values[j]->key;
+void semantic_analyzer_check_if_type_exists(UNMap *symbol_table, char *type_name) {
+    for (int j = 0; j < symbol_table->items; j++) {
+        char *table_item_name = symbol_table->pair_values[j]->key;
 
-        if (strcmp(table_item_name, identifier) == 0 &&
+        if (strcmp(table_item_name, type_name) == 0 &&
             table_item_name[0] != '\0') {
-
-            // Check if it's a function definition
-            if (((SemanticAnalyzerDeclarationTable *) table->pair_values[j]->value)->declaration_type ==
+            if (((SemanticAnalyzerSymbol *) symbol_table->pair_values[j]->value)->symbol_type ==
                 AST_TYPE_FUNCTION_DECLARATION) {
                 fprintf(stderr, "Semantic Analyzer: `%s` is a function name, which cannot be used as a type",
-                        identifier);
-                exit(-3);
+                        type_name);
+                semantic_analyzer_error();
             }
 
-            return true;
+            return;
         } else {
-            if ((j + 1) >= table->items && displays_error) {
-                fprintf(stderr, "Semantic Analyzer: `%s` isn't a valid type", identifier);
-                exit(-3);
+            if ((j + 1) >= symbol_table->items) {
+                fprintf(stderr, "Semantic Analyzer: `%s` isn't an existing type", type_name);
+                semantic_analyzer_error();
             }
         }
     }
-
-    return false;
-}
-
-UNMap *semantic_analyzer_create_declaration_table(SemanticAnalyzerASTItems *ast_items) {
-    UNMap *map = unmap_init();
-
-    for (int i = 0; i < ast_items->item_size; ++i) {
-        // Create a pair
-        UNMapPairValue *pair = calloc(1, sizeof(UNMapPairValue));
-        pair->key = semantic_analyzer_declaration_name(ast_items->items[i]);
-
-        // Create a declaration table
-        SemanticAnalyzerDeclarationTable *declaration_table = calloc(1, sizeof(SemanticAnalyzerDeclarationTable));
-        declaration_table->declaration_name = pair->key;
-        declaration_table->declaration_type = ast_items->items[i]->type;
-        declaration_table->declaration_value = ast_items->items[i];
-
-        // Add the item
-        pair->value = declaration_table;
-        unmap_push_back(map, pair);
-    }
-
-    return map;
 }
 
 bool semantic_analyzer_types_are_allowed(int type1, int type2) {
     if ((type1 == T_INT || type1 == T_FLOAT || type1 == T_K_INT || type1 == T_K_FLOAT) &&
         (type2 == T_INT || type2 == T_FLOAT || type2 == T_K_INT || type2 == T_K_FLOAT))
         return true;
+    else if ((type1 == T_STRING || type1 == T_K_STRING) && (type2 == T_STRING || type2 == T_K_STRING))
+        return true;
     else
         return false;
 }
 
-char *semantic_analyzer_declaration_name(AST *ast) {
-    switch (ast->type) {
-        case AST_TYPE_FUNCTION_DECLARATION:
-            return ast->value.FunctionDeclaration.function_name;
-        case AST_TYPE_STRUCT_OR_UNION_DECLARATION:
-            return ast->value.StructOrUnionDeclaration.name;
-        case AST_TYPE_ENUM_DECLARATION:
-            return ast->value.EnumDeclaration.enum_name;
-        case AST_TYPE_ALIAS:
-            return ast->value.Alias.alias_name;
-        default:
-            return "";
+void semantic_analyzer_check_duplicate_symbols(UNMap *table) {
+    for (int i = 0; i < table->items - 1; i++) {
+        for (int j = i + 1; j < table->items; j++) {
+            if (table->pair_values[i]->key != NULL) {
+                if (strcmp(table->pair_values[i]->key, table->pair_values[j]->key) == 0 &&
+                    table->pair_values[i]->key[0] != '\0') {
+                    fprintf(stderr, "Semantic Analyzer: Found Duplicate Symbol `%s`", table->pair_values[i]->key);
+                    unmap_destroy(table);
+                    semantic_analyzer_error();
+                }
+            }
+        }
     }
+}
+
+UNMap *semantic_analyzer_create_symbol_table(AST **ast_items, uintptr_t ast_items_size) {
+    UNMap *symbol_map = unmap_init();
+    // Create a symbol table
+    for (int i = 0; i < ast_items_size; i++) {
+        SemanticAnalyzerSymbol *symbol_struct = malloc(sizeof(SemanticAnalyzerSymbol));
+        switch (ast_items[i]->type) {
+            case AST_TYPE_FUNCTION_DECLARATION:
+                symbol_struct->symbol_name = ast_items[i]->value.FunctionDeclaration.function_name;
+                symbol_struct->symbol_type = ast_items[i]->type;
+                symbol_struct->symbol_ast = ast_items[i];
+                break;
+            case AST_TYPE_STRUCT_OR_UNION_DECLARATION:
+                symbol_struct->symbol_name = ast_items[i]->value.StructOrUnionDeclaration.name;
+                symbol_struct->symbol_type = ast_items[i]->type;
+                symbol_struct->symbol_ast = ast_items[i];
+                break;
+            case AST_TYPE_ALIAS:
+                symbol_struct->symbol_name = ast_items[i]->value.Alias.alias_name;
+                symbol_struct->symbol_type = ast_items[i]->type;
+                symbol_struct->symbol_ast = ast_items[i];
+                break;
+            case AST_TYPE_VARIABLE_DEFINITION:
+                symbol_struct->symbol_name = ast_items[i]->value.VariableDeclaration.identifier;
+                symbol_struct->symbol_type = ast_items[i]->type;
+                symbol_struct->symbol_ast = ast_items[i];
+                break;
+            default:
+                fprintf(stderr, "Semantic Analyzer: Cannot Check Type `%d`", ast_items[i]->type);
+//                semantic_analyzer_error();
+        }
+
+        UNMapPairValue *pair = malloc(sizeof(UNMapPairValue));
+        pair->key = symbol_struct->symbol_name;
+        pair->value = symbol_struct;
+
+        unmap_push_back(symbol_map, pair);
+    }
+
+    return symbol_map;
 }
