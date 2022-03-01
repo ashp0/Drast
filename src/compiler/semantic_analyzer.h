@@ -35,20 +35,16 @@ semantic_analyzer_check_variable_definition(UNMap *symbol_table, AST *variable_a
                                             AST *function_declaration_ast, bool is_struct_member);
 
 int semantic_analyzer_check_expression(UNMap *table, AST *expression, int position_inside_body, AST **body,
-                                       uintptr_t body_size,
-                                       AST *function_declaration);
+                                       uintptr_t body_size, AST *function_declaration, bool is_struct_member);
 
 int semantic_analyzer_check_expression_grouping(UNMap *table, AST *expression, int position_inside_body, AST **body,
-                                                uintptr_t body_size,
-                                                AST *function_declaration);
+                                                uintptr_t body_size, AST *function_declaration, bool is_struct_member);
 
 int semantic_analyzer_check_expression_binary(UNMap *table, AST *expression, int position_inside_body, AST **body,
-                                              uintptr_t body_size,
-                                              AST *function_declaration);
+                                              uintptr_t body_size, AST *function_declaration, bool is_struct_member);
 
 int semantic_analyzer_check_expression_literal(UNMap *table, AST *expression, int position_inside_body, AST **body,
-                                               uintptr_t body_size,
-                                               AST *function_declaration);
+                                               uintptr_t body_size, AST *function_declaration, bool is_struct_member);
 
 int
 semantic_analyzer_check_expression_function_call(UNMap *table, AST *expression, int position_inside_body, AST **body,

@@ -27,7 +27,9 @@ simplicity
     - [x] Parser: Problem where using brackets in expressions didn't work
 - [ ] Semantic Analyzer
     - [x] Duplicate Variable and Functions
-    - [ ] Check if expression is valid
+    - [x] Check if expression is valid
+    - [x] Check assignments
+    - [x] Return statements
     - [ ] Struct initializers
     - [ ] Alias Types
 - [ ] Optimizations? ( Might not do this stage since LLVM does this )

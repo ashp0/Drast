@@ -343,6 +343,7 @@ Token *lexer_parse_identifier(Lexer *lexer) {
 }
 
 Token *lexer_is_keyword(char *identifier, Lexer *lexer) {
+    // TODO: Faster way to do this?
     if (strcmp(identifier, "struct") == 0)
         return lexer_advance_token(T_K_STRUCT, identifier, lexer, true);
     else if (strcmp(identifier, "self") == 0)
