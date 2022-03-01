@@ -171,11 +171,15 @@ typedef union {
     } VariableCall;
 
     struct {
-        struct AST *expression;
-        bool is_else_if_statement;
-        bool is_else_statement;
+        struct AST *if_condition;
+        struct AST *if_body;
 
-        struct AST *body;
+        size_t else_if_size;
+        struct AST **else_if_conditions;
+        struct AST **else_if_bodys; // Body structs
+
+        bool has_else_statement;
+        struct AST *else_body;
     } IfElseStatement;
 
     struct {

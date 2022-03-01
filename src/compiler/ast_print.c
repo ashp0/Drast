@@ -383,18 +383,34 @@ void ast_print_variable_call(AST *ast, uintptr_t indent) {
 void ast_print_if_else_statement(AST *ast, uintptr_t indent) {
     for (int i = 0; i < indent; ++i)
         printf("\t");
-    if (ast->value.IfElseStatement.is_else_if_statement)
-        printf("else if (");
-    else if (ast->value.IfElseStatement.is_else_statement) {
-        printf("else");
-    } else {
-        printf("if (");
+
+    printf("if (");
+    ast_print(ast->value.IfElseStatement.if_condition);
+    printf(") {\n");
+    _ast_print(ast->value.IfElseStatement.if_body, indent + 1);
+    printf("}\n");
+
+    if (ast->value.IfElseStatement.else_if_size != 0) {
+        for (int i = 0; i < indent; ++i)
+            printf("\t");
+
+        // For each else if statement
+        for (int i = 0; i < ast->value.IfElseStatement.else_if_size; ++i) {
+            printf("else if (");
+            ast_print(ast->value.IfElseStatement.else_if_conditions[i]);
+            printf(") {\n");
+            _ast_print(ast->value.IfElseStatement.else_if_bodys[i], indent + 1);
+            printf("}\n");
+        }
     }
-    if (ast->value.IfElseStatement.expression)
-        ast_print(ast->value.IfElseStatement.expression);
-    ast->value.IfElseStatement.is_else_statement ? printf(" {\n") : printf(") {\n");
-    _ast_print(ast->value.IfElseStatement.body, indent + 1);
-    printf("\t}\n");
+
+    if (ast->value.IfElseStatement.has_else_statement) {
+        for (int i = 0; i < indent; ++i)
+            printf("\t");
+        printf("else {\n");
+        _ast_print(ast->value.IfElseStatement.else_body, indent + 1);
+        printf("}\n");
+    }
 }
 
 void ast_print_while_statement(AST *ast, uintptr_t indent) {

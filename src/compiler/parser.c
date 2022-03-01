@@ -73,7 +73,6 @@ AST *parser_parse_inner_statement(Parser *parser) {
         case T_K_RETURN:
             return parser_parse_return(parser);
         case T_K_IF:
-        case T_K_ELSE:
             return parser_parse_if_else_statement(parser);
         case T_K_WHILE:
             return parser_parse_while_statement(parser);
@@ -503,34 +502,50 @@ AST *parser_parse_return(Parser *parser) {
 
 AST *parser_parse_if_else_statement(Parser *parser) {
     AST *if_else_statement_ast = ast_init_with_type(AST_TYPE_IF_ELSE_STATEMENT);
-    bool is_else = parser->current->type == T_K_ELSE;
-
-    if (is_else)
-        parser_advance(parser, T_K_ELSE);
-    else
-        parser_advance(parser, T_K_IF);
-
-    if (is_else) {
-        if (parser->current->type == T_K_IF) {
-            if_else_statement_ast->value.IfElseStatement.is_else_if_statement = true;
-            parser_advance(parser, T_K_IF);
-        } else {
-            if_else_statement_ast->value.IfElseStatement.is_else_statement = true;
-        }
-    } else {
-        if_else_statement_ast->value.IfElseStatement.is_else_if_statement = false;
-        if_else_statement_ast->value.IfElseStatement.is_else_statement = false;
-    }
+    free(parser_advance(parser, T_K_IF));
 
     // The expression
-    if (!if_else_statement_ast->value.IfElseStatement.is_else_statement) {
-        parser_advance(parser, T_PARENS_OPEN);
-        if_else_statement_ast->value.IfElseStatement.expression = parser_parse_expression(parser);
-        parser_advance(parser, T_PARENS_CLOSE);
-    }
+    free(parser_advance(parser, T_PARENS_OPEN));
+    if_else_statement_ast->value.IfElseStatement.if_condition = parser_parse_expression(parser);
+    free(parser_advance(parser, T_PARENS_CLOSE));
 
     // The body
-    if_else_statement_ast->value.IfElseStatement.body = parser_parse_body(parser);
+    if_else_statement_ast->value.IfElseStatement.if_body = parser_parse_body(parser);
+
+    // The else body
+    if (parser->current->type == T_K_ELSE) {
+        if (parser->current->type == T_K_ELSE && lexer_get_next_token_without_advance(parser->lexer)->type ==
+                                                 T_K_IF) {
+            while (parser->current->type == T_K_ELSE && lexer_get_next_token_without_advance(parser->lexer)->type ==
+                                                        T_K_IF) {
+                free(parser_advance(parser, T_K_ELSE));
+                free(parser_advance(parser, T_K_IF));
+                if_else_statement_ast->value.IfElseStatement.else_if_size += 1;
+                if_else_statement_ast->value.IfElseStatement.else_if_bodys = realloc(
+                        if_else_statement_ast->value.IfElseStatement.else_if_bodys,
+                        if_else_statement_ast->value.IfElseStatement.else_if_size * sizeof(AST *));
+                if_else_statement_ast->value.IfElseStatement.else_if_conditions = realloc(
+                        if_else_statement_ast->value.IfElseStatement.else_if_conditions,
+                        if_else_statement_ast->value.IfElseStatement.else_if_size * sizeof(AST *));
+                // Open bracket
+//                free(parser_advance(parser, T_K_IF));
+                free(parser_advance(parser, T_PARENS_OPEN));
+                if_else_statement_ast->value.IfElseStatement.else_if_conditions[
+                        if_else_statement_ast->value.IfElseStatement.else_if_size - 1] = parser_parse_expression(
+                        parser);
+                free(parser_advance(parser, T_PARENS_CLOSE));
+
+                if_else_statement_ast->value.IfElseStatement.else_if_bodys[
+                        if_else_statement_ast->value.IfElseStatement.else_if_size - 1] = parser_parse_body(parser);
+            }
+        }
+    }
+
+    if (parser->current->type == T_K_ELSE) {
+        if_else_statement_ast->value.IfElseStatement.has_else_statement = true;
+        free(parser_advance(parser, T_K_ELSE));
+        if_else_statement_ast->value.IfElseStatement.else_body = parser_parse_body(parser);
+    }
 
     return if_else_statement_ast;
 }

@@ -2,15 +2,40 @@
 // Drast Programming Language Examples
 //
 
-int :: test() {
-    int test3 = 50
+struct myTestStruct {
+    string first_name
+    string last_name
+    int age
+
+    string :: test(int lmao) {
+         // int test2 = 430
+        // test2 = 540
+        // self.test2 = test(lmao) + 40
+        // test2 = 540
+    }
 }
 
-private int :: main(int argc, string[] argv) {
-    int test4 = (40.4 + 20.4 + 4.30) // TODO: Add support for casting, -> int
-    int test5 = 30
-    int test6 = test4 + test5
-    test4 = test4 + 40 + test() + argc
+string :: test(int lmao) {
+    int test = 3203 + lmao
+    int test2 = test + lmao
+}
 
-    return test()
+private int :: main(myTestStruct argc, string[] argv) {
+    int test4 = (40.4 + 20.4 + 4.30) // TODO: Add support for casting, -> int
+    int test = test(10) + "test"
+    int main = 40
+    int main3 = main // TODO: Check up the body
+    int main2 = test + main + 40
+    int main5 = test + main + 40
+
+    if (main5 == main2) {
+        int main4 = main + main2
+    } else if (main5 == main3) {
+        int main4 = main + main2
+    } else if (main5 == main3) {
+              int main4 = main + main2
+    } else {
+        int main4 = main + main5
+    }
+
 }
