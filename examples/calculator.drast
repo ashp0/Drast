@@ -4,7 +4,7 @@
 
 import io
 
-int :: main(int argc, string[] argv) {
+int::main(int argc, string[] argv) {
     print("Hello World")
 
     float first_number
@@ -19,13 +19,15 @@ int :: main(int argc, string[] argv) {
     getInput("Type your operator\n")
     operator = readChar()
 
-    result = matches(operator) {
+    result = matches(operator)
+    {
         '+': first_number + second_number
         '-': first_number - second_number
-        '*': first_number * second_number
+        '*': first_number *second_number
         '/': first_number / second_number
         '%': first_number % second_number
-        _: {
+        _:
+        {
             throw("Invalid operator")
         }
     }

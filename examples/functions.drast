@@ -10,24 +10,24 @@ struct Math {
     }
 
     struct Operations {
-        float :: addition(float first_number, float second_number) {
+        float::addition(float first_number, float second_number) {
             return first_number + second_number
         }
 
-        float :: subtraction(float first_number, float second_number) {
+        float::subtraction(float first_number, float second_number) {
             return first_number - second_number
         }
 
-        float :: multiply(float first_number, float second_number) {
+        float::multiply(float first_number, float second_number) {
             return first_number * second_number
         }
 
-        float :: division(float first_number, float second_number) {
+        float::division(float first_number, float second_number) {
             return first_number / second_number
         }
     }
 }
 
-int :: main(int argc, string[] argv) {
+int::main(int argc, string[] argv) {
     print(Math.Operations.addition(50, 30))
 }

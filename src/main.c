@@ -44,23 +44,18 @@ int main(__attribute__((unused)) int argc, char **argv) {
     AST **items = calloc(1, sizeof(AST *));
     uintptr_t item_size = 0;
 
-    Token *next_token;
     while (parser->lexer->index < parser->lexer->source_length) {
-        next_token = lexer_get_next_token_without_advance(parser->lexer);
-        if (next_token->type == T_EOF)
+        if (parser->next_token->type == T_EOF)
             break;
 //        printf("%s(`%s`)\n", token_print(next_token->type), next_token->value);
 //        if (next_token->type == T_EOF)
 //            break;
         AST *ast = parser_parse(parser);
         ast_print(ast);
-//
-//        // Add the item into the array
+        // Add the item into the array
         item_size++;
         items = realloc(items, item_size * sizeof(AST *));
         items[item_size - 1] = ast;
-//
-        free(next_token);
     }
     /*
      t = clock() - t;

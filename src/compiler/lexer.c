@@ -34,7 +34,7 @@ Lexer *lexer_duplicate(Lexer *lexer) {
     return new_lexer;
 }
 
-Token *lexer_get_next_token_without_advance(Lexer *lexer) {
+__attribute__((unused)) Token *lexer_get_next_token_without_advance(Lexer *lexer) {
     Lexer *new_lexer = lexer_duplicate(lexer);
     Token *next_token = lexer_get_next_token(new_lexer);
 

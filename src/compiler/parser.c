@@ -11,6 +11,7 @@ Parser *parser_init(Lexer *lexer) {
     Parser *parser = malloc(sizeof(Parser));
     parser->lexer = lexer;
     parser->current = lexer_get_next_token(parser->lexer);
+    parser->next_token = lexer_get_next_token(parser->lexer);
 
     return parser;
 }
@@ -188,6 +189,7 @@ AST *parser_parse_struct_initializer(Parser *parser) {
         free(function_name);
         fprintf(stderr, "Parser: `@` sign can only be used for structure initialization");
         parser_show_error(parser);
+        return NULL; // Just to remove CLion warnings
     }
     free(function_name);
 
@@ -277,20 +279,13 @@ AST *parser_parse_function_or_variable_declaration(Parser *parser, bool is_inner
         }
     }
 
-    Token *next_token = lexer_get_next_token_without_advance(parser->lexer);
-
-    if (parser_is_binary_operator(next_token) && is_inner_statement) {
-        free(next_token);
+    if (parser_is_binary_operator(parser->next_token) && is_inner_statement) {
         return parser_parse_expression(parser);
     } else if (parser->current->type == T_K_ENUM && !is_inner_statement) {
-        free(next_token);
         return parser_parse_enum(parser, is_private);
     } else if (parser->current->type == T_K_STRUCT || parser->current->type == T_K_UNION) {
-        free(next_token);
         return parser_parse_struct(parser, is_private);
     }
-
-    free(next_token);
 
     AST *type = parser_parse_type(parser);
 
@@ -312,7 +307,7 @@ AST *parser_parse_function_or_variable_declaration(Parser *parser, bool is_inner
         parser_show_error(parser);
     }
 
-    return type;
+    return NULL;
 }
 
 AST *parser_parse_variable_declaration(Parser *parser, AST *variable_type, bool is_private, bool is_volatile) {
@@ -487,9 +482,9 @@ AST *parser_parse_if_else_statement(Parser *parser) {
 
 
     if (parser->current->type == T_K_ELSE) {
-        if (parser->current->type == T_K_ELSE && lexer_get_next_token_without_advance(parser->lexer)->type ==
+        if (parser->current->type == T_K_ELSE && parser->next_token->type ==
                                                  T_K_IF) {
-            while (parser->current->type == T_K_ELSE && lexer_get_next_token_without_advance(parser->lexer)->type ==
+            while (parser->current->type == T_K_ELSE && parser->next_token->type ==
                                                         T_K_IF) {
 
                 // Allocate
@@ -944,9 +939,11 @@ void parser_advance(Parser *parser, int token_type) {
         parser_show_error(parser);
     }
 
-    parser->current = lexer_get_next_token(parser->lexer);
+    parser->current = parser->next_token;
+    parser->next_token = lexer_get_next_token(parser->lexer);
 }
 
 void parser_advance_without_check(Parser *parser) {
-    parser->current = lexer_get_next_token(parser->lexer);
+    parser->current = parser->next_token;
+    parser->next_token = lexer_get_next_token(parser->lexer);
 }

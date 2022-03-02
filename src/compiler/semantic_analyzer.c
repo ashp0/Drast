@@ -267,8 +267,9 @@ int semantic_analyzer_check_expression_binary(UNMap *table, AST *expression, int
 }
 
 int semantic_analyzer_check_expression_literal(UNMap *table, AST *expression, int position_inside_body, AST **body,
-                                               uintptr_t body_size, AST *function_declaration, bool is_struct_member,
-                                               AST *struct_declaration) {
+                                               __attribute__((unused)) uintptr_t body_size, AST *function_declaration,
+                                               bool is_struct_member,
+                                               __attribute__((unused)) AST *struct_declaration) {
     switch (expression->value.Literal.literal_value->type) {
         case T_INT:
         case T_FLOAT:
@@ -321,9 +322,12 @@ int semantic_analyzer_check_expression_literal(UNMap *table, AST *expression, in
 }
 
 int
-semantic_analyzer_check_expression_function_call(UNMap *table, AST *expression, int position_inside_body, AST **body,
-                                                 uintptr_t body_size, AST *function_declaration,
-                                                 AST *struct_declaration) {
+semantic_analyzer_check_expression_function_call(UNMap *table, AST *expression,
+                                                 __attribute__((unused)) int position_inside_body,
+                                                 __attribute__((unused)) AST **body,
+                                                 __attribute__((unused)) uintptr_t body_size,
+                                                 __attribute__((unused)) AST *function_declaration,
+                                                 __attribute__((unused)) AST *struct_declaration) {
     for (int j = 0; j < table->items; j++) {
         char *table_item_name = table->pair_values[j]->key;
 
@@ -370,7 +374,7 @@ int semantic_analyzer_check_struct_self(UNMap *table, AST *expression, int posit
                                         uintptr_t body_size, AST *function_declaration, bool is_struct_member,
                                         AST *struct_declaration) {
     if (expression->value.Binary.right->type != AST_TYPE_BINARY) {
-        fprintf(stderr, "Semantic Analyzer: `%s` is not a valid struct member",
+        fprintf(stderr, "Semantic Analyzer: `%s` must have an expression",
                 expression->value.Binary.left->value.Literal.literal_value->value);
         semantic_analyzer_error();
     }
@@ -412,6 +416,8 @@ int semantic_analyzer_check_struct_self(UNMap *table, AST *expression, int posit
             }
         }
     }
+
+    return -1;
 }
 
 void semantic_analyzer_check_if_type_exists(UNMap *symbol_table, char *type_name) {

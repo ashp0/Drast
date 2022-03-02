@@ -13,6 +13,7 @@
 typedef struct {
     Lexer *lexer;
     Token *current;
+    Token *next_token;
 } Parser;
 
 Parser *parser_init(Lexer *lexer);

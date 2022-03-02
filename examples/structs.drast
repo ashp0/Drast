@@ -9,20 +9,25 @@ struct Person {
     string last_name
     int age
 
-    @init(string first_name, string last_name, int age) {
+    @init(
+    string first_name, string
+    last_name,
+    int age
+    ) {
         self.first_name = first_name
         self.last_name = last_name
         self.age = age
     }
 
-    void :: print() {
+    void::print() {
         // Parse Variable Call
         print(self.first_name, self.last_name, self.age)
     }
 }
 
-int :: main(int argc, string[] argv) {
-    Person john_doe = .init("John", "Doe", 25)
+int::main(int argc, string[] argv) {
+    Person
+    john_doe = .init("John", "Doe", 25)
 
     john_doe.print()
 

@@ -7,7 +7,7 @@ struct myTestStruct {
     string last_name
     int age
 
-    string :: test(int lmao) {
+    string::test(int lmao) {
         string test2 = "430"
         // test2 = 50 + 40
         // self.test2 = 50 + 40
@@ -16,12 +16,12 @@ struct myTestStruct {
     }
 }
 
-string :: test(int lmao) {
+string::test(int lmao) {
     int test = 3203 + lmao
     int test2 = test + lmao
 }
 
-private int :: main(myTestStruct argc, string[] argv) {
+private int::main(myTestStruct argc, string[] argv) {
     int test4 = (40.4 + 20.4 + 4.30) // TODO: Add support for casting, -> int
     int test = test(10) + "test"
     int main = 40

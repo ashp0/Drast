@@ -30,7 +30,7 @@ typedef struct {
 
 Lexer *lexer_init(char *source);
 
-Token *lexer_get_next_token_without_advance(Lexer *lexer);
+__attribute__((unused)) Token *lexer_get_next_token_without_advance(Lexer *lexer);
 
 __attribute__((unused)) Token *lexer_get_next_token_without_advance_offset(Lexer *lexer, uintptr_t offset);
 
