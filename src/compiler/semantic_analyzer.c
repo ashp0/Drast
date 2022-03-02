@@ -42,21 +42,21 @@ void semantic_analyzer_check_struct_or_union_declaration(UNMap *table, SemanticA
 
     // Check for duplicate members
     UNMap *new_map = semantic_analyzer_create_symbol_table(
-            symbol_struct->symbol_ast->value.StructOrUnionDeclaration.members,
-            symbol_struct->symbol_ast->value.StructOrUnionDeclaration.members_size);
+            (AST **) symbol_struct->symbol_ast->value.StructOrUnionDeclaration.members->data,
+            symbol_struct->symbol_ast->value.StructOrUnionDeclaration.members->size);
     semantic_analyzer_check_duplicate_symbols(new_map);
 
     free(new_map);
 
-    for (int i = 0; i < symbol_struct->symbol_ast->value.StructOrUnionDeclaration.members_size; i++) {
-        AST *ast_member = symbol_struct->symbol_ast->value.StructOrUnionDeclaration.members[i];
+    for (int i = 0; i < symbol_struct->symbol_ast->value.StructOrUnionDeclaration.members->size; i++) {
+        AST *ast_member = mxDynamicArrayGet(symbol_struct->symbol_ast->value.StructOrUnionDeclaration.members, i);
         // Check if the member is a function
         if (ast_member->type == AST_TYPE_FUNCTION_DECLARATION) {
             semantic_analyzer_check_function_declaration(table, ast_member, true);
         } else if (ast_member->type == AST_TYPE_VARIABLE_DEFINITION) {
             semantic_analyzer_check_variable_definition(table, ast_member,
-                                                        symbol_struct->symbol_ast->value.StructOrUnionDeclaration.members,
-                                                        symbol_struct->symbol_ast->value.StructOrUnionDeclaration.members_size,
+                                                        (AST **) symbol_struct->symbol_ast->value.StructOrUnionDeclaration.members->data,
+                                                        symbol_struct->symbol_ast->value.StructOrUnionDeclaration.members->size,
                                                         symbol_struct->symbol_ast, true);
         }
     }
@@ -330,17 +330,17 @@ semantic_analyzer_check_expression_function_call(UNMap *table, AST *expression,
                 // Check the arguments
                 // TODO: Check the argument types
                 AST *function = ((SemanticAnalyzerSymbol *) table->pair_values[j]->value)->symbol_ast;
-                if (expression->value.FunctionCall.arguments_size !=
+                if (expression->value.FunctionCall.arguments->size !=
                     function->value.FunctionDeclaration.arguments->size) {
-                    fprintf(stderr, "Semantic Analyzer: `%s` invalid number of arguments, expected %d, got %lu",
+                    fprintf(stderr, "Semantic Analyzer: `%s` invalid number of arguments, expected %d, got %d",
                             expression->value.FunctionCall.function_call_name,
                             function->value.FunctionDeclaration.arguments->size,
-                            expression->value.FunctionCall.arguments_size);
+                            expression->value.FunctionCall.arguments->size);
                     semantic_analyzer_error();
                 }
                 // Check the arguments types
-                for (int i = 0; i < expression->value.FunctionCall.arguments_size; ++i) {
-                    AST *argument1 = expression->value.FunctionCall.arguments[i];
+                for (int i = 0; i < expression->value.FunctionCall.arguments->size; ++i) {
+                    AST *argument1 = mxDynamicArrayGet(expression->value.FunctionCall.arguments, i);
                     AST *argument2 = ((AST *) mxDynamicArrayGet(function->value.FunctionDeclaration.arguments,
                                                                 i))->value.FunctionDeclarationArgument.argument_type;
                     semantic_analyzer_compare_types(argument1, argument2);

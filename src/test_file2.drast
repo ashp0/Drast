@@ -1,0 +1,136 @@
+//
+// Drast Programming Language Examples
+//
+
+import io
+
+private enum Test {
+    case Test = 10,
+    case Test,
+    case Test,
+}
+
+// to do:
+alias myValue : 6 + 60 // #define myValue Test
+
+struct Hello {
+    int test
+    string test
+    void *myTest?
+
+    @init(string first_name, string last_name, int age) {
+        float inithahah
+        self.test = 540
+    }
+
+    void :: print_hello_world() {
+        print("Hello World")
+    }
+}
+
+private union Hello2 {
+    int test1
+    string[] test2
+}
+
+asm {
+"loop:"
+    "cli"
+    "htl"
+    "jmp loop"
+}
+
+float :: multiply(Hello2 first, float second) {
+    return first * second
+}
+
+private int :: main(int argc, string[] argv) {
+    Hello.print_hello_world().ksafm().myVariable
+    volatile int test = 3203
+    private volatile int test = 320342
+    int test = 5
+    char test = 'c'
+    float[] sadfasdf?
+
+    int myTest = multiply()
+    float test = 6 / 3 + 2 + 50 / 9 + 10 == 10
+    float test = (-5 - 3)
+
+    if (test == "askjdfn") {
+        float test = 50
+    } else if (test == "test") {
+        float test = 30
+    } else {
+        float test = 0
+    }
+
+    while (test == "askjdfn") {
+        float test = 450
+    }
+
+    do {
+        float test
+    } while (5 + 3)
+
+    switch (50 + 30) {
+        case "lmao":
+            float test
+            break
+        case "lmao2":
+            float test2
+        default:
+            float test3
+    }
+
+    for (int i = 0, i < 100, i += 1) {
+        float myVariable = 3
+        break
+        continue
+    }
+
+    testVar = firstName + 30
+
+    result = matches(operator) {
+        '+': first_number + second_number
+        '-': first_number - second_number
+        '*': first_number * second_number
+        '/': first_number / second_number
+        '%': first_number % second_number
+        _: {
+            float sadfklm
+            float woeifaw
+            float awef4
+        }
+    }
+
+    testing(hello, "testing")
+    lmao += 59 + 40
+
+    float test = (test + 50)
+    int number = 50
+    int test = (5 - 3) - 4934 * 39 + (4 * 30)
+
+    do {
+        float myVariable = try myFunction()
+        float myVariable = try myFunction()
+        float hello = 4
+    } catch {
+        float hello2 = 5
+    }
+
+    Person john_doe = .init("John", "Doe", 25)
+
+    myHexValue = 0x30592F
+    myOctalValue = 0123
+    myTestVariable = !testing
+
+    return 0
+}
+
+//
+// asflkwemfawelkf
+
+/*
+skf
+8239rq83rwuids%^&*(394wq
+*/

@@ -121,17 +121,10 @@ AST *parser_parse_function_call(Parser *parser, char *function_name) {
     // Parse the arguments
     parser_advance(parser, T_PARENS_OPEN);
 
-    function_call_ast->value.FunctionCall.arguments_size = 0;
-    function_call_ast->value.FunctionCall.arguments = malloc(sizeof(AST *));
+    function_call_ast->value.FunctionCall.arguments = mxDynamicArrayCreate(sizeof(AST *));
 
     while (parser->current->type != T_PARENS_CLOSE) {
-        function_call_ast->value.FunctionCall.arguments_size += 1;
-        function_call_ast->value.FunctionCall.arguments = realloc(function_call_ast->value.FunctionCall.arguments,
-                                                                  function_call_ast->value.FunctionCall.arguments_size *
-                                                                  sizeof(AST *));
-
-        function_call_ast->value.FunctionCall.arguments[function_call_ast->value.FunctionCall.arguments_size -
-                                                        1] = parser_parse_expression(parser);
+        mxDynamicArrayAdd(function_call_ast->value.FunctionCall.arguments, parser_parse_expression(parser));
 
         if (parser->current->type != T_PARENS_CLOSE)
             parser_advance(parser, T_COMMA);
@@ -252,18 +245,10 @@ AST *parser_parse_struct(Parser *parser, __attribute__((unused)) bool is_private
     parser_advance(parser, T_BRACE_OPEN);
 
 
-    struct_ast->value.StructOrUnionDeclaration.members_size = 0;
-    struct_ast->value.StructOrUnionDeclaration.members = calloc(1, sizeof(AST *));
+    struct_ast->value.StructOrUnionDeclaration.members = mxDynamicArrayCreate(sizeof(AST *));
 
     while (parser->current->type != T_BRACE_CLOSE) {
-        struct_ast->value.StructOrUnionDeclaration.members_size += 1;
-
-        struct_ast->value.StructOrUnionDeclaration.members = realloc(struct_ast->value.StructOrUnionDeclaration.members,
-                                                                     struct_ast->value.StructOrUnionDeclaration.members_size *
-                                                                     sizeof(AST *));
-
-        struct_ast->value.StructOrUnionDeclaration.members[struct_ast->value.StructOrUnionDeclaration.members_size -
-                                                           1] = parser_parse_struct_statement(parser);
+        mxDynamicArrayAdd(struct_ast->value.StructOrUnionDeclaration.members, parser_parse_struct_statement(parser));
     }
 
     parser_advance(parser, T_BRACE_CLOSE);
@@ -397,22 +382,15 @@ AST *parser_parse_function_declaration(Parser *parser, AST *return_type, bool is
 AST *parser_parse_inline_asm(Parser *parser) {
     AST *asm_tree = ast_init_with_type(AST_TYPE_INLINE_ASSEMBLY);
 
-    parser_advance(parser, T_BRACE_OPEN);
     parser_advance(parser, T_K_ASM);
+    parser_advance(parser, T_BRACE_OPEN);
 
-    asm_tree->value.InlineAssembly.instructions_size = 0;
-    asm_tree->value.InlineAssembly.instruction = calloc(1, sizeof(AST *));
+    asm_tree->value.InlineAssembly.instructions = mxDynamicArrayCreate(sizeof(char *));
 
     while (parser->current->type != T_BRACE_CLOSE) {
         // Update the size of the array
-        asm_tree->value.InlineAssembly.instructions_size += 1;
-        asm_tree->value.InlineAssembly.instruction = realloc(asm_tree->value.InlineAssembly.instruction,
-                                                             asm_tree->value.InlineAssembly.instructions_size *
-                                                             sizeof(AST *));
+        mxDynamicArrayAdd(asm_tree->value.InlineAssembly.instructions, parser->current->value);
 
-        // Insert the item
-        asm_tree->value.InlineAssembly.instruction[asm_tree->value.InlineAssembly.instructions_size -
-                                                   1] = parser->current->value;
         parser_advance(parser, T_STRING);
     }
 
@@ -453,16 +431,10 @@ AST *parser_parse_enum(Parser *parser, bool is_private) {
 
     parser_advance(parser, T_BRACE_OPEN);
 
-    enum_ast->value.EnumDeclaration.case_size = 0;
-    enum_ast->value.EnumDeclaration.cases = calloc(1, sizeof(AST *));
+    enum_ast->value.EnumDeclaration.cases = mxDynamicArrayCreate(sizeof(AST *));
 
     int case_counter = 0;
     while (parser->current->type != T_BRACE_CLOSE) {
-        enum_ast->value.EnumDeclaration.case_size += 1;
-        enum_ast->value.EnumDeclaration.cases = realloc(enum_ast->value.EnumDeclaration.cases,
-                                                        enum_ast->value.EnumDeclaration.case_size *
-                                                        sizeof(AST *));
-
         AST *enum_case = ast_init_with_type(AST_TYPE_ENUM_ITEM);
         parser_advance(parser, T_K_CASE);
         enum_case->value.EnumItem.case_name = parser->current->value;
@@ -478,8 +450,7 @@ AST *parser_parse_enum(Parser *parser, bool is_private) {
         enum_case->value.EnumItem.case_value = case_counter;
         parser_advance(parser, T_COMMA);
 
-        enum_ast->value.EnumDeclaration.cases[enum_ast->value.EnumDeclaration.case_size -
-                                              1] = enum_case;
+        mxDynamicArrayAdd(enum_ast->value.EnumDeclaration.cases, enum_case);
 
         case_counter++;
     }
@@ -513,29 +484,29 @@ AST *parser_parse_if_else_statement(Parser *parser) {
     if_else_statement_ast->value.IfElseStatement.if_body = parser_parse_body(parser);
 
     // The else body
+
+
     if (parser->current->type == T_K_ELSE) {
         if (parser->current->type == T_K_ELSE && lexer_get_next_token_without_advance(parser->lexer)->type ==
                                                  T_K_IF) {
             while (parser->current->type == T_K_ELSE && lexer_get_next_token_without_advance(parser->lexer)->type ==
                                                         T_K_IF) {
+
+                // Allocate
+                if_else_statement_ast->value.IfElseStatement.else_if_bodies = mxDynamicArrayCreate(sizeof(AST *));
+                if_else_statement_ast->value.IfElseStatement.else_body = mxDynamicArrayCreate(sizeof(AST *));
+                if_else_statement_ast->value.IfElseStatement.else_if_conditions = mxDynamicArrayCreate(sizeof(AST *));
+
                 parser_advance(parser, T_K_ELSE);
                 parser_advance(parser, T_K_IF);
-                if_else_statement_ast->value.IfElseStatement.else_if_size += 1;
-                if_else_statement_ast->value.IfElseStatement.else_if_bodies = realloc(
-                        if_else_statement_ast->value.IfElseStatement.else_if_bodies,
-                        if_else_statement_ast->value.IfElseStatement.else_if_size * sizeof(AST *));
-                if_else_statement_ast->value.IfElseStatement.else_if_conditions = realloc(
-                        if_else_statement_ast->value.IfElseStatement.else_if_conditions,
-                        if_else_statement_ast->value.IfElseStatement.else_if_size * sizeof(AST *));
                 // Open bracket
                 parser_advance(parser, T_PARENS_OPEN);
-                if_else_statement_ast->value.IfElseStatement.else_if_conditions[
-                        if_else_statement_ast->value.IfElseStatement.else_if_size - 1] = parser_parse_expression(
-                        parser);
+                mxDynamicArrayAdd(if_else_statement_ast->value.IfElseStatement.else_if_conditions,
+                                  parser_parse_expression(parser));
                 parser_advance(parser, T_PARENS_CLOSE);
 
-                if_else_statement_ast->value.IfElseStatement.else_if_bodies[
-                        if_else_statement_ast->value.IfElseStatement.else_if_size - 1] = parser_parse_body(parser);
+                mxDynamicArrayAdd(if_else_statement_ast->value.IfElseStatement.else_if_bodies,
+                                  parser_parse_body(parser));
             }
         }
     }
@@ -543,7 +514,8 @@ AST *parser_parse_if_else_statement(Parser *parser) {
     if (parser->current->type == T_K_ELSE) {
         if_else_statement_ast->value.IfElseStatement.has_else_statement = true;
         parser_advance(parser, T_K_ELSE);
-        if_else_statement_ast->value.IfElseStatement.else_body = parser_parse_body(parser);
+
+        mxDynamicArrayAdd(if_else_statement_ast->value.IfElseStatement.else_body, parser_parse_body(parser));
     }
 
     return if_else_statement_ast;
@@ -581,25 +553,16 @@ AST *parser_parse_for_loop(Parser *parser) {
 
     parser_advance(parser, T_BRACE_OPEN);
 
-    for_ast->value.ForLoop.body_size = 0;
-    for_ast->value.ForLoop.body = calloc(1, sizeof(AST *));
+    for_ast->value.ForLoop.body = mxDynamicArrayCreate(sizeof(AST *));
 
     while (parser->current->type != T_BRACE_CLOSE) {
-        for_ast->value.ForLoop.body_size += 1;
-
-        for_ast->value.ForLoop.body = realloc(for_ast->value.ForLoop.body,
-                                              for_ast->value.ForLoop.body_size *
-                                              sizeof(AST *));
-
         if (parser->current->type == T_K_CONTINUE || parser->current->type == T_K_BREAK) {
             AST *literal_value = ast_init_with_type(AST_TYPE_LITERAL);
             literal_value->value.Literal.literal_value = parser->current;
-            for_ast->value.ForLoop.body[for_ast->value.ForLoop.body_size -
-                                        1] = literal_value;
+            mxDynamicArrayAdd(for_ast->value.ForLoop.body, literal_value);
             parser_advance_without_check(parser);
         } else {
-            for_ast->value.ForLoop.body[for_ast->value.ForLoop.body_size -
-                                        1] = parser_parse_inner_statement(parser);
+            mxDynamicArrayAdd(for_ast->value.ForLoop.body, parser_parse_inner_statement(parser));
         }
     }
 
@@ -615,19 +578,10 @@ AST *parser_parse_do_catch_statement(Parser *parser) {
     parser_advance(parser, T_K_DO);
     parser_advance(parser, T_BRACE_OPEN);
     // Parse Body
-    do_catch_ast->value.DoCatchOrWhileStatement.do_body_size = 0;
-    do_catch_ast->value.DoCatchOrWhileStatement.do_body = calloc(1, sizeof(AST *));
+    do_catch_ast->value.DoCatchOrWhileStatement.do_body = mxDynamicArrayCreate(sizeof(AST *));
 
     while (parser->current->type != T_BRACE_CLOSE) {
-        do_catch_ast->value.DoCatchOrWhileStatement.do_body_size += 1;
-
-        do_catch_ast->value.DoCatchOrWhileStatement.do_body = realloc(
-                do_catch_ast->value.DoCatchOrWhileStatement.do_body,
-                do_catch_ast->value.DoCatchOrWhileStatement.do_body_size *
-                sizeof(AST *));
-
-        do_catch_ast->value.DoCatchOrWhileStatement.do_body[do_catch_ast->value.DoCatchOrWhileStatement.do_body_size -
-                                                            1] = parser_parse_inner_statement(parser);
+        mxDynamicArrayAdd(do_catch_ast->value.DoCatchOrWhileStatement.do_body, parser_parse_inner_statement(parser));
     }
 
     parser_advance(parser, T_BRACE_CLOSE);
@@ -645,19 +599,11 @@ AST *parser_parse_do_catch_statement(Parser *parser) {
 
         parser_advance(parser, T_BRACE_OPEN);
 
-        do_catch_ast->value.DoCatchOrWhileStatement.second_body_size = 0;
-        do_catch_ast->value.DoCatchOrWhileStatement.second_body = calloc(1, sizeof(AST *));
+        do_catch_ast->value.DoCatchOrWhileStatement.second_body = mxDynamicArrayCreate(sizeof(AST *));
 
         while (parser->current->type != T_BRACE_CLOSE) {
-            do_catch_ast->value.DoCatchOrWhileStatement.second_body_size += 1;
-
-            do_catch_ast->value.DoCatchOrWhileStatement.second_body = realloc(
-                    do_catch_ast->value.DoCatchOrWhileStatement.second_body,
-                    do_catch_ast->value.DoCatchOrWhileStatement.second_body_size *
-                    sizeof(AST *));
-            do_catch_ast->value.DoCatchOrWhileStatement.second_body[
-                    do_catch_ast->value.DoCatchOrWhileStatement.second_body_size -
-                    1] = parser_parse_inner_statement(parser);
+            mxDynamicArrayAdd(do_catch_ast->value.DoCatchOrWhileStatement.second_body,
+                              parser_parse_inner_statement(parser));
         }
 
         parser_advance(parser, T_BRACE_CLOSE);
@@ -679,15 +625,9 @@ AST *parser_parse_switch_statement(Parser *parser) {
 
     parser_advance(parser, T_BRACE_OPEN);
 
-    switch_tree->value.SwitchStatement.switch_cases_size = 0;
-    switch_tree->value.SwitchStatement.switch_cases = calloc(1, sizeof(AST *));
+    switch_tree->value.SwitchStatement.switch_cases = mxDynamicArrayCreate(sizeof(AST *));
 
     while (parser->current->type != T_BRACE_CLOSE) {
-        switch_tree->value.SwitchStatement.switch_cases_size += 1;
-
-        switch_tree->value.SwitchStatement.switch_cases = realloc(switch_tree->value.SwitchStatement.switch_cases,
-                                                                  switch_tree->value.SwitchStatement.switch_cases_size *
-                                                                  sizeof(AST *));
         bool is_default = false;
         if (parser->current->type == T_K_CASE)
             parser_advance(parser, T_K_CASE);
@@ -704,25 +644,16 @@ AST *parser_parse_switch_statement(Parser *parser) {
 
         parser_advance(parser, T_COLON);
 
-        switch_case->value.SwitchCase.body_size = 0;
-        switch_case->value.SwitchCase.body = calloc(1, sizeof(AST *));
+        switch_case->value.SwitchCase.body = mxDynamicArrayCreate(sizeof(AST *));
 
         while (parser->current->type != T_BRACE_CLOSE) {
-            switch_case->value.SwitchCase.body_size += 1;
-
-            switch_case->value.SwitchCase.body = realloc(switch_case->value.SwitchCase.body,
-                                                         switch_case->value.SwitchCase.body_size *
-                                                         sizeof(AST *));
-
             if (parser->current->type == T_K_BREAK) {
                 AST *literal_value = ast_init_with_type(AST_TYPE_LITERAL);
                 literal_value->value.Literal.literal_value = parser->current;
-                switch_case->value.SwitchCase.body[switch_case->value.SwitchCase.body_size -
-                                                   1] = literal_value;
+                mxDynamicArrayAdd(switch_case->value.SwitchCase.body, literal_value);
                 parser_advance(parser, T_K_BREAK);
             } else {
-                switch_case->value.SwitchCase.body[switch_case->value.SwitchCase.body_size -
-                                                   1] = parser_parse_inner_statement(parser);
+                mxDynamicArrayAdd(switch_case->value.SwitchCase.body, parser_parse_inner_statement(parser));
             }
 
             if (parser->current->type == T_BRACE_CLOSE || parser->current->type == T_K_CASE ||
@@ -730,9 +661,7 @@ AST *parser_parse_switch_statement(Parser *parser) {
                 break;
             }
         }
-
-        switch_tree->value.SwitchStatement.switch_cases[switch_tree->value.SwitchStatement.switch_cases_size -
-                                                        1] = switch_case;
+        mxDynamicArrayAdd(switch_tree->value.SwitchStatement.switch_cases, switch_case);
     }
     parser_advance(parser, T_BRACE_CLOSE);
 
@@ -748,17 +677,10 @@ AST *parser_parse_matches_statement(Parser *parser) {
     matches_tree->value.SwitchStatement.expression = parser_parse_expression(parser);
     parser_advance(parser, T_PARENS_CLOSE);
 
-    matches_tree->value.SwitchStatement.switch_cases_size = 0;
-    matches_tree->value.SwitchStatement.switch_cases = calloc(1, sizeof(AST *));
+    matches_tree->value.SwitchStatement.switch_cases = mxDynamicArrayCreate(sizeof(AST *));
 
     parser_advance(parser, T_BRACE_OPEN);
     while (parser->current->type != T_BRACE_CLOSE) {
-        matches_tree->value.SwitchStatement.switch_cases_size += 1;
-
-        matches_tree->value.SwitchStatement.switch_cases = realloc(matches_tree->value.SwitchStatement.switch_cases,
-                                                                   matches_tree->value.SwitchStatement.switch_cases_size *
-                                                                   sizeof(AST *));
-
         AST *switch_case = ast_init_with_type(AST_TYPE_SWITCH_CASE);
 
         if (parser->current->type == T_IDENTIFIER && strlen(parser->current->value) == 1 &&
@@ -771,33 +693,23 @@ AST *parser_parse_matches_statement(Parser *parser) {
 
         parser_advance(parser, T_COLON);
 
-        switch_case->value.SwitchCase.body = calloc(1, sizeof(AST *));
+        switch_case->value.SwitchCase.body = mxDynamicArrayCreate(sizeof(AST *));
 
         if (parser->current->type == T_BRACE_OPEN) {
             parser_advance(parser, T_BRACE_OPEN);
 
             while (parser->current->type != T_BRACE_CLOSE) {
-                switch_case->value.SwitchCase.body_size += 1;
-                switch_case->value.SwitchCase.body = realloc(switch_case->value.SwitchCase.body,
-                                                             switch_case->value.SwitchCase.body_size *
-                                                             sizeof(AST *));
-
-                switch_case->value.SwitchCase.body[switch_case->value.SwitchCase.body_size -
-                                                   1] = parser_parse_inner_statement(
-                        parser);
+                mxDynamicArrayAdd(switch_case->value.SwitchCase.body, parser_parse_inner_statement(parser));
                 if (parser->current->type == T_BRACE_CLOSE)
                     break;
             }
 
             parser_advance(parser, T_BRACE_CLOSE);
         } else {
-            switch_case->value.SwitchCase.body_size = 1;
-            switch_case->value.SwitchCase.body[switch_case->value.SwitchCase.body_size - 1] = parser_parse_expression(
-                    parser);
+            mxDynamicArrayAdd(switch_case->value.SwitchCase.body, parser_parse_expression(parser));
         }
 
-        matches_tree->value.SwitchStatement.switch_cases[matches_tree->value.SwitchStatement.switch_cases_size -
-                                                         1] = switch_case;
+        mxDynamicArrayAdd(matches_tree->value.SwitchStatement.switch_cases, switch_case);
 
         if (parser->current->type == T_BRACE_CLOSE) {
             break;

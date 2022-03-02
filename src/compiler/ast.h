@@ -99,16 +99,14 @@ typedef union {
 
     struct {
         char *function_call_name;
-        struct AST **arguments; // Literal Values
-        uintptr_t arguments_size;
+        mxDynamicArray *arguments;
     } FunctionCall;
 
     struct {
         char *name;
         bool is_union;
 
-        struct AST **members;
-        uintptr_t members_size;
+        mxDynamicArray *members;
 
         bool is_private;
     } StructOrUnionDeclaration;
@@ -124,8 +122,7 @@ typedef union {
 
     struct {
         char *enum_name;
-        struct AST **cases;
-        uintptr_t case_size;
+        mxDynamicArray *cases;
         bool is_private;
     } EnumDeclaration;
 
@@ -173,12 +170,11 @@ typedef union {
         struct AST *if_condition;
         struct AST *if_body;
 
-        size_t else_if_size;
-        struct AST **else_if_conditions;
-        struct AST **else_if_bodies; // TODO: Make this a dynamic array
+        mxDynamicArray *else_if_conditions;
+        mxDynamicArray *else_if_bodies;
 
         bool has_else_statement;
-        struct AST *else_body;
+        mxDynamicArray *else_body;
     } IfElseStatement;
 
     struct {
@@ -191,21 +187,16 @@ typedef union {
         struct AST *condition;
         struct AST *condition2;
 
-        struct AST **body;
-        uintptr_t body_size;
+        mxDynamicArray *body;
     } ForLoop;
 
     struct {
-        char **instruction;
-        uintptr_t instructions_size;
+        mxDynamicArray *instructions;
     } InlineAssembly;
 
     struct {
         struct AST *expression;
-
-        struct AST **switch_cases;
-        uintptr_t switch_cases_size;
-
+        mxDynamicArray *switch_cases;
         bool is_matches_statement;
     } SwitchStatement;
 
@@ -213,18 +204,15 @@ typedef union {
         bool is_default;
 
         struct AST *expression;
-        struct AST **body;
-        uintptr_t body_size;
+        mxDynamicArray *body;
     } SwitchCase;
 
     struct {
         // Do Statement
-        struct AST **do_body;
-        uintptr_t do_body_size;
+        mxDynamicArray *do_body;
 
-        // Catch Statement
-        struct AST **second_body;
-        uintptr_t second_body_size;
+        // Catch Or While Statement
+        mxDynamicArray *second_body;
 
         bool is_while_statement;
         struct AST *while_statement_expression;

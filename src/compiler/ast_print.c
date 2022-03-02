@@ -117,8 +117,8 @@ void ast_print_do_catch_statement(AST *ast, uintptr_t indent) {
 
     printf("do {\n");
 
-    for (int i = 0; i < ast->value.DoCatchOrWhileStatement.do_body_size; ++i) {
-        _ast_print(ast->value.DoCatchOrWhileStatement.do_body[i], indent + 1);
+    for (int i = 0; i < ast->value.DoCatchOrWhileStatement.do_body->size; ++i) {
+        _ast_print(mxDynamicArrayGet(ast->value.DoCatchOrWhileStatement.do_body, i), indent + 1);
     }
 
     for (int i = 0; i < indent; ++i)
@@ -130,8 +130,8 @@ void ast_print_do_catch_statement(AST *ast, uintptr_t indent) {
     } else {
         printf("} catch {\n");
 
-        for (int i = 0; i < ast->value.DoCatchOrWhileStatement.second_body_size; ++i) {
-            _ast_print(ast->value.DoCatchOrWhileStatement.second_body[i], indent + 1);
+        for (int i = 0; i < ast->value.DoCatchOrWhileStatement.second_body->size; ++i) {
+            _ast_print(mxDynamicArrayGet(ast->value.DoCatchOrWhileStatement.second_body, i), indent + 1);
         }
 
         for (int i = 0; i < indent; ++i)
@@ -184,8 +184,8 @@ void ast_print_switch_statement(AST *ast, uintptr_t indent) {
     ast_print(ast->value.SwitchStatement.expression);
     printf(") {");
 
-    for (int i = 0; i < ast->value.SwitchStatement.switch_cases_size; ++i) {
-        ast_print_switch_case_statement(ast->value.SwitchStatement.switch_cases[i], indent + 1);
+    for (int i = 0; i < ast->value.SwitchStatement.switch_cases->size; ++i) {
+        ast_print_switch_case_statement(mxDynamicArrayGet(ast->value.SwitchStatement.switch_cases, i), indent + 1);
     }
 
     printf("\n\t}\n");
@@ -206,8 +206,8 @@ void ast_print_switch_case_statement(AST *ast, uintptr_t indent) {
         printf("default: \n");
     }
 
-    for (int i = 0; i < ast->value.SwitchCase.body_size; ++i) {
-        _ast_print(ast->value.SwitchCase.body[i], indent + 1);
+    for (int i = 0; i < ast->value.SwitchCase.body->size; ++i) {
+        _ast_print(mxDynamicArrayGet(ast->value.SwitchCase.body, i), indent + 1);
     }
 }
 
@@ -259,12 +259,12 @@ void ast_print_function_call(AST *ast, uintptr_t indent) {
         printf("\t");
     printf("%s(", ast->value.FunctionCall.function_call_name);
 
-    for (int i = 0; i < ast->value.FunctionCall.arguments_size; i++) {
-        ast_print(ast->value.FunctionCall.arguments[i]);
+    for (int i = 0; i < ast->value.FunctionCall.arguments->size; i++) {
+        ast_print(mxDynamicArrayGet(ast->value.FunctionCall.arguments, i));
         printf(", ");
     }
 
-    if (ast->value.FunctionCall.arguments_size == 0)
+    if (ast->value.FunctionCall.arguments->size == 0)
         printf(")");
     else
         printf("\b\b)");
@@ -279,8 +279,8 @@ void ast_print_struct_declaration(AST *ast, uintptr_t indent) {
     else
         printf("struct %s {\n", ast->value.StructOrUnionDeclaration.name);
 
-    for (int i = 0; i < ast->value.StructOrUnionDeclaration.members_size; ++i) {
-        _ast_print(ast->value.StructOrUnionDeclaration.members[i], indent + 1);
+    for (int i = 0; i < ast->value.StructOrUnionDeclaration.members->size; ++i) {
+        _ast_print(mxDynamicArrayGet(ast->value.StructOrUnionDeclaration.members, i), indent + 1);
     }
 
     // Don't need to use indent, because struct will always be outside
@@ -295,9 +295,10 @@ void ast_print_enum_declaration(AST *ast, uintptr_t indent) {
     }
     printf("enum %s {\n", ast->value.EnumDeclaration.enum_name);
 
-    for (int i = 0; i < ast->value.EnumDeclaration.case_size; ++i) {
-        printf("\tcase %s = %d\n", ast->value.EnumDeclaration.cases[i]->value.EnumItem.case_name,
-               ast->value.EnumDeclaration.cases[i]->value.EnumItem.case_value);
+    for (int i = 0; i < ast->value.EnumDeclaration.cases->size; ++i) {
+        printf("\tcase %s = %d\n",
+               ((AST *) mxDynamicArrayGet(ast->value.EnumDeclaration.cases, i))->value.EnumItem.case_name,
+               ((AST *) mxDynamicArrayGet(ast->value.EnumDeclaration.cases, i))->value.EnumItem.case_value);
     }
 
     printf("}\n\n");
@@ -322,8 +323,8 @@ void ast_print_for_loop(AST *ast, uintptr_t indent) {
     ast_print(ast->value.ForLoop.condition2);
     printf(") {\n");
 
-    for (int i = 0; i < ast->value.ForLoop.body_size; i++) {
-        _ast_print(ast->value.ForLoop.body[i], indent + 1);
+    for (int i = 0; i < ast->value.ForLoop.body->size; i++) {
+        _ast_print(mxDynamicArrayGet(ast->value.ForLoop.body, i), indent + 1);
         printf("\n");
     }
 
@@ -394,15 +395,15 @@ void ast_print_if_else_statement(AST *ast, uintptr_t indent) {
         printf("\t");
     printf("}\n");
 
-    if (ast->value.IfElseStatement.else_if_size != 0) {
+    if (ast->value.IfElseStatement.else_if_conditions->size != 0) {
         // For each else if statement
-        for (int i = 0; i < ast->value.IfElseStatement.else_if_size; ++i) {
+        for (int i = 0; i < ast->value.IfElseStatement.else_if_conditions->size; ++i) {
             for (int i = 0; i < indent; ++i)
                 printf("\t");
             printf("else if (");
-            ast_print(ast->value.IfElseStatement.else_if_conditions[i]);
+            ast_print(mxDynamicArrayGet(ast->value.IfElseStatement.else_if_conditions, i));
             printf(") {\n");
-            _ast_print(ast->value.IfElseStatement.else_if_bodies[i], indent + 1);
+            _ast_print(mxDynamicArrayGet(ast->value.IfElseStatement.else_if_bodies, i), indent + 1);
             for (int i = 0; i < indent; ++i)
                 printf("\t");
             printf("}\n");
@@ -413,7 +414,10 @@ void ast_print_if_else_statement(AST *ast, uintptr_t indent) {
         for (int i = 0; i < indent; ++i)
             printf("\t");
         printf("else {\n");
-        _ast_print(ast->value.IfElseStatement.else_body, indent + 1);
+
+        for (int i = 0; i < ast->value.IfElseStatement.else_body->size; ++i) {
+            _ast_print(mxDynamicArrayGet(ast->value.IfElseStatement.else_body, i), indent + 1);
+        }
         for (int i = 0; i < indent; ++i)
             printf("\t");
         printf("}\n");
@@ -432,10 +436,10 @@ void ast_print_while_statement(AST *ast, uintptr_t indent) {
 
 void ast_print_inline_assembly(AST *ast, uintptr_t indent) {
     printf("asm {\n");
-    for (int i = 0; i < ast->value.InlineAssembly.instructions_size; ++i) {
+    for (int i = 0; i < ast->value.InlineAssembly.instructions->size; ++i) {
         for (int i = 0; i < indent + 1; ++i)
             printf("\t");
-        printf("%s\n", ast->value.InlineAssembly.instruction[i]);
+        printf("%s\n", (char *) mxDynamicArrayGet(ast->value.InlineAssembly.instructions, i));
     }
 
     for (int i = 0; i < indent; ++i)
