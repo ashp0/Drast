@@ -49,6 +49,7 @@ __attribute__((unused)) Token *lexer_get_next_token_without_advance_offset(Lexer
     for (int i = 0; i < offset - 1; ++i) {
         lexer_get_next_token(new_lexer);
     }
+    free(new_lexer);
 
     return lexer_get_next_token(new_lexer);
 }
@@ -255,13 +256,16 @@ Token *lexer_get_next_token(Lexer *lexer) {
 Token *lexer_parse_character(Lexer *lexer) {
     lexer_advance(lexer);
     char *value = calloc(2, sizeof(char));
-    value[0] = lexer_advance(lexer);
+    value[0] = lexer->current;
+    lexer_advance(lexer);
     value[1] = '\0';
-    if (lexer_advance(lexer) != '\'') {
+    if (lexer->current != '\'') {
         fprintf(stderr,
                 "Lexer: Characters can't have more than 1 character, perhaps you meant to use the `\"` operator?\n");
         exit(-1);
     }
+
+    lexer_advance(lexer);
 
     return lexer_advance_token(T_CHAR, value, lexer, true);
 }
@@ -481,16 +485,13 @@ char lexer_peek_next(Lexer *lexer) {
     return lexer->source[lexer->index + 1];
 }
 
-char lexer_advance(Lexer *lexer) {
+void lexer_advance(Lexer *lexer) {
     if (lexer_is_eof(lexer)) {
-        return lexer->current;
+        return;
     } else {
         lexer->position += 1;
-        char previous = lexer->current;
         lexer->index += 1;
         lexer->current = lexer->source[lexer->index];
-
-        return previous;
     }
 }
 

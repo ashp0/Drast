@@ -75,7 +75,7 @@ int main(__attribute__((unused)) int argc, char **argv) {
     free(parser->current);
     free(parser);
     free(items);
-//    free(file_contents);
+    free(file_contents);
 
     return 0;
 }

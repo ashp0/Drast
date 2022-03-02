@@ -58,7 +58,7 @@ void lexer_skip_line(Lexer *lexer);
 
 void lexer_skip_block_comment(Lexer *lexer);
 
-char lexer_advance(Lexer *lexer);
+void lexer_advance(Lexer *lexer);
 
 void lexer_check_eof(Lexer *lexer, char *error_message);
 

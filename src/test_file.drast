@@ -8,10 +8,11 @@ struct myTestStruct {
     int age
 
     string :: test(int lmao) {
-        int test2 = 430
+        string test2 = "430"
         // test2 = 50 + 40
         // self.test2 = 50 + 40
-        test2 = 540
+        test2 = "540"
+        self.first_name = test2
     }
 }
 
