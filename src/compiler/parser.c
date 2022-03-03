@@ -115,27 +115,6 @@ AST *parser_parse_struct_statement(Parser *parser) {
     exit(-2);
 }
 
-AST *parser_parse_function_call(Parser *parser, char *function_name) {
-    AST *function_call_ast = ast_init_with_type(AST_TYPE_FUNCTION_CALL);
-    function_call_ast->value.FunctionCall.function_call_name = function_name;
-
-    // Parse the arguments
-    parser_advance(parser, T_PARENS_OPEN);
-
-    function_call_ast->value.FunctionCall.arguments = mxDynamicArrayCreate(sizeof(AST *));
-
-    while (parser->current->type != T_PARENS_CLOSE) {
-        mxDynamicArrayAdd(function_call_ast->value.FunctionCall.arguments, parser_parse_expression(parser));
-
-        if (parser->current->type != T_PARENS_CLOSE)
-            parser_advance(parser, T_COMMA);
-    }
-
-    parser_advance(parser, T_PARENS_CLOSE);
-
-    return function_call_ast;
-}
-
 AST *parser_parse_struct_members(Parser *parser) {
     bool is_private = false;
     bool is_volatile = false;
@@ -179,8 +158,7 @@ AST *parser_parse_struct_members(Parser *parser) {
 }
 
 AST *parser_parse_struct_initializer(Parser *parser) {
-    AST *struct_initializer_ast = ast_init_with_type(AST_TYPE_FUNCTION_DECLARATION);
-    struct_initializer_ast->value.FunctionDeclaration.is_struct_initializer = true;
+    AST *struct_initializer_ast = ast_init_with_type(AST_TYPE_STRUCT_INITIALIZER);
 
     parser_advance(parser, T_AT);
     char *function_name = parser->current->value;
@@ -196,8 +174,8 @@ AST *parser_parse_struct_initializer(Parser *parser) {
     parser_advance(parser, T_PARENS_OPEN);
 
     // Allocate the Parameters
-    struct_initializer_ast->value.FunctionDeclaration.arguments = mxDynamicArrayCreate(sizeof(AST *));
-    struct_initializer_ast->value.FunctionDeclaration.body = mxDynamicArrayCreate(sizeof(AST *));
+    struct_initializer_ast->value.StructInitializer.arguments = mxDynamicArrayCreate(sizeof(AST *));
+    struct_initializer_ast->value.StructInitializer.body = mxDynamicArrayCreate(sizeof(AST *));
 
     while (parser->current->type != T_PARENS_CLOSE) {
         AST *parameter_ast = ast_init_with_type(AST_TYPE_FUNCTION_ARGUMENT);
@@ -207,7 +185,7 @@ AST *parser_parse_struct_initializer(Parser *parser) {
         parser_advance(parser, T_IDENTIFIER);
 
         // Insert the item
-        mxDynamicArrayAdd(struct_initializer_ast->value.FunctionDeclaration.arguments, parameter_ast);
+        mxDynamicArrayAdd(struct_initializer_ast->value.StructInitializer.arguments, parameter_ast);
 
         // Advance to the next argument
         if (parser->current->type == T_COMMA)
@@ -219,7 +197,7 @@ AST *parser_parse_struct_initializer(Parser *parser) {
     parser_advance(parser, T_BRACE_OPEN);
 
     while (parser->current->type != T_BRACE_CLOSE) {
-        mxDynamicArrayAdd(struct_initializer_ast->value.FunctionDeclaration.body, parser_parse_inner_statement(parser));
+        mxDynamicArrayAdd(struct_initializer_ast->value.StructInitializer.body, parser_parse_inner_statement(parser));
     }
 
     parser_advance(parser, T_BRACE_CLOSE);
@@ -256,6 +234,27 @@ AST *parser_parse_struct(Parser *parser, __attribute__((unused)) bool is_private
     parser_advance(parser, T_BRACE_CLOSE);
 
     return struct_ast;
+}
+
+AST *parser_parse_function_call(Parser *parser, char *function_name) {
+    AST *function_call_ast = ast_init_with_type(AST_TYPE_FUNCTION_CALL);
+    function_call_ast->value.FunctionCall.function_call_name = function_name;
+
+    // Parse the arguments
+    parser_advance(parser, T_PARENS_OPEN);
+
+    function_call_ast->value.FunctionCall.arguments = mxDynamicArrayCreate(sizeof(AST *));
+
+    while (parser->current->type != T_PARENS_CLOSE) {
+        mxDynamicArrayAdd(function_call_ast->value.FunctionCall.arguments, parser_parse_expression(parser));
+
+        if (parser->current->type != T_PARENS_CLOSE)
+            parser_advance(parser, T_COMMA);
+    }
+
+    parser_advance(parser, T_PARENS_CLOSE);
+
+    return function_call_ast;
 }
 
 AST *parser_parse_function_or_variable_declaration(Parser *parser, bool is_inner_statement) {
@@ -782,11 +781,12 @@ AST *parser_parse_expression(Parser *parser) {
             return parser_parse_matches_statement(parser);
         case T_K_TRY:
             return parser_parse_expression_try(parser);
-        case T_PERIOD:
-            parser_advance(parser, T_PERIOD);
-            AST *init_ast = ast_init_with_type(AST_TYPE_STRUCT_INITIALIZER);
-            init_ast->value.StructInitializer.function_call = parser_parse_expression(parser);
-            return init_ast;
+            // TODO
+//        case T_PERIOD:
+//            parser_advance(parser, T_PERIOD);
+//            AST *init_ast = ast_init_with_type(AST_TYPE_STRUCT_INITIALIZER);
+//            init_ast->value.StructInitializer.function_call = parser_parse_expression(parser);
+//            return init_ast;
         default:
             fprintf(stderr, "Parser: Expression is cannot be parsed");
             parser_show_error(parser);

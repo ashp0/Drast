@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.7.2)
 project(drast C)
-set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD 17)
 
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
 set(CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")

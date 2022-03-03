@@ -20,26 +20,88 @@ void semantic_analyzer_run_analysis(AST **ast_items, uintptr_t ast_items_size) {
     for (int i = 0; i < table->items; i++) {
         SemanticAnalyzerSymbol *symbol_struct = (SemanticAnalyzerSymbol *) table->pair_values[i]->value;
 
-        switch (symbol_struct->symbol_type) {
-            case AST_TYPE_FUNCTION_DECLARATION:
-                semantic_analyzer_check_function_declaration(table, symbol_struct->symbol_ast, false, NULL);
-                break;
-            case AST_TYPE_STRUCT_OR_UNION_DECLARATION:
-                semantic_analyzer_check_struct_or_union_declaration(table, symbol_struct);
-                break;
-            default:
-//                fprintf(stderr, "Semantic Analyzer: Cannot check type `%d`", symbol_struct->symbol_type);
-//                semantic_analyzer_error();
-                break;
-        }
+        semantic_analyzer_check_statement(table, symbol_struct);
     }
 
     unmap_destroy(table);
 }
 
-void semantic_analyzer_check_struct_or_union_declaration(UNMap *table, SemanticAnalyzerSymbol *symbol_struct) {
-    // Create a new map, so we will iterate through the members of the struct and append them and their types to the new map
+void semantic_analyzer_check_statement(UNMap *table, SemanticAnalyzerSymbol *symbol_struct) {
+    switch (symbol_struct->symbol_type) {
+        case AST_TYPE_FUNCTION_DECLARATION:
+            semantic_analyzer_check_function_declaration(table, symbol_struct->symbol_ast, false, NULL);
+            break;
+        case AST_TYPE_STRUCT_OR_UNION_DECLARATION:
+            semantic_analyzer_check_struct_or_union_declaration(table, symbol_struct);
+            break;
+        default:
+//                fprintf(stderr, "Semantic Analyzer: Cannot check type `%d`", symbol_struct->symbol_type);
+//                semantic_analyzer_error();
+            break;
+    }
+}
 
+void
+semantic_analyzer_check_inner_statement(UNMap *table, AST **body, uintptr_t body_size, AST *body_ast, int body_position,
+                                        AST *function_ast, bool is_struct_member, AST *struct_ast) {
+    switch (body_ast->type) {
+        case AST_TYPE_VARIABLE_DEFINITION:
+            semantic_analyzer_check_variable_definition(table, body_ast,
+                                                        body,
+                                                        function_ast->value.FunctionDeclaration.body->size,
+                                                        function_ast, is_struct_member,
+                                                        struct_ast);
+            break;
+        case AST_TYPE_BINARY:
+            semantic_analyzer_check_expression(table, body_ast, body_position, body,
+                                               body_size,
+                                               function_ast,
+                                               is_struct_member, struct_ast);
+            break;
+        case AST_TYPE_RETURN:
+            semantic_analyzer_check_expression(table, body_ast->value.Return.return_expression, body_position,
+                                               body,
+                                               body_size,
+                                               function_ast,
+                                               is_struct_member, struct_ast);
+            break;
+        case AST_TYPE_FUNCTION_CALL:
+            semantic_analyzer_check_expression_function_call(table, body_ast, body_position, body,
+                                                             body_size,
+                                                             function_ast,
+                                                             struct_ast);
+            break;
+        default:
+//                fprintf(stderr, "Semantic Analyzer: Cannot check type `%d`", body->value.Body.body[i]->type);
+//                semantic_analyzer_error();
+            break;
+    }
+}
+
+void semantic_analyzer_check_struct_statement(UNMap *table, AST **body, uintptr_t body_size, AST *body_ast,
+                                              int body_position, AST *struct_ast) {
+    switch (body_ast->type) {
+        case AST_TYPE_VARIABLE_DEFINITION:
+            semantic_analyzer_check_variable_definition(table, body_ast,
+                                                        body,
+                                                        body_size,
+                                                        struct_ast, true,
+                                                        struct_ast);
+            break;
+        case AST_TYPE_FUNCTION_DECLARATION:
+            semantic_analyzer_check_function_declaration(table, body_ast, true, struct_ast);
+            break;
+        case AST_TYPE_STRUCT_INITIALIZER:
+            semantic_analyzer_check_struct_initializer(table, body_ast, struct_ast);
+            break;
+        default:
+            fprintf(stderr, "Semantic Analyzer: Struct cannot have type `%d`", body_ast->type);
+            semantic_analyzer_error();
+            break;
+    }
+}
+
+void semantic_analyzer_check_struct_or_union_declaration(UNMap *table, SemanticAnalyzerSymbol *symbol_struct) {
     // Check for duplicate members
     UNMap *new_map = semantic_analyzer_create_symbol_table(
             (AST **) symbol_struct->symbol_ast->value.StructOrUnionDeclaration.members->data,
@@ -50,16 +112,78 @@ void semantic_analyzer_check_struct_or_union_declaration(UNMap *table, SemanticA
 
     for (int i = 0; i < symbol_struct->symbol_ast->value.StructOrUnionDeclaration.members->size; i++) {
         AST *ast_member = mxDynamicArrayGet(symbol_struct->symbol_ast->value.StructOrUnionDeclaration.members, i);
-        // Check if the member is a function
-        if (ast_member->type == AST_TYPE_FUNCTION_DECLARATION) {
-            semantic_analyzer_check_function_declaration(table, ast_member, true, symbol_struct->symbol_ast);
-        } else if (ast_member->type == AST_TYPE_VARIABLE_DEFINITION) {
-            semantic_analyzer_check_variable_definition(table, ast_member,
-                                                        (AST **) symbol_struct->symbol_ast->value.StructOrUnionDeclaration.members->data,
-                                                        symbol_struct->symbol_ast->value.StructOrUnionDeclaration.members->size,
-                                                        symbol_struct->symbol_ast, true, symbol_struct->symbol_ast);
+
+        semantic_analyzer_check_struct_statement(table,
+                                                 (AST **) symbol_struct->symbol_ast->value.StructOrUnionDeclaration.members->data,
+                                                 symbol_struct->symbol_ast->value.StructOrUnionDeclaration.members->size,
+                                                 ast_member, i, symbol_struct->symbol_ast);
+    }
+}
+
+void semantic_analyzer_check_struct_initializer(UNMap *table, AST *initializer_ast, AST *struct_declaration) {
+    // Check the variable definitions in the struct, and check if they are initialized
+    for (int i = 0; i < initializer_ast->value.StructInitializer.body->size; i++) {
+        AST *ast_member = mxDynamicArrayGet(initializer_ast->value.StructInitializer.body, i);
+
+        // Check if the member is a self statement, and check which members weren't initialized
+        semantic_analyzer_check_expression(table, ast_member, i,
+                                           (AST **) initializer_ast->value.StructInitializer.body->data,
+                                           initializer_ast->value.StructInitializer.body->size,
+                                           struct_declaration,
+                                           true, struct_declaration);
+    }
+}
+
+int
+semantic_analyzer_check_expression_function_call(UNMap *table, AST *expression,
+                                                 __attribute__((unused)) int position_inside_body,
+                                                 __attribute__((unused)) AST **body,
+                                                 __attribute__((unused)) uintptr_t body_size,
+                                                 __attribute__((unused)) AST *function_declaration,
+                                                 __attribute__((unused)) AST *struct_declaration) {
+//    if (strcmp(expression->value.FunctionCall.function_call_name, "print") == 0) {
+//        return T_K_VOID;
+//    }
+    for (int j = 0; j < table->items; j++) {
+        char *table_item_name = table->pair_values[j]->key;
+
+        if (strcmp(table_item_name, expression->value.FunctionCall.function_call_name) == 0 &&
+            table_item_name[0] != '\0') {
+            if (((SemanticAnalyzerSymbol *) table->pair_values[j]->value)->symbol_type ==
+                AST_TYPE_FUNCTION_DECLARATION) {
+                // Check the arguments
+                AST *function = ((SemanticAnalyzerSymbol *) table->pair_values[j]->value)->symbol_ast;
+                if (expression->value.FunctionCall.arguments->size !=
+                    function->value.FunctionDeclaration.arguments->size) {
+                    fprintf(stderr, "Semantic Analyzer: `%s` invalid number of arguments, expected %d, got %d",
+                            expression->value.FunctionCall.function_call_name,
+                            function->value.FunctionDeclaration.arguments->size,
+                            expression->value.FunctionCall.arguments->size);
+                    semantic_analyzer_error();
+                }
+                // Check the arguments types
+                for (int i = 0; i < expression->value.FunctionCall.arguments->size; ++i) {
+                    AST *argument1 = mxDynamicArrayGet(expression->value.FunctionCall.arguments, i);
+                    AST *argument2 = ((AST *) mxDynamicArrayGet(function->value.FunctionDeclaration.arguments,
+                                                                i))->value.FunctionDeclarationArgument.argument_type;
+                    semantic_analyzer_compare_types(argument1, argument2);
+                }
+                return function->value.FunctionDeclaration.return_type->value.ValueKeyword.token->type;
+            } else {
+                fprintf(stderr, "Semantic Analyzer: `%s` is not a valid function",
+                        expression->value.FunctionCall.function_call_name);
+                semantic_analyzer_error();
+            }
+        } else {
+            if ((j + 1) >= table->items) {
+                fprintf(stderr, "Semantic Analyzer: `%s` is not a valid function",
+                        expression->value.FunctionCall.function_call_name);
+                semantic_analyzer_error();
+            }
         }
     }
+
+    return 0;
 }
 
 void semantic_analyzer_check_function_declaration(UNMap *table, AST *function_declaration, bool is_struct_member,
@@ -118,37 +242,17 @@ void semantic_analyzer_check_function_declaration_argument(UNMap *table,
 void
 semantic_analyzer_check_function_declaration_body(UNMap *table, AST *function_declaration_ast, bool is_struct_member,
                                                   AST *struct_declaration) {
+
+    AST **body = (AST **) function_declaration_ast->value.FunctionDeclaration.body->data;
     for (int i = 0; i < function_declaration_ast->value.FunctionDeclaration.body->size; ++i) {
-        AST **body = (AST **) function_declaration_ast->value.FunctionDeclaration.body->data;
         AST *body_i = mxDynamicArrayGet(function_declaration_ast->value.FunctionDeclaration.body, i);
 
-        switch (body_i->type) {
-            case AST_TYPE_VARIABLE_DEFINITION:
-                semantic_analyzer_check_variable_definition(table, body_i,
-                                                            body,
-                                                            function_declaration_ast->value.FunctionDeclaration.body->size,
-                                                            function_declaration_ast, is_struct_member,
-                                                            struct_declaration);
-                break;
-            case AST_TYPE_BINARY:
-                semantic_analyzer_check_expression(table, body_i, i, body,
-                                                   function_declaration_ast->value.FunctionDeclaration.body->size,
-                                                   function_declaration_ast,
-                                                   is_struct_member, struct_declaration);
-                break;
-            case AST_TYPE_RETURN:
-                semantic_analyzer_check_expression(table, body_i->value.Return.return_expression, i,
-                                                   body,
-                                                   function_declaration_ast->value.FunctionDeclaration.body->size,
-                                                   function_declaration_ast,
-                                                   is_struct_member, struct_declaration);
-                break;
-            default:
-//                fprintf(stderr, "Semantic Analyzer: Cannot check type `%d`", body->value.Body.body[i]->type);
-//                semantic_analyzer_error();
-                break;
-        }
+        semantic_analyzer_check_inner_statement(table, body,
+                                                function_declaration_ast->value.FunctionDeclaration.body->size, body_i,
+                                                i, function_declaration_ast, is_struct_member, struct_declaration);
     }
+
+    free(body);
 }
 
 void
@@ -321,55 +425,6 @@ int semantic_analyzer_check_expression_literal(UNMap *table, AST *expression, in
     return 0;
 }
 
-int
-semantic_analyzer_check_expression_function_call(UNMap *table, AST *expression,
-                                                 __attribute__((unused)) int position_inside_body,
-                                                 __attribute__((unused)) AST **body,
-                                                 __attribute__((unused)) uintptr_t body_size,
-                                                 __attribute__((unused)) AST *function_declaration,
-                                                 __attribute__((unused)) AST *struct_declaration) {
-    for (int j = 0; j < table->items; j++) {
-        char *table_item_name = table->pair_values[j]->key;
-
-        if (strcmp(table_item_name, expression->value.FunctionCall.function_call_name) == 0 &&
-            table_item_name[0] != '\0') {
-            if (((SemanticAnalyzerSymbol *) table->pair_values[j]->value)->symbol_type ==
-                AST_TYPE_FUNCTION_DECLARATION) {
-                // Check the arguments
-                AST *function = ((SemanticAnalyzerSymbol *) table->pair_values[j]->value)->symbol_ast;
-                if (expression->value.FunctionCall.arguments->size !=
-                    function->value.FunctionDeclaration.arguments->size) {
-                    fprintf(stderr, "Semantic Analyzer: `%s` invalid number of arguments, expected %d, got %d",
-                            expression->value.FunctionCall.function_call_name,
-                            function->value.FunctionDeclaration.arguments->size,
-                            expression->value.FunctionCall.arguments->size);
-                    semantic_analyzer_error();
-                }
-                // Check the arguments types
-                for (int i = 0; i < expression->value.FunctionCall.arguments->size; ++i) {
-                    AST *argument1 = mxDynamicArrayGet(expression->value.FunctionCall.arguments, i);
-                    AST *argument2 = ((AST *) mxDynamicArrayGet(function->value.FunctionDeclaration.arguments,
-                                                                i))->value.FunctionDeclarationArgument.argument_type;
-                    semantic_analyzer_compare_types(argument1, argument2);
-                }
-                return function->value.FunctionDeclaration.return_type->value.ValueKeyword.token->type;
-            } else {
-                fprintf(stderr, "Semantic Analyzer: `%s` is not a valid function",
-                        expression->value.FunctionCall.function_call_name);
-                semantic_analyzer_error();
-            }
-        } else {
-            if ((j + 1) >= table->items) {
-                fprintf(stderr, "Semantic Analyzer: `%s` is not a valid function",
-                        expression->value.FunctionCall.function_call_name);
-                semantic_analyzer_error();
-            }
-        }
-    }
-
-    return 0;
-}
-
 int semantic_analyzer_check_struct_self(UNMap *table, AST *expression, int position_inside_body, AST **body,
                                         uintptr_t body_size, AST *function_declaration, bool is_struct_member,
                                         AST *struct_declaration) {
@@ -432,7 +487,6 @@ void semantic_analyzer_check_if_type_exists(UNMap *symbol_table, char *type_name
                         type_name);
                 semantic_analyzer_error();
             }
-
             return;
         } else {
             if ((j + 1) >= symbol_table->items) {
@@ -505,16 +559,23 @@ UNMap *semantic_analyzer_create_symbol_table(AST **ast_items, uintptr_t ast_item
                 symbol_struct->symbol_type = ast_items[i]->type;
                 symbol_struct->symbol_ast = ast_items[i];
                 break;
+            case AST_TYPE_STRUCT_INITIALIZER:
+                symbol_struct->symbol_name = NULL;
+                symbol_struct->symbol_ast = NULL;
+                symbol_struct->symbol_type = -1;
+                break;
             default:
                 fprintf(stderr, "Semantic Analyzer: Cannot Check Type `%d`", ast_items[i]->type);
-//                semantic_analyzer_error();
+                semantic_analyzer_error();
         }
 
         UNMapPairValue *pair = malloc(sizeof(UNMapPairValue));
-        pair->key = symbol_struct->symbol_name;
-        pair->value = symbol_struct;
 
-        unmap_push_back(symbol_map, pair);
+        if (symbol_struct->symbol_name != NULL) {
+            pair->key = symbol_struct->symbol_name;
+            pair->value = symbol_struct;
+            unmap_push_back(symbol_map, pair);
+        }
     }
 
     return symbol_map;

@@ -22,7 +22,6 @@ typedef enum {
     AST_TYPE_FUNCTION_CALL,
 
     AST_TYPE_VARIABLE_DEFINITION,
-    AST_TYPE_VARIABLE_CALL,
 
     AST_TYPE_VALUE_KEYWORD,
 
@@ -117,7 +116,8 @@ typedef union {
     } StructOrUnionMemberCall;
 
     struct {
-        struct AST *function_call;
+        mxDynamicArray *arguments;
+        mxDynamicArray *body;
     } StructInitializer;
 
     struct {
@@ -154,17 +154,6 @@ typedef union {
     struct {
         struct AST *return_expression;
     } Return;
-
-    struct {
-        char *variable_name;
-        struct AST *expression;
-        bool is_expression;
-        Token *operator;
-
-
-        bool is_cast;
-        struct AST *cast_value;
-    } VariableCall;
 
     struct {
         struct AST *if_condition;

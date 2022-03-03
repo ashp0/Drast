@@ -49,9 +49,6 @@ void _ast_print(AST *ast, uintptr_t indent) {
         case AST_TYPE_FUNCTION_CALL:
             ast_print_function_call(ast, indent);
             break;
-        case AST_TYPE_VARIABLE_CALL:
-            ast_print_variable_call(ast, indent);
-            break;
         case AST_TYPE_IF_ELSE_STATEMENT:
             ast_print_if_else_statement(ast, indent);
             break;
@@ -367,22 +364,6 @@ void ast_print_grouping(AST *ast, uintptr_t indent) {
     printf(")");
 }
 
-void ast_print_variable_call(AST *ast, uintptr_t indent) {
-    for (int i = 0; i < indent; ++i)
-        printf("\t");
-    if (ast->value.VariableCall.is_cast) {
-        printf("%s ->", ast->value.VariableCall.variable_name);
-        ast_print(ast->value.VariableCall.cast_value);
-        printf(" \n");
-    } else {
-        printf("%s %s ", ast->value.VariableCall.variable_name, ast->value.VariableCall.operator->value);
-        _ast_print(ast->value.VariableCall.expression, 0);
-        printf("\n");
-    }
-    if (indent != 0)
-        printf("\n");
-}
-
 void ast_print_if_else_statement(AST *ast, uintptr_t indent) {
     for (int i = 0; i < indent; ++i)
         printf("\t");
@@ -457,8 +438,11 @@ void ast_print_not(AST *ast, uintptr_t indent) {
 void ast_print_struct_initializer(AST *ast, uintptr_t indent) {
     for (int i = 0; i < indent; ++i)
         printf("\t");
-    printf(".");
-    _ast_print(ast->value.StructInitializer.function_call, indent);
+    printf("@");
+
+    for (int i = 0; i < ast->value.StructInitializer.body->size; ++i) {
+        _ast_print(mxDynamicArrayGet(ast->value.StructInitializer.body, i), indent + 1);
+    }
     printf("\n");
 }
 

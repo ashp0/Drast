@@ -18,6 +18,17 @@ typedef struct {
 
 void semantic_analyzer_run_analysis(AST **ast_items, uintptr_t ast_items_size);
 
+void semantic_analyzer_check_statement(UNMap *table, SemanticAnalyzerSymbol *symbol_struct);
+
+void
+semantic_analyzer_check_inner_statement(UNMap *table, AST **body, uintptr_t body_size, AST *body_ast, int body_position,
+                                        AST *function_ast, bool is_struct_member, AST *struct_ast);
+
+void semantic_analyzer_check_struct_statement(UNMap *table, AST **body, uintptr_t body_size, AST *body_ast,
+                                              int body_position, AST *struct_ast);
+
+void semantic_analyzer_check_struct_initializer(UNMap *table, AST *initializer_ast, AST *struct_declaration);
+
 void semantic_analyzer_check_struct_or_union_declaration(UNMap *table, SemanticAnalyzerSymbol *symbol_struct);
 
 void semantic_analyzer_check_function_declaration(UNMap *table, AST *function_declaration, bool is_struct_member,

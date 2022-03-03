@@ -38,8 +38,6 @@ void ast_print_return(AST *ast, uintptr_t indent);
 
 void ast_print_function_call(AST *ast, uintptr_t indent);
 
-void ast_print_variable_call(AST *ast, uintptr_t indent);
-
 void ast_print_if_else_statement(AST *ast, uintptr_t indent);
 
 void ast_print_while_statement(AST *ast, uintptr_t indent);

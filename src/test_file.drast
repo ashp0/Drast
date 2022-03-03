@@ -7,11 +7,17 @@ struct myTestStruct {
     string last_name
     int age
 
+    @init() {
+        self.first_name = "John"
+        self.last_name = "Doe"
+        self.age = 30
+    }
+
     string :: test(int lmao) {
         string test2 = "430"
         // test2 = 50 + 40
         // self.test2 = 50 + 40
-        test2 = "540"
+        // test5 = "540"
         self.first_name = test2
     }
 }
@@ -29,7 +35,9 @@ private int :: main(myTestStruct argc, string[] argv) {
     int main2 = test + main + 40
     int main5 = test + main + 40
 
-    if (main5 == main2) {
+    // TODO: Add support for if/else statements
+    // We need to check if there is an equal operator, if the literal values and check if the variable exists
+    if (main5 == main2 || main5 == main3) {
         int main4 = main + main2
     } else if (main5 == main3) {
         int main4 = main + main2
@@ -38,5 +46,4 @@ private int :: main(myTestStruct argc, string[] argv) {
     } else {
         int main4 = main + main5
     }
-
 }
