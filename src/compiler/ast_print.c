@@ -73,8 +73,8 @@ void _ast_print(AST *ast, uintptr_t indent) {
         case AST_TYPE_BODY:
             ast_print_body(ast, indent);
             break;
-        case AST_TYPE_NOT:
-            ast_print_not(ast, indent);
+        case AST_TYPE_UNARY:
+            ast_print_unary(ast, indent);
             break;
         case AST_TYPE_STRUCT_INITIALIZER:
             ast_print_struct_initializer(ast, indent);
@@ -376,32 +376,35 @@ void ast_print_if_else_statement(AST *ast, uintptr_t indent) {
         printf("\t");
     printf("}\n");
 
-    if (ast->value.IfElseStatement.else_if_conditions->size != 0) {
-        // For each else if statement
-        for (int i = 0; i < ast->value.IfElseStatement.else_if_conditions->size; ++i) {
+    // TODO: FIX THIS
+    if (ast->value.IfElseStatement.has_else_statement) {
+        if (ast->value.IfElseStatement.else_if_conditions->size != 0) {
+            // For each else if statement
+            for (int i = 0; i < ast->value.IfElseStatement.else_if_conditions->size; ++i) {
+                for (int i = 0; i < indent; ++i)
+                    printf("\t");
+                printf("else if (");
+                ast_print(mxDynamicArrayGet(ast->value.IfElseStatement.else_if_conditions, i));
+                printf(") {\n");
+                _ast_print(mxDynamicArrayGet(ast->value.IfElseStatement.else_if_bodies, i), indent + 1);
+                for (int i = 0; i < indent; ++i)
+                    printf("\t");
+                printf("}\n");
+            }
+        }
+
+        if (ast->value.IfElseStatement.has_else_statement) {
             for (int i = 0; i < indent; ++i)
                 printf("\t");
-            printf("else if (");
-            ast_print(mxDynamicArrayGet(ast->value.IfElseStatement.else_if_conditions, i));
-            printf(") {\n");
-            _ast_print(mxDynamicArrayGet(ast->value.IfElseStatement.else_if_bodies, i), indent + 1);
+            printf("else {\n");
+
+            for (int i = 0; i < ast->value.IfElseStatement.else_body->size; ++i) {
+                _ast_print(mxDynamicArrayGet(ast->value.IfElseStatement.else_body, i), indent + 1);
+            }
             for (int i = 0; i < indent; ++i)
                 printf("\t");
             printf("}\n");
         }
-    }
-
-    if (ast->value.IfElseStatement.has_else_statement) {
-        for (int i = 0; i < indent; ++i)
-            printf("\t");
-        printf("else {\n");
-
-        for (int i = 0; i < ast->value.IfElseStatement.else_body->size; ++i) {
-            _ast_print(mxDynamicArrayGet(ast->value.IfElseStatement.else_body, i), indent + 1);
-        }
-        for (int i = 0; i < indent; ++i)
-            printf("\t");
-        printf("}\n");
     }
 }
 
@@ -428,11 +431,11 @@ void ast_print_inline_assembly(AST *ast, uintptr_t indent) {
     printf("}\n");
 }
 
-void ast_print_not(AST *ast, uintptr_t indent) {
+void ast_print_unary(AST *ast, uintptr_t indent) {
     for (int i = 0; i < indent; ++i)
         printf("\t");
     printf("!");
-    ast_print(ast->value.Not.expression);
+    ast_print(ast->value.Unary.right);
 }
 
 void ast_print_struct_initializer(AST *ast, uintptr_t indent) {

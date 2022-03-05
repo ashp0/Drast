@@ -469,7 +469,7 @@ AST *parser_parse_if_else_statement(Parser *parser) {
     AST *if_else_statement_ast = ast_init_with_type(AST_TYPE_IF_ELSE_STATEMENT);
     parser_advance(parser, T_K_IF);
 
-    // The expression
+    // The right
     parser_advance(parser, T_PARENS_OPEN);
     if_else_statement_ast->value.IfElseStatement.if_condition = parser_parse_expression(parser);
     parser_advance(parser, T_PARENS_CLOSE);
@@ -520,7 +520,7 @@ AST *parser_parse_while_statement(Parser *parser) {
 
     parser_advance(parser, T_K_WHILE);
 
-    // The expression
+    // The right
     parser_advance(parser, T_PARENS_OPEN);
     while_ast->value.WhileStatement.expression = parser_parse_expression(parser);
     parser_advance(parser, T_PARENS_CLOSE);
@@ -758,124 +758,121 @@ AST *parser_parse_body(Parser *parser) {
     return body_ast;
 }
 
-
 AST *parser_parse_expression(Parser *parser) {
-    switch (parser->current->type) {
-        case T_INT:
-        case T_FLOAT:
-        case T_STRING:
-        case T_CHAR:
-        case T_HEX:
-        case T_OCTAL:
-        case T_IDENTIFIER:
-        case T_K_SELF:
-            return parser_parse_expression_literal(parser);
-        case T_PARENS_OPEN:
-            return parser_parse_expression_grouping(parser);
-        case T_NOT:
-            parser_advance(parser, T_NOT);
-            AST *not_ast = ast_init_with_type(AST_TYPE_NOT);
-            not_ast->value.Not.expression = parser_parse_expression(parser);
-            return not_ast;
-        case T_K_MATCHES:
-            return parser_parse_matches_statement(parser);
-        case T_K_TRY:
-            return parser_parse_expression_try(parser);
-            // TODO
-//        case T_PERIOD:
-//            parser_advance(parser, T_PERIOD);
-//            AST *init_ast = ast_init_with_type(AST_TYPE_STRUCT_INITIALIZER);
-//            init_ast->value.StructInitializer.function_call = parser_parse_expression(parser);
-//            return init_ast;
-        default:
-            fprintf(stderr, "Parser: Expression is cannot be parsed");
-            parser_show_error(parser);
-    }
-    exit(-2);
+    return parser_parse_equality(parser);
 }
 
-AST *parser_parse_expression_grouping(Parser *parser) {
-    parser_advance(parser, T_PARENS_OPEN);
-    AST *grouping_ast = ast_init_with_type(AST_TYPE_GROUPING);
+AST *parser_parse_equality(Parser *parser) {
+    AST *equality_ast = parser_parse_comparison(parser);
 
-    grouping_ast->value.Grouping.expression = parser_parse_expression(parser);
+    while (parser->current->type == T_EQUAL_EQUAL || parser->current->type == T_EQUAL ||
+           parser->current->type == T_NOT_EQUAL) {
+        AST *equality_operator = ast_init_with_type(AST_TYPE_BINARY);
+        equality_operator->value.Binary.operator = parser->current;
+        equality_operator->value.Binary.left = equality_ast;
+        parser_advance(parser, parser->current->type);
+        equality_operator->value.Binary.right = parser_parse_comparison(parser);
+        equality_ast = equality_operator;
+    }
 
-    parser_advance(parser, T_PARENS_CLOSE);
+    return equality_ast;
+}
 
-    if (parser_is_binary_operator(parser->current)) {
-        AST *binary_ast = ast_init_with_type(AST_TYPE_BINARY);
-        binary_ast->value.Binary.left = grouping_ast;
-        binary_ast->value.Binary.operator = parser->current;
-        if (!parser_is_binary_operator(parser->current)) {
-            fprintf(stderr, "Parser: Expression is cannot be parsed");
-            parser_show_error(parser);
+AST *parser_parse_comparison(Parser *parser) {
+    AST *term_ast = parser_parse_term(parser);
+
+    while (parser->current->type == T_LESS_THAN || parser->current->type == T_LESS_THAN_EQUAL ||
+           parser->current->type == T_GREATER_THAN || parser->current->type == T_GREATER_THAN_EQUAL) {
+        AST *comparison_operator = ast_init_with_type(AST_TYPE_BINARY);
+        comparison_operator->value.Binary.operator = parser->current;
+        comparison_operator->value.Binary.left = term_ast;
+        parser_advance(parser, parser->current->type);
+        comparison_operator->value.Binary.right = parser_parse_term(parser);
+        term_ast = comparison_operator;
+    }
+
+    return term_ast;
+}
+
+AST *parser_parse_term(Parser *parser) {
+    AST *term_ast = parser_parse_factor(parser);
+
+    while (parser->current->type == T_OPERATOR_ADD || parser->current->type == T_OPERATOR_SUB ||
+           parser->current->type == T_PERIOD) {
+        AST *term_operator = ast_init_with_type(AST_TYPE_BINARY);
+        term_operator->value.Binary.operator = parser->current;
+        term_operator->value.Binary.left = term_ast;
+        parser_advance(parser, parser->current->type);
+        term_operator->value.Binary.right = parser_parse_factor(parser);
+        term_ast = term_operator;
+    }
+
+    return term_ast;
+}
+
+AST *parser_parse_factor(Parser *parser) {
+    AST *unary_ast = parser_parse_unary(parser);
+
+    while (parser->current->type == T_OPERATOR_MUL || parser->current->type == T_OPERATOR_DIV ||
+           parser->current->type == T_OPERATOR_MOD) {
+        AST *unary_operator = ast_init_with_type(AST_TYPE_BINARY);
+        unary_operator->value.Binary.operator = parser->current;
+        unary_operator->value.Binary.left = unary_ast;
+        parser_advance(parser, parser->current->type);
+        unary_operator->value.Binary.right = parser_parse_unary(parser);
+        unary_ast = unary_operator;
+    }
+
+    return unary_ast;
+}
+
+AST *parser_parse_unary(Parser *parser) {
+    if (parser->current->type == T_NOT) {
+        AST *unary_ast = ast_init_with_type(AST_TYPE_UNARY);
+        unary_ast->value.Unary.operator = parser->current;
+        parser_advance(parser, parser->current->type);
+        unary_ast->value.Unary.right = parser_parse_unary(parser);
+        return unary_ast;
+    }
+
+    return parser_parse_primary(parser);
+}
+
+AST *parser_parse_primary(Parser *parser) {
+    if (parser->current->type == T_K_MATCHES) {
+        return parser_parse_matches_statement(parser);
+    }
+    if (parser->current->type == T_IDENTIFIER || parser->current->type == T_STRING || parser->current->type == T_INT ||
+        parser->current->type == T_FLOAT || parser->current->type == T_HEX || parser->current->type == T_OCTAL ||
+        parser->current->type == T_CHAR || parser->current->type == T_K_SELF) {
+        AST *literal_ast = ast_init_with_type(AST_TYPE_LITERAL);
+        literal_ast->value.Literal.literal_value = parser->current;
+        parser_advance(parser, parser->current->type);
+
+        if (parser->current->type == T_PARENS_OPEN) {
+            return parser_parse_function_call(parser, literal_ast->value.Literal.literal_value->value);
         }
 
-        parser_advance_without_check(parser);
-        binary_ast->value.Binary.right = parser_parse_expression(parser);
-
-        return binary_ast;
-    } else {
-        return grouping_ast;
+        return literal_ast;
     }
-}
 
-AST *parser_parse_expression_literal(Parser *parser) {
-    if (parser->current->type == T_IDENTIFIER)
-        return parser_parse_expression_identifier(parser);
-    else {
-        Token *literal_value = parser->current;
-        parser_advance_without_check(parser);
-        AST *ast = ast_init_with_type(AST_TYPE_LITERAL);
-        ast->value.Literal.literal_value = literal_value;
-
-        if (parser_is_binary_operator(parser->current)) {
-            AST *binary_ast = ast_init_with_type(AST_TYPE_BINARY);
-            binary_ast->value.Binary.left = ast;
-            binary_ast->value.Binary.operator = parser->current;
-            if (!parser_is_binary_operator(parser->current)) {
-                fprintf(stderr, "Parser: Expression is cannot be parsed");
-                parser_show_error(parser);
-            }
-
-            parser_advance_without_check(parser);
-            binary_ast->value.Binary.right = parser_parse_expression(parser);
-
-            return binary_ast;
-        } else {
-            return ast;
-        }
+    if (parser->current->type == T_BRACE_OPEN) {
+        return parser_parse_body(parser);
     }
-}
-
-AST *parser_parse_expression_identifier(Parser *parser) {
-    Token *identifier_name = parser->current;
-    parser_advance(parser, T_IDENTIFIER);
-    AST *ast;
 
     if (parser->current->type == T_PARENS_OPEN) {
-        ast = parser_parse_function_call(parser, identifier_name->value);
-    } else {
-        ast = ast_init_with_type(AST_TYPE_LITERAL);
-        ast->value.Literal.literal_value = identifier_name;
+        parser_advance(parser, T_PARENS_OPEN);
+        AST *inside_expression = ast_init_with_type(AST_TYPE_GROUPING);
+        inside_expression->value.Grouping.expression = parser_parse_expression(parser);
+        parser_advance(parser, T_PARENS_CLOSE);
+
+        return inside_expression;
     }
 
-    if (parser_is_binary_operator(parser->current)) {
-        AST *binary_ast = ast_init_with_type(AST_TYPE_BINARY);
-        binary_ast->value.Binary.left = ast;
-        binary_ast->value.Binary.operator = parser->current;
-
-        if (!parser_is_binary_operator(parser->current)) {
-            fprintf(stderr, "Parser: Expression is cannot be parsed");
-            parser_show_error(parser);
-        }
-        parser_advance_without_check(parser);
-        binary_ast->value.Binary.right = parser_parse_expression(parser);
-
-        return binary_ast;
-    } else {
-        return ast;
-    }
+    // Show error
+    fprintf(stderr, "Error: Cannot Parse Literal `%s`", parser->current->value);
+    parser_show_error(parser);
+    return NULL;
 }
 
 bool parser_is_binary_operator(Token *token) {

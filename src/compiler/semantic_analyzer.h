@@ -65,6 +65,14 @@ int semantic_analyzer_check_expression_literal(UNMap *table, AST *expression, in
                                                bool is_struct_member,
                                                __attribute__((unused)) AST *struct_declaration);
 
+void semantic_analyzer_check_if_else_statement(UNMap *table, AST *expression,
+                                               int position_inside_body,
+                                               AST **body,
+                                               uintptr_t body_size,
+                                               AST *function_declaration,
+                                               bool is_struct_member,
+                                               AST *struct_declaration);
+
 int
 semantic_analyzer_check_expression_function_call(UNMap *table, AST *expression,
                                                  __attribute__((unused)) int position_inside_body,

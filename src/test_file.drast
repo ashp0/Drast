@@ -10,7 +10,7 @@ struct myTestStruct {
     @init() {
         self.first_name = "John"
         self.last_name = "Doe"
-        self.age = 30
+        self.age = 30 // TODO: Make it so that the analyzer can check if the variable is being assigned or not
     }
 
     string :: test(int lmao) {
@@ -37,13 +37,9 @@ private int :: main(myTestStruct argc, string[] argv) {
 
     // TODO: Add support for if/else statements
     // We need to check if there is an equal operator, if the literal values and check if the variable exists
-    if (main5 == main2 || main5 == main3) {
+    if (50 == 30) {
         int main4 = main + main2
-    } else if (main5 == main3) {
-        int main4 = main + main2
-    } else if (main5 == main3) {
-        int main4 = main + main2
-    } else {
-        int main4 = main + main5
+        int main5 = main + main2
     }
+
 }

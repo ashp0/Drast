@@ -29,7 +29,7 @@ simplicity
     - [ ] Add support for casting
 - [ ] Semantic Analyzer
     - [x] Duplicate Variable and Functions
-    - [x] Check if expression is valid
+    - [x] Check if right is valid
     - [x] Check assignments
     - [x] Return statements
     - [ ] Struct initializers

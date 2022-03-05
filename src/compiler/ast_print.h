@@ -60,7 +60,7 @@ void ast_print_struct_member_call(AST *ast, uintptr_t indent);
 
 void ast_print_body(AST *ast, uintptr_t indent);
 
-void ast_print_not(AST *ast, uintptr_t indent);
+void ast_print_unary(AST *ast, uintptr_t indent);
 
 void ast_print_struct_initializer(AST *ast, uintptr_t indent);
 

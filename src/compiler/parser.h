@@ -69,11 +69,17 @@ AST *parser_parse_body(Parser *parser);
 
 AST *parser_parse_expression(Parser *parser);
 
-AST *parser_parse_expression_grouping(Parser *parser);
+AST *parser_parse_equality(Parser *parser);
 
-AST *parser_parse_expression_literal(Parser *parser);
+AST *parser_parse_comparison(Parser *parser);
 
-AST *parser_parse_expression_identifier(Parser *parser);
+AST *parser_parse_term(Parser *parser);
+
+AST *parser_parse_factor(Parser *parser);
+
+AST *parser_parse_unary(Parser *parser);
+
+AST *parser_parse_primary(Parser *parser);
 
 bool parser_is_binary_operator(Token *token);
 

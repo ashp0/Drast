@@ -35,7 +35,7 @@ typedef enum {
     AST_TYPE_BINARY,
     AST_TYPE_LITERAL,
     AST_TYPE_GROUPING,
-    AST_TYPE_NOT,
+    AST_TYPE_UNARY,
 
     AST_TYPE_RETURN,
 
@@ -148,8 +148,9 @@ typedef union {
     } Grouping;
 
     struct {
-        struct AST *expression;
-    } Not;
+        Token *operator;
+        struct AST *right;
+    } Unary;
 
     struct {
         struct AST *return_expression;

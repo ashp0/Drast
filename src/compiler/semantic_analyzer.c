@@ -71,6 +71,12 @@ semantic_analyzer_check_inner_statement(UNMap *table, AST **body, uintptr_t body
                                                              function_ast,
                                                              struct_ast);
             break;
+        case AST_TYPE_IF_ELSE_STATEMENT:
+            semantic_analyzer_check_if_else_statement(table, body_ast, body_position, body,
+                                                      body_size,
+                                                      function_ast,
+                                                      is_struct_member, struct_ast);
+            break;
         default:
 //                fprintf(stderr, "Semantic Analyzer: Cannot check type `%d`", body->value.Body.body[i]->type);
 //                semantic_analyzer_error();
@@ -124,13 +130,11 @@ void semantic_analyzer_check_struct_initializer(UNMap *table, AST *initializer_a
     // Check the variable definitions in the struct, and check if they are initialized
     for (int i = 0; i < initializer_ast->value.StructInitializer.body->size; i++) {
         AST *ast_member = mxDynamicArrayGet(initializer_ast->value.StructInitializer.body, i);
-
-        // Check if the member is a self statement, and check which members weren't initialized
-        semantic_analyzer_check_expression(table, ast_member, i,
-                                           (AST **) initializer_ast->value.StructInitializer.body->data,
-                                           initializer_ast->value.StructInitializer.body->size,
-                                           struct_declaration,
-                                           true, struct_declaration);
+        semantic_analyzer_check_inner_statement(table, (AST **) initializer_ast->value.StructInitializer.body->data, i,
+                                                ast_member,
+                                                initializer_ast->value.StructInitializer.body->size,
+                                                struct_declaration,
+                                                true, struct_declaration);
     }
 }
 
@@ -141,7 +145,7 @@ semantic_analyzer_check_expression_function_call(UNMap *table, AST *expression,
                                                  __attribute__((unused)) uintptr_t body_size,
                                                  __attribute__((unused)) AST *function_declaration,
                                                  __attribute__((unused)) AST *struct_declaration) {
-//    if (strcmp(expression->value.FunctionCall.function_call_name, "print") == 0) {
+//    if (strcmp(right->value.FunctionCall.function_call_name, "print") == 0) {
 //        return T_K_VOID;
 //    }
     for (int j = 0; j < table->items; j++) {
@@ -184,6 +188,57 @@ semantic_analyzer_check_expression_function_call(UNMap *table, AST *expression,
     }
 
     return 0;
+}
+
+void semantic_analyzer_check_if_else_statement(UNMap *table, AST *expression,
+                                               int position_inside_body,
+                                               AST **body,
+                                               uintptr_t body_size,
+                                               AST *function_declaration,
+                                               bool is_struct_member,
+                                               AST *struct_declaration) {
+    // Check the first if conditions
+    semantic_analyzer_check_expression(table, expression->value.IfElseStatement.if_condition, position_inside_body,
+                                       body, body_size, function_declaration, is_struct_member, struct_declaration);
+
+    // Check the first if body
+    for (int i = 0; i < expression->value.IfElseStatement.if_body->value.Body.body_size - 1; ++i) {
+        AST *if_body_item = expression->value.IfElseStatement.if_body->value.Body.body[i];
+        semantic_analyzer_check_inner_statement(table, expression->value.IfElseStatement.if_body->value.Body.body,
+                                                expression->value.IfElseStatement.if_body->value.Body.body_size,
+                                                if_body_item, i, function_declaration, is_struct_member,
+                                                struct_declaration);
+    }
+
+    // Check the else if conditions
+    for (int i = 0; i < expression->value.IfElseStatement.else_if_conditions->size; ++i) {
+        AST *else_if_condition = mxDynamicArrayGet(expression->value.IfElseStatement.else_if_conditions, i);
+        semantic_analyzer_check_expression(table, else_if_condition, position_inside_body, body, body_size,
+                                           function_declaration, is_struct_member, struct_declaration);
+    }
+
+    // Check the else if bodies
+    if (expression->value.IfElseStatement.else_if_bodies->size != 0) {
+        for (int i = 0; i < expression->value.IfElseStatement.else_if_bodies->size; ++i) {
+            AST *else_if_body = mxDynamicArrayGet(expression->value.IfElseStatement.else_if_bodies, i);
+            for (int j = 0; j < else_if_body->value.Body.body_size; ++j) {
+                AST *else_if_body_item = else_if_body->value.Body.body[j];
+                semantic_analyzer_check_inner_statement(table, else_if_body->value.Body.body,
+                                                        else_if_body->value.Body.body_size, else_if_body_item, j,
+                                                        function_declaration, is_struct_member, struct_declaration);
+            }
+        }
+    }
+
+    // Check the else body
+    if (expression->value.IfElseStatement.has_else_statement) {
+        for (int i = 0; i < expression->value.IfElseStatement.else_body->size - 1; ++i) {
+            AST *else_body_item = mxDynamicArrayGet(expression->value.IfElseStatement.else_body, i);
+            semantic_analyzer_check_inner_statement(table, (AST **) expression->value.IfElseStatement.else_body->data,
+                                                    expression->value.IfElseStatement.else_body->size, else_body_item,
+                                                    i, function_declaration, is_struct_member, struct_declaration);
+        }
+    }
 }
 
 void semantic_analyzer_check_function_declaration(UNMap *table, AST *function_declaration, bool is_struct_member,
@@ -428,51 +483,19 @@ int semantic_analyzer_check_expression_literal(UNMap *table, AST *expression, in
 int semantic_analyzer_check_struct_self(UNMap *table, AST *expression, int position_inside_body, AST **body,
                                         uintptr_t body_size, AST *function_declaration, bool is_struct_member,
                                         AST *struct_declaration) {
-    if (expression->value.Binary.right->type != AST_TYPE_BINARY) {
-        fprintf(stderr, "Semantic Analyzer: `%s` must have an expression",
-                expression->value.Binary.left->value.Literal.literal_value->value);
-        semantic_analyzer_error();
-    }
+    // Check if the self.`name` is valid
+    for (int i = 0; i < struct_declaration->value.StructOrUnionDeclaration.members->size; ++i) {
+        AST *member = mxDynamicArrayGet(struct_declaration->value.StructOrUnionDeclaration.members, i);
 
-    for (int j = 0; j < struct_declaration->value.StructOrUnionDeclaration.members->size; j++) {
-        // Compare the values
-        AST *member = mxDynamicArrayGet(struct_declaration->value.StructOrUnionDeclaration.members, j);
-        if (member->type == AST_TYPE_VARIABLE_DEFINITION) {
-            if (strcmp(member->value.VariableDeclaration.identifier,
-                       expression->value.Binary.right->value.Binary.left->value.Literal.literal_value->value) == 0) {
-                int expression_type = semantic_analyzer_check_expression(table,
-                                                                         expression->value.Binary.right->value.Binary.right,
-                                                                         position_inside_body, body, body_size,
-                                                                         function_declaration,
-                                                                         is_struct_member,
-                                                                         struct_declaration);
-                if (!semantic_analyzer_types_are_allowed(
-                        member->value.VariableDeclaration.type->value.ValueKeyword.token->type, expression_type)) {
-                    fprintf(stderr, "Semantic Analyzer: `%s` has the type of `%s` but was assigned type `%s`",
-                            member->value.VariableDeclaration.identifier, token_print(
-                                    member->value.VariableDeclaration.type->value.ValueKeyword.token->type),
-                            token_print(expression_type));
-                    semantic_analyzer_error();
-                }
-
-                return expression_type;
-            } else {
-                if ((j + 1) >= struct_declaration->value.StructOrUnionDeclaration.members->size) {
-                    fprintf(stderr, "Semantic Analyzer: `%s` is not a valid struct member",
-                            expression->value.Binary.right->value.Binary.left->value.Literal.literal_value->value);
-                    semantic_analyzer_error();
-                }
-            }
-        } else {
-            if ((j + 1) >= struct_declaration->value.StructOrUnionDeclaration.members->size) {
-                fprintf(stderr, "Semantic Analyzer: `%s` is not a valid struct member",
-                        expression->value.Binary.right->value.Binary.left->value.Literal.literal_value->value);
-                semantic_analyzer_error();
-            }
+        if (strcmp(member->value.VariableDeclaration.identifier,
+                   expression->value.Binary.right->value.Literal.literal_value->value) == 0) {
+            return member->value.VariableDeclaration.type->value.ValueKeyword.token->type;
+        } else if (i >= struct_declaration->value.StructOrUnionDeclaration.members->size) {
+            fprintf(stderr, "Semantic Analyzer: `%s` is a valid struct variable name",
+                    member->value.VariableDeclaration.identifier);
+            semantic_analyzer_error();
         }
     }
-
-    return -1;
 }
 
 void semantic_analyzer_check_if_type_exists(UNMap *symbol_table, char *type_name) {
