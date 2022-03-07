@@ -36,7 +36,7 @@ simplicity
     - [ ] Variable Assignments
     - [ ] Function Calls (50%)
     - [ ] Return Statement
-    - [] If Statements
+    - [ ] If Statements
     - [ ] Alias Types
 - [ ] Optimizations? ( Might not do this stage since LLVM does this )
 - [ ] Code Generation
