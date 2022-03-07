@@ -14,83 +14,62 @@ typedef struct {
     char *symbol_name;
     ASTType symbol_type;
     AST *symbol_ast;
-} SemanticAnalyzerSymbol;
+} SemanticAnalyzerDeclarations;
 
-void semantic_analyzer_run_analysis(AST **ast_items, uintptr_t ast_items_size);
+typedef struct {
+    mxDynamicArray *declarations;
+    mxDynamicArray *ast_items;
 
-void semantic_analyzer_check_statement(UNMap *table, SemanticAnalyzerSymbol *symbol_struct);
+    // The current scope, function body, struct body etc.
+    AST **current_ast_scope_body;
+    uintptr_t current_ast_scope_body_size;
+    AST *current_ast_scope_body_item;
+    uintptr_t current_ast_scope_body_item_position;
+    AST *current_ast_scope_inner_declaration; // If the current scope is a struct, this is the inner declaration, which will be a function.
+    AST *current_ast_scope_declaration; // Function Declaration, Struct Declaration, etc.
 
-void
-semantic_analyzer_check_inner_statement(UNMap *table, AST **body, uintptr_t body_size, AST *body_ast, int body_position,
-                                        AST *function_ast, bool is_struct_member, AST *struct_ast);
+    // To show error messages, eg: "Undeclared variable in scope: _____"
+    char *current_declaration_name; // For debugging purposes
+} SemanticAnalyzer;
 
-void semantic_analyzer_check_struct_statement(UNMap *table, AST **body, uintptr_t body_size, AST *body_ast,
-                                              int body_position, AST *struct_ast);
+void semantic_analyzer_run_analysis(mxDynamicArray *ast_items);
 
-void semantic_analyzer_check_struct_initializer(UNMap *table, AST *initializer_ast, AST *struct_declaration);
+void semantic_analyzer_check_scope(SemanticAnalyzer *analyzer);
 
-void semantic_analyzer_check_struct_or_union_declaration(UNMap *table, SemanticAnalyzerSymbol *symbol_struct);
+void semantic_analyzer_check_struct_declaration(SemanticAnalyzer *analyzer);
 
-void semantic_analyzer_check_function_declaration(UNMap *table, AST *function_declaration, bool is_struct_member,
-                                                  AST *struct_declaration);
+void semantic_analyzer_check_duplicate_struct_members(SemanticAnalyzer *analyzer);
 
-void semantic_analyzer_check_function_declaration_argument(UNMap *table,
-                                                           __attribute__((unused)) AST *function_declaration_ast,
-                                                           AST **arguments, uintptr_t argument_size,
-                                                           __attribute__((unused)) bool is_struct_member);
+void semantic_analyzer_check_struct_initializer(SemanticAnalyzer *analyzer, AST *struct_initializer);
 
-void
-semantic_analyzer_check_function_declaration_body(UNMap *table, AST *function_declaration_ast, bool is_struct_member,
-                                                  AST *struct_declaration);
+void semantic_analyzer_check_function_declaration(SemanticAnalyzer *analyzer);
 
-void
-semantic_analyzer_check_variable_definition(UNMap *symbol_table, AST *variable_ast, AST **body, uintptr_t body_size,
-                                            AST *function_declaration_ast, bool is_struct_member,
-                                            AST *struct_declaration);
+void semantic_analyzer_check_function_declaration_arguments(SemanticAnalyzer *analyzer, bool is_struct);
 
-int semantic_analyzer_check_expression(UNMap *table, AST *expression, int position_inside_body, AST **body,
-                                       uintptr_t body_size, AST *function_declaration, bool is_struct_member,
-                                       AST *struct_declaration);
+void semantic_analyzer_check_body(SemanticAnalyzer *analyzer);
 
-int semantic_analyzer_check_expression_grouping(UNMap *table, AST *expression, int position_inside_body, AST **body,
-                                                uintptr_t body_size, AST *function_declaration, bool is_struct_member,
-                                                AST *struct_declaration);
+void semantic_analyzer_check_variable_declaration(SemanticAnalyzer *analyzer);
 
-int semantic_analyzer_check_expression_binary(UNMap *table, AST *expression, int position_inside_body, AST **body,
-                                              uintptr_t body_size, AST *function_declaration, bool is_struct_member,
-                                              AST *struct_declaration);
+void semantic_analyzer_check_duplicate_variable_definitions(SemanticAnalyzer *analyzer);
 
-int semantic_analyzer_check_expression_literal(UNMap *table, AST *expression, int position_inside_body, AST **body,
-                                               __attribute__((unused)) uintptr_t body_size, AST *function_declaration,
-                                               bool is_struct_member,
-                                               __attribute__((unused)) AST *struct_declaration);
+int semantic_analyzer_check_expression(SemanticAnalyzer *analyzer, AST *expression);
 
-void semantic_analyzer_check_if_else_statement(UNMap *table, AST *expression,
-                                               int position_inside_body,
-                                               AST **body,
-                                               uintptr_t body_size,
-                                               AST *function_declaration,
-                                               bool is_struct_member,
-                                               AST *struct_declaration);
+int semantic_analyzer_check_expression_binary(SemanticAnalyzer *analyzer, AST *expression);
 
-int
-semantic_analyzer_check_expression_function_call(UNMap *table, AST *expression,
-                                                 __attribute__((unused)) int position_inside_body,
-                                                 __attribute__((unused)) AST **body,
-                                                 __attribute__((unused)) uintptr_t body_size,
-                                                 __attribute__((unused)) AST *function_declaration,
-                                                 __attribute__((unused)) AST *struct_declaration);
+int semantic_analyzer_check_expression_self(SemanticAnalyzer *analyzer, AST *expression);
 
-int semantic_analyzer_check_struct_self(UNMap *table, AST *expression, int position_inside_body, AST **body,
-                                        uintptr_t body_size, AST *function_declaration, bool is_struct_member,
-                                        AST *struct_declaration);
+int semantic_analyzer_check_expression_literal(SemanticAnalyzer *analyzer, AST *expression);
 
-void semantic_analyzer_check_if_type_exists(UNMap *symbol_table, char *type_name);
+int semantic_analyzer_check_expression_function_call(SemanticAnalyzer *analyzer, AST *expression);
 
-bool semantic_analyzer_types_are_allowed(int type1, int type2);
+int semantic_analyzer_check_function_exists(SemanticAnalyzer *analyzer, char *identifier);
 
-void semantic_analyzer_compare_types(AST *type1, AST *type2);
+int semantic_analyzer_check_type_name_exists(SemanticAnalyzer *analyzer, char *type_name, bool is_value_keyword);
 
-void semantic_analyzer_check_duplicate_symbols(UNMap *table);
+void semantic_analyzer_check_duplicate_declaration(mxDynamicArray *declarations);
 
-UNMap *semantic_analyzer_create_symbol_table(AST **ast_items, uintptr_t ast_items_size);
+bool semantic_analyzer_check_types_valid(int type1, int type2);
+
+void semantic_analyzer_update_scope(SemanticAnalyzer *analyzer, uintptr_t position);
+
+SemanticAnalyzerDeclarations *semantic_analyzer_get_declaration_item(AST *declaration_item, bool is_struct);

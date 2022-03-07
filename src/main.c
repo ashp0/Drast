@@ -41,9 +41,7 @@ int main(__attribute__((unused)) int argc, char **argv) {
 //    clock_t t;
 //    t = clock();
 
-    AST **items = calloc(1, sizeof(AST *));
-    uintptr_t item_size = 0;
-
+    mxDynamicArray *items = mxDynamicArrayCreate(sizeof(AST *));
     while (parser->lexer->index < parser->lexer->source_length) {
         if (parser->next_token->type == T_EOF)
             break;
@@ -53,9 +51,7 @@ int main(__attribute__((unused)) int argc, char **argv) {
         AST *ast = parser_parse(parser);
         ast_print(ast);
         // Add the item into the array
-        item_size++;
-        items = realloc(items, item_size * sizeof(AST *));
-        items[item_size - 1] = ast;
+        mxDynamicArrayAdd(items, ast);
     }
     /*
      t = clock() - t;
@@ -64,7 +60,8 @@ int main(__attribute__((unused)) int argc, char **argv) {
     printf("\n%f seconds to lex and parse the file \n", time_taken);
      */
 
-    semantic_analyzer_run_analysis(items, item_size);
+//    TODO: Work on this after code gen, semantic_analyzer_run_analysis(items, item_size);
+    semantic_analyzer_run_analysis(items);
 
     free(lexer);
     free(parser->current);

@@ -7,16 +7,16 @@ struct myTestStruct {
     string last_name
     int age
 
-    @init() {
+    @init(string first_name, string last_name, int age) {
         self.first_name = "John"
         self.last_name = "Doe"
-        self.age = 30 // TODO: Make it so that the analyzer can check if the variable is being assigned or not
+        self.age = 30
     }
 
     string :: test(int lmao) {
-        string test2 = "430"
+        string test2 = self.first_name + "30"
         // test2 = 50 + 40
-        // self.test2 = 50 + 40
+        // self.test2 = 50 + 30
         // test5 = "540"
         self.first_name = test2
     }

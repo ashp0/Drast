@@ -29,10 +29,14 @@ simplicity
     - [ ] Add support for casting
 - [ ] Semantic Analyzer
     - [x] Duplicate Variable and Functions
-    - [x] Check if right is valid
-    - [x] Check assignments
-    - [x] Return statements
-    - [ ] Struct initializers
+    - [ ] Duplicate Struct Initializers
+    - [x] Check Expressions
+    - [x] Struct initializers
+    - [x] Check if self.xxx is an actual member in the struct
+    - [ ] Variable Assignments
+    - [ ] Function Calls (50%)
+    - [ ] Return Statement
+    - [] If Statements
     - [ ] Alias Types
 - [ ] Optimizations? ( Might not do this stage since LLVM does this )
 - [ ] Code Generation

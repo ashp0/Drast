@@ -2,10 +2,18 @@ cmake_minimum_required(VERSION 3.7.2)
 project(drast C)
 set(CMAKE_C_STANDARD 17)
 
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+set(CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
 
 add_executable(drast src/main.c
         src/utils/argument_parser.c
         src/utils/argument_parser.h
+        src/utils/string.c
+        src/utils/string.h
+        src/utils/unmap.c
+        src/utils/unmap.h
+        src/utils/mxDynamicArray.c
+        src/utils/mxDynamicArray.h
 
         src/compiler/lexer.c
         src/compiler/lexer.h
@@ -18,10 +26,4 @@ add_executable(drast src/main.c
         src/compiler/ast_print.c
         src/compiler/ast_print.h
         src/compiler/semantic_analyzer.c
-        src/compiler/semantic_analyzer.h
-        src/utils/string.c
-        src/utils/string.h
-        src/utils/unmap.c
-        src/utils/unmap.h
-        src/utils/mxDynamicArray.c
-        src/utils/mxDynamicArray.h)
+        src/compiler/semantic_analyzer.h)
