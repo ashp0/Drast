@@ -157,6 +157,9 @@ void semantic_analyzer_check_body(SemanticAnalyzer *analyzer) {
             case AST_TYPE_FUNCTION_CALL:
                 semantic_analyzer_check_expression_function_call(analyzer, analyzer->current_ast_scope_body_item);
                 break;
+            case AST_TYPE_RETURN:
+                semantic_analyzer_check_return(analyzer);
+                break;
             default:
                 break;
         }
@@ -183,6 +186,29 @@ void semantic_analyzer_check_variable_declaration(SemanticAnalyzer *analyzer) {
 
     // Check if the variable is already declared
     semantic_analyzer_check_duplicate_variable_definitions(analyzer);
+}
+
+void semantic_analyzer_check_return(SemanticAnalyzer *analyzer) {
+    if (analyzer->current_ast_scope_inner_declaration->type != AST_TYPE_FUNCTION_DECLARATION) {
+        semantic_analyzer_error(analyzer, "Semantic Analyzer: Return statement is not inside a function");
+        return;
+    }
+
+    int function_return_type = analyzer->current_ast_scope_inner_declaration->value.FunctionDeclaration.return_type->value.ValueKeyword.token->type;
+
+    if (function_return_type == T_K_VOID) {
+        semantic_analyzer_error(analyzer, "Semantic Analyzer: Return statement is not inside a function");
+        return;
+    }
+
+    int expression_type = semantic_analyzer_check_expression(analyzer,
+                                                             analyzer->current_ast_scope_body_item->value.Return.return_expression);
+
+    if (!semantic_analyzer_check_types_valid(expression_type, function_return_type)) {
+        semantic_analyzer_error(analyzer,
+                                "Semantic Analyzer: Return statement type is not valid to function return type");
+        return;
+    }
 }
 
 void semantic_analyzer_check_duplicate_variable_definitions(SemanticAnalyzer *analyzer) {

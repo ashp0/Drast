@@ -50,6 +50,8 @@ void semantic_analyzer_check_body(SemanticAnalyzer *analyzer);
 
 void semantic_analyzer_check_variable_declaration(SemanticAnalyzer *analyzer);
 
+void semantic_analyzer_check_return(SemanticAnalyzer *analyzer);
+
 void semantic_analyzer_check_duplicate_variable_definitions(SemanticAnalyzer *analyzer);
 
 int semantic_analyzer_check_expression(SemanticAnalyzer *analyzer, AST *expression);
@@ -62,7 +64,7 @@ int semantic_analyzer_check_expression_literal(SemanticAnalyzer *analyzer, AST *
 
 int semantic_analyzer_check_expression_function_call(SemanticAnalyzer *analyzer, AST *expression);
 
-AST * semantic_analyzer_check_function_exists(SemanticAnalyzer *analyzer, char *identifier);
+AST *semantic_analyzer_check_function_exists(SemanticAnalyzer *analyzer, char *identifier);
 
 int semantic_analyzer_check_type_name_exists(SemanticAnalyzer *analyzer, char *type_name, bool is_value_keyword);
 

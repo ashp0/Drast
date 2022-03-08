@@ -19,10 +19,17 @@ struct myTestStruct {
         // self.test2 = 50 + 30
         // test5 = "540"
         self.first_name = test2
+
+        return "40"
     }
 }
 
 string :: test(int lmao) {
+    int test = 3203 + lmao
+    int test2 = test + lmao
+}
+
+void :: test_function(int lmao) {
     int test = 3203 + lmao
     int test2 = test + lmao
 }
