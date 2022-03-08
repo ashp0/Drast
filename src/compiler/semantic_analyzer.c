@@ -154,6 +154,9 @@ void semantic_analyzer_check_body(SemanticAnalyzer *analyzer) {
             case AST_TYPE_VARIABLE_DEFINITION:
                 semantic_analyzer_check_variable_declaration(analyzer);
                 break;
+            case AST_TYPE_FUNCTION_CALL:
+                semantic_analyzer_check_expression_function_call(analyzer, analyzer->current_ast_scope_body_item);
+                break;
             default:
                 break;
         }
@@ -174,9 +177,9 @@ void semantic_analyzer_check_variable_declaration(SemanticAnalyzer *analyzer) {
     int type = semantic_analyzer_check_expression(analyzer,
                                                   analyzer->current_ast_scope_body_item->value.VariableDeclaration.value);
 
-    semantic_analyzer_check_types_valid(variable_type, type);
-//        semantic_analyzer_error(analyzer, "Semantic Analyzer: Variable declaration type is not valid");
-//    }
+    if (!semantic_analyzer_check_types_valid(variable_type, type)) {
+        semantic_analyzer_warning(analyzer, "Semantic Analyzer: Variable type is not valid to expression type");
+    }
 
     // Check if the variable is already declared
     semantic_analyzer_check_duplicate_variable_definitions(analyzer);
@@ -223,8 +226,8 @@ int semantic_analyzer_check_expression_binary(SemanticAnalyzer *analyzer, AST *e
     int right_type = semantic_analyzer_check_expression(analyzer, expression->value.Binary.right);
 
     if (semantic_analyzer_check_types_valid(left_type, right_type) == false) {
-        printf("%s %s\n", token_print(left_type), token_print(right_type));
         semantic_analyzer_warning(analyzer, "Semantic Analyzer: Types are not correct");
+        return -1;
     }
 
     return left_type;
@@ -237,7 +240,7 @@ int semantic_analyzer_check_expression_self(SemanticAnalyzer *analyzer, AST *exp
 
     for (int i = 0; i < analyzer->current_ast_scope_declaration->value.StructOrUnionDeclaration.members->size; ++i) {
         AST *member = mxDynamicArrayGet(
-                analyzer->current_ast_scope_declaration->value.StructOrUnionDeclaration.members, i);
+            analyzer->current_ast_scope_declaration->value.StructOrUnionDeclaration.members, i);
 
         if (member->type == AST_TYPE_VARIABLE_DEFINITION) {
             if (strcmp(member->value.VariableDeclaration.identifier,
@@ -264,22 +267,47 @@ int semantic_analyzer_check_expression_literal(SemanticAnalyzer *analyzer, AST *
 
 int semantic_analyzer_check_expression_function_call(SemanticAnalyzer *analyzer, AST *expression) {
     // Check if the function exists
-    return semantic_analyzer_check_function_exists(analyzer, expression->value.FunctionCall.function_call_name);
+    AST *function_declaration = semantic_analyzer_check_function_exists(analyzer,
+                                                                        expression->value.FunctionCall.function_call_name);
+
+    // Check the arguments
+    if (function_declaration->value.FunctionDeclaration.arguments->size !=
+        expression->value.FunctionCall.arguments->size) {
+        semantic_analyzer_error(analyzer, "Invalid Number of Arguments");
+        return -1;
+    }
+
+    // Check the argument type
+    for (int i = 0; i < expression->value.FunctionCall.arguments->size; ++i) {
+        AST *argument_first = mxDynamicArrayGet(function_declaration->value.FunctionDeclaration.arguments, i);
+        AST *argument_second = mxDynamicArrayGet(expression->value.FunctionCall.arguments, i);
+
+        int type1 = argument_first->value.FunctionDeclarationArgument.argument_type->value.ValueKeyword.token->type;
+        int type2 = semantic_analyzer_check_expression(analyzer, argument_second);
+
+        if (!semantic_analyzer_check_types_valid(type1, type2)) {
+            semantic_analyzer_error(analyzer, "Function call invalid types");
+            return -1;
+        }
+    }
+
+
+    return function_declaration->value.FunctionDeclaration.return_type->value.ValueKeyword.token->type;
 }
 
-int semantic_analyzer_check_function_exists(SemanticAnalyzer *analyzer, char *identifier) {
+AST *semantic_analyzer_check_function_exists(SemanticAnalyzer *analyzer, char *identifier) {
     for (int i = 0; i < analyzer->declarations->size; ++i) {
         SemanticAnalyzerDeclarations *declarations = (SemanticAnalyzerDeclarations *) mxDynamicArrayGet(
-                analyzer->declarations, i);
+            analyzer->declarations, i);
         if (declarations->symbol_type == AST_TYPE_FUNCTION_DECLARATION) {
             if (strcmp(declarations->symbol_name, identifier) == 0) {
-                return declarations->symbol_ast->value.FunctionDeclaration.return_type->value.ValueKeyword.token->type;
+                return declarations->symbol_ast;
             }
         }
     }
 
     semantic_analyzer_error(analyzer, "Semantic Analyzer: Function not found");
-    return -1;
+    return NULL;
 }
 
 int semantic_analyzer_check_type_name_exists(SemanticAnalyzer *analyzer, char *type_name, bool is_value_keyword) {
@@ -297,10 +325,11 @@ int semantic_analyzer_check_type_name_exists(SemanticAnalyzer *analyzer, char *t
         if (analyzer->current_ast_scope_declaration->type == AST_TYPE_FUNCTION_DECLARATION) {
             for (int i = 0;
                  i < analyzer->current_ast_scope_declaration->value.FunctionDeclaration.arguments->size; ++i) {
-                if (strcmp(
-                        ((AST *) analyzer->current_ast_scope_declaration->value.FunctionDeclaration.arguments->data[i])->value.VariableDeclaration.identifier,
-                        type_name) == 0) {
-                    return ((AST *) analyzer->current_ast_scope_declaration->value.FunctionDeclaration.arguments->data[i])->value.FunctionDeclarationArgument.argument_type->value.ValueKeyword.token->type;
+                AST *argument = mxDynamicArrayGet(
+                    analyzer->current_ast_scope_declaration->value.FunctionDeclaration.arguments,
+                    i);
+                if (strcmp(argument->value.FunctionDeclarationArgument.argument_name, type_name) == 0) {
+                    return argument->value.FunctionDeclarationArgument.argument_type->value.ValueKeyword.token->type;
                 }
             }
         }
@@ -312,8 +341,8 @@ int semantic_analyzer_check_type_name_exists(SemanticAnalyzer *analyzer, char *t
                 if (((AST *) analyzer->current_ast_scope_declaration->value.StructOrUnionDeclaration.members->data[i])->type ==
                     AST_TYPE_VARIABLE_DEFINITION) {
                     if (strcmp(
-                            ((AST *) analyzer->current_ast_scope_declaration->value.StructOrUnionDeclaration.members->data[i])->value.VariableDeclaration.identifier,
-                            type_name) == 0) {
+                        ((AST *) analyzer->current_ast_scope_declaration->value.StructOrUnionDeclaration.members->data[i])->value.VariableDeclaration.identifier,
+                        type_name) == 0) {
                         return ((AST *) analyzer->current_ast_scope_declaration->value.StructOrUnionDeclaration.members->data[i])->value.VariableDeclaration.type->value.ValueKeyword.token->type;
                     }
                 }

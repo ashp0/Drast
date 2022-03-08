@@ -29,11 +29,12 @@ string :: test(int lmao) {
 
 private int :: main(myTestStruct argc, string[] argv) {
     int test4 = (40.4 + 20.4 + 4.30) // TODO: Add support for casting, -> int
-    int test = test(10) + "test"
+    string test = test(10) + "test"
     int main = 40
+    test(49)
     int main3 = main
-    int main2 = test + main + 40
-    int main5 = test + main + 40
+    int main2 = 50 + main + 40
+    int main5 = 30 + main + 40
 
     // TODO: Add support for if/else statements
     // We need to check if there is an equal operator, if the literal values and check if the variable exists
