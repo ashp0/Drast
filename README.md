@@ -34,7 +34,7 @@ simplicity
     - [x] Check Expressions
     - [x] Struct initializers
     - [x] Check if self.xxx is an actual member in the struct
-    - [ ] Variable Assignments
+    - [x] Variable Assignments
     - [x] Function Calls
     - [x] Return Statement
     - [x] If Statements

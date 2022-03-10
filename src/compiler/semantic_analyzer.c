@@ -67,9 +67,10 @@ void semantic_analyzer_check_struct_declaration(SemanticAnalyzer *analyzer) {
         if (member->type == AST_TYPE_FUNCTION_DECLARATION) {
             analyzer->current_ast_scope_body = (AST **) member->value.FunctionDeclaration.body->data;
             analyzer->current_ast_scope_body_size = member->value.FunctionDeclaration.body->size;
-
             semantic_analyzer_check_function_declaration(analyzer);
         } else if (member->type == AST_TYPE_STRUCT_INITIALIZER) {
+            analyzer->current_ast_scope_body = (AST **) member->value.StructInitializer.body->data;
+            analyzer->current_ast_scope_body_size = member->value.StructInitializer.body->size;
             semantic_analyzer_check_struct_initializer(analyzer, member);
         }
     }
@@ -77,6 +78,8 @@ void semantic_analyzer_check_struct_declaration(SemanticAnalyzer *analyzer) {
 
 void semantic_analyzer_check_struct_initializer(SemanticAnalyzer *analyzer, AST *struct_initializer) {
     semantic_analyzer_check_function_declaration_arguments(analyzer, true);
+
+    semantic_analyzer_check_body(analyzer);
 }
 
 void semantic_analyzer_check_duplicate_struct_members(SemanticAnalyzer *analyzer) {
@@ -178,7 +181,11 @@ void semantic_analyzer_check_body(SemanticAnalyzer *analyzer) {
             case AST_TYPE_IF_ELSE_STATEMENT:
                 semantic_analyzer_check_if_else_statement(analyzer);
                 break;
+            case AST_TYPE_BINARY:
+                semantic_analyzer_check_expression_binary(analyzer, analyzer->current_ast_scope_body_item, false);
+                break;
             default:
+                semantic_analyzer_error(analyzer, "Semantic Analyzer: Unknown AST type");
                 break;
         }
     }
@@ -331,9 +338,11 @@ int semantic_analyzer_check_expression_binary(SemanticAnalyzer *analyzer, AST *e
     int left_type = semantic_analyzer_check_expression(analyzer, expression->value.Binary.left);
     int right_type = semantic_analyzer_check_expression(analyzer, expression->value.Binary.right);
 
-    if (semantic_analyzer_check_types_valid(left_type, right_type) == false) {
-        semantic_analyzer_warning(analyzer, "Semantic Analyzer: Types are not correct");
-        return -1;
+    if (left_type != T_K_SELF) {
+        if (semantic_analyzer_check_types_valid(left_type, right_type) == false) {
+            semantic_analyzer_warning(analyzer, "Semantic Analyzer: Types are not correct");
+            return -1;
+        }
     }
 
     if (is_equality) {
@@ -352,7 +361,7 @@ int semantic_analyzer_check_expression_binary(SemanticAnalyzer *analyzer, AST *e
         }
     }
 
-    return left_type;
+    return right_type;
 }
 
 int semantic_analyzer_check_expression_self(SemanticAnalyzer *analyzer, AST *expression) {
@@ -372,7 +381,7 @@ int semantic_analyzer_check_expression_self(SemanticAnalyzer *analyzer, AST *exp
         }
     }
 
-    semantic_analyzer_error(analyzer, "Semantic Analyzer: Variable not found");
+    semantic_analyzer_error(analyzer, "Semantic Analyzer: Struct Member not found");
     return -1;
 }
 
@@ -418,6 +427,22 @@ int semantic_analyzer_check_expression_function_call(SemanticAnalyzer *analyzer,
 }
 
 AST *semantic_analyzer_check_function_exists(SemanticAnalyzer *analyzer, char *identifier) {
+    if (analyzer->current_ast_scope_declaration->type == AST_TYPE_STRUCT_OR_UNION_DECLARATION) {
+        // It's inside a struct, check the struct members
+
+        mxDynamicArray *members = analyzer->current_ast_scope_declaration->value.StructOrUnionDeclaration.members;
+
+        for (int i = 0; i < members->size; ++i) {
+            AST *member = mxDynamicArrayGet(members, i);
+
+            if (member->type == AST_TYPE_FUNCTION_DECLARATION) {
+                if (strcmp(member->value.FunctionDeclaration.function_name, identifier) == 0) {
+                    return member;
+                }
+            }
+        }
+    }
+
     for (int i = 0; i < analyzer->declarations->size; ++i) {
         SemanticAnalyzerDeclarations *declarations = (SemanticAnalyzerDeclarations *) mxDynamicArrayGet(
             analyzer->declarations, i);
@@ -443,6 +468,8 @@ int semantic_analyzer_check_type_name_exists(SemanticAnalyzer *analyzer, char *t
                         0) {
                         return inner_body->body[i - 1]->value.VariableDeclaration.type->value.ValueKeyword.token->type;
                     }
+                } else {
+                    // TODO??
                 }
             }
         }
@@ -479,6 +506,20 @@ int semantic_analyzer_check_type_name_exists(SemanticAnalyzer *analyzer, char *t
                         ((AST *) analyzer->current_ast_scope_declaration->value.StructOrUnionDeclaration.members->data[i])->value.VariableDeclaration.identifier,
                         type_name) == 0) {
                         return ((AST *) analyzer->current_ast_scope_declaration->value.StructOrUnionDeclaration.members->data[i])->value.VariableDeclaration.type->value.ValueKeyword.token->type;
+                    }
+                }
+            }
+
+            // Struct Function Argument
+            if (analyzer->current_ast_scope_inner_declaration->type == AST_TYPE_FUNCTION_DECLARATION) {
+                for (int i = 0;
+                     i <
+                     analyzer->current_ast_scope_inner_declaration->value.FunctionDeclaration.arguments->size; ++i) {
+                    AST *argument = mxDynamicArrayGet(
+                        analyzer->current_ast_scope_inner_declaration->value.FunctionDeclaration.arguments,
+                        i);
+                    if (strcmp(argument->value.FunctionDeclarationArgument.argument_name, type_name) == 0) {
+                        return argument->value.FunctionDeclarationArgument.argument_type->value.ValueKeyword.token->type;
                     }
                 }
             }
