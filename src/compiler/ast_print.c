@@ -376,7 +376,6 @@ void ast_print_if_else_statement(AST *ast, uintptr_t indent) {
         printf("\t");
     printf("}\n");
 
-    // TODO: FIX THIS
     if (ast->value.IfElseStatement.has_else_statement) {
         if (ast->value.IfElseStatement.else_if_conditions->size != 0) {
             // For each else if statement

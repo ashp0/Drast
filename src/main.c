@@ -60,7 +60,6 @@ int main(__attribute__((unused)) int argc, char **argv) {
     printf("\n%f seconds to lex and parse the file \n", time_taken);
      */
 
-//    TODO: Work on this after code gen, semantic_analyzer_run_analysis(items, item_size);
     semantic_analyzer_run_analysis(items);
 
     free(lexer);

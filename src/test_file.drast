@@ -43,11 +43,15 @@ private int :: main(myTestStruct argc, string[] argv) {
     int main2 = 50 + main + 40
     int main5 = 30 + main + 40
 
-    // TODO: Add support for if/else statements
-    // We need to check if there is an equal operator, if the literal values and check if the variable exists
     if (50 == 30) {
         int main4 = main + main2
-        int main5 = main + main2
+        int main5 = main + test4
+    } else if (50 == 30) {
+        int main4 = main + main2
+        int main5 = main + test4
+    } else {
+        int main4 = main + main2
+        int main5 = main + test4
     }
 
 }

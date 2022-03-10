@@ -29,8 +29,10 @@ void semantic_analyzer_run_analysis(mxDynamicArray *ast_items) {
 
     // Create a SemanticAnalyzer table
     SemanticAnalyzer *analyzer = malloc(sizeof(SemanticAnalyzer));
+    analyzer->inner_ast_scope_body_index = 0;
     analyzer->declarations = declarations;
     analyzer->ast_items = ast_items;
+    analyzer->inner_ast_scope_bodies = mxDynamicArrayCreate(sizeof(SemanticAnalyzerInnerBodies *));
 
     for (int i = 0; i < analyzer->declarations->size; ++i) {
         semantic_analyzer_update_scope(analyzer, i);
@@ -146,9 +148,22 @@ void semantic_analyzer_check_function_declaration_arguments(SemanticAnalyzer *an
 }
 
 void semantic_analyzer_check_body(SemanticAnalyzer *analyzer) {
-    for (int i = 0; i < analyzer->current_ast_scope_body_size; ++i) {
+    uintptr_t body_size = 0;
+    AST **body;
+
+    if (analyzer->is_inner_body) {
+        SemanticAnalyzerInnerBodies *inner_body = mxDynamicArrayGet(analyzer->inner_ast_scope_bodies,
+                                                                    analyzer->inner_ast_scope_body_index - 1);
+        body_size = inner_body->body_size;
+        body = inner_body->body;
+    } else {
+        body_size = analyzer->current_ast_scope_body_size;
+        body = analyzer->current_ast_scope_body;
+    }
+
+    for (int i = 0; i < body_size; ++i) {
         analyzer->current_ast_scope_body_item_position = i;
-        analyzer->current_ast_scope_body_item = analyzer->current_ast_scope_body[i];
+        analyzer->current_ast_scope_body_item = body[i];
 
         switch (analyzer->current_ast_scope_body_item->type) {
             case AST_TYPE_VARIABLE_DEFINITION:
@@ -160,10 +175,30 @@ void semantic_analyzer_check_body(SemanticAnalyzer *analyzer) {
             case AST_TYPE_RETURN:
                 semantic_analyzer_check_return(analyzer);
                 break;
+            case AST_TYPE_IF_ELSE_STATEMENT:
+                semantic_analyzer_check_if_else_statement(analyzer);
+                break;
             default:
                 break;
         }
     }
+}
+
+void semantic_analyzer_check_inner_body(SemanticAnalyzer *analyzer, AST **body, uintptr_t body_size) {
+    SemanticAnalyzerInnerBodies *inner_body = calloc(1, sizeof(SemanticAnalyzerInnerBodies));
+    inner_body->body = body;
+    inner_body->body_size = body_size;
+    mxDynamicArrayAdd(analyzer->inner_ast_scope_bodies, inner_body);
+
+    AST *prev_item = analyzer->current_ast_scope_body_item;
+
+    analyzer->inner_ast_scope_body_index += 1;
+    analyzer->is_inner_body = true;
+
+    semantic_analyzer_check_body(analyzer);
+    analyzer->is_inner_body = false;
+
+    analyzer->current_ast_scope_body_item = prev_item;
 }
 
 void semantic_analyzer_check_variable_declaration(SemanticAnalyzer *analyzer) {
@@ -184,8 +219,40 @@ void semantic_analyzer_check_variable_declaration(SemanticAnalyzer *analyzer) {
         semantic_analyzer_warning(analyzer, "Semantic Analyzer: Variable type is not valid to expression type");
     }
 
-    // Check if the variable is already declared
+    // Check if the variable is already declared, variables are allowed to be redeclared if they are in an inner body
     semantic_analyzer_check_duplicate_variable_definitions(analyzer);
+}
+
+void semantic_analyzer_check_if_else_statement(SemanticAnalyzer *analyzer) {
+    // Check the if condition and body
+    semantic_analyzer_check_expression_binary(analyzer,
+                                              analyzer->current_ast_scope_body_item->value.IfElseStatement.if_condition,
+                                              true);
+    semantic_analyzer_check_inner_body(analyzer,
+                                       analyzer->current_ast_scope_body_item->value.IfElseStatement.if_body->value.Body.body,
+                                       analyzer->current_ast_scope_body_item->value.IfElseStatement.if_body->value.Body.body_size);
+
+    // Check the else condition and body
+    for (int i = 0; i < analyzer->current_ast_scope_body_item->value.IfElseStatement.else_if_conditions->size; ++i) {
+        AST *else_condition = mxDynamicArrayGet(
+            analyzer->current_ast_scope_body_item->value.IfElseStatement.else_if_conditions, i);
+        semantic_analyzer_check_expression_binary(analyzer, else_condition, true);
+    }
+
+    for (int i = 0; i < analyzer->current_ast_scope_body_item->value.IfElseStatement.else_if_bodies->size; ++i) {
+        AST *else_body = mxDynamicArrayGet(analyzer->current_ast_scope_body_item->value.IfElseStatement.else_if_bodies,
+                                           i);
+        semantic_analyzer_check_inner_body(analyzer,
+                                           else_body->value.Body.body,
+                                           else_body->value.Body.body_size);
+    }
+
+    if (analyzer->current_ast_scope_body_item->value.IfElseStatement.has_else_statement) {
+        AST *else_body = mxDynamicArrayGet(analyzer->current_ast_scope_body_item->value.IfElseStatement.else_body, 0);
+        semantic_analyzer_check_inner_body(analyzer,
+                                           else_body->value.Body.body,
+                                           else_body->value.Body.body_size);
+    }
 }
 
 void semantic_analyzer_check_return(SemanticAnalyzer *analyzer) {
@@ -212,8 +279,20 @@ void semantic_analyzer_check_return(SemanticAnalyzer *analyzer) {
 }
 
 void semantic_analyzer_check_duplicate_variable_definitions(SemanticAnalyzer *analyzer) {
-    for (uintptr_t i = analyzer->current_ast_scope_body_size - 1; i > 0; i--) {
-        AST *item = analyzer->current_ast_scope_body[i];
+    uintptr_t body_size;
+    AST **body;
+    if (analyzer->is_inner_body) {
+        SemanticAnalyzerInnerBodies *inner_body = mxDynamicArrayGet(analyzer->inner_ast_scope_bodies,
+                                                                    analyzer->inner_ast_scope_body_index - 1);
+        body_size = inner_body->body_size;
+        body = inner_body->body;
+    } else {
+        body_size = analyzer->current_ast_scope_body_size;
+        body = analyzer->current_ast_scope_body;
+    }
+
+    for (uintptr_t i = body_size - 1; i > 0; i--) {
+        AST *item = body[i];
         if (item->type == AST_TYPE_VARIABLE_DEFINITION && item != analyzer->current_ast_scope_body_item) {
             if (strcmp(item->value.VariableDeclaration.identifier,
                        analyzer->current_ast_scope_body_item->value.VariableDeclaration.identifier) == 0) {
@@ -232,7 +311,7 @@ int semantic_analyzer_check_expression(SemanticAnalyzer *analyzer, AST *expressi
                 }
             }
 
-            return semantic_analyzer_check_expression_binary(analyzer, expression);
+            return semantic_analyzer_check_expression_binary(analyzer, expression, false);
         case AST_TYPE_LITERAL:
             return semantic_analyzer_check_expression_literal(analyzer, expression);
         case AST_TYPE_UNARY:
@@ -240,20 +319,37 @@ int semantic_analyzer_check_expression(SemanticAnalyzer *analyzer, AST *expressi
         case AST_TYPE_GROUPING:
             return semantic_analyzer_check_expression(analyzer, expression->value.Grouping.expression);
         case AST_TYPE_FUNCTION_CALL:
-            return semantic_analyzer_check_expression_function_call(analyzer, expression);
+            return semantic_analyzer_check_expression_function_call(analyzer,
+                                                                    expression); // Make's no difference true or false
         default:
             semantic_analyzer_error(analyzer, "Semantic Analyzer: Expression type not supported");
             return -1;
     }
 }
 
-int semantic_analyzer_check_expression_binary(SemanticAnalyzer *analyzer, AST *expression) {
+int semantic_analyzer_check_expression_binary(SemanticAnalyzer *analyzer, AST *expression, bool is_equality) {
     int left_type = semantic_analyzer_check_expression(analyzer, expression->value.Binary.left);
     int right_type = semantic_analyzer_check_expression(analyzer, expression->value.Binary.right);
 
     if (semantic_analyzer_check_types_valid(left_type, right_type) == false) {
         semantic_analyzer_warning(analyzer, "Semantic Analyzer: Types are not correct");
         return -1;
+    }
+
+    if (is_equality) {
+        // TODO: Make the types return boolean, also add support for it in the parser
+        switch (expression->value.Binary.operator->type) {
+            case T_EQUAL_EQUAL:
+            case T_NOT_EQUAL:
+            case T_GREATER_THAN:
+            case T_GREATER_THAN_EQUAL:
+            case T_LESS_THAN:
+            case T_LESS_THAN_EQUAL:
+                return left_type;
+            default:
+                semantic_analyzer_error(analyzer, "Semantic Analyzer: Expected Equality Operator in if statement");
+                return -1;
+        }
     }
 
     return left_type;
@@ -338,7 +434,20 @@ AST *semantic_analyzer_check_function_exists(SemanticAnalyzer *analyzer, char *i
 
 int semantic_analyzer_check_type_name_exists(SemanticAnalyzer *analyzer, char *type_name, bool is_value_keyword) {
     if (!is_value_keyword) {
-        for (int i = (int) analyzer->current_ast_scope_body_item_position; i > 0; i--) {
+        if (analyzer->is_inner_body) {
+            SemanticAnalyzerInnerBodies *inner_body = mxDynamicArrayGet(analyzer->inner_ast_scope_bodies,
+                                                                        analyzer->inner_ast_scope_body_index - 1);
+            for (uintptr_t i = inner_body->body_size - 1; i > 0; --i) {
+                if (inner_body->body[i - 1]->type == AST_TYPE_VARIABLE_DEFINITION) {
+                    if (strcmp(inner_body->body[i - 1]->value.VariableDeclaration.identifier, type_name) ==
+                        0) {
+                        return inner_body->body[i - 1]->value.VariableDeclaration.type->value.ValueKeyword.token->type;
+                    }
+                }
+            }
+        }
+
+        for (uintptr_t i = analyzer->current_ast_scope_body_size; i > 0; i--) {
             if (analyzer->current_ast_scope_body[i - 1]->type == AST_TYPE_VARIABLE_DEFINITION) {
                 if (strcmp(analyzer->current_ast_scope_body[i - 1]->value.VariableDeclaration.identifier, type_name) ==
                     0) {

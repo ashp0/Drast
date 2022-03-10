@@ -17,6 +17,11 @@ typedef struct {
 } SemanticAnalyzerDeclarations;
 
 typedef struct {
+    AST **body;
+    uintptr_t body_size;
+} SemanticAnalyzerInnerBodies;
+
+typedef struct {
     mxDynamicArray *declarations;
     mxDynamicArray *ast_items;
 
@@ -27,6 +32,14 @@ typedef struct {
     uintptr_t current_ast_scope_body_item_position;
     AST *current_ast_scope_inner_declaration; // If the current scope is a struct, this is the inner declaration, which will be a function.
     AST *current_ast_scope_declaration; // Function Declaration, Struct Declaration, etc.
+
+    // Inner Statements: for, if, while, else, else if, switch, etc.
+    // If Statement, For Statement, etc.
+    mxDynamicArray *inner_ast_scope_bodies; // Array of `SemanticAnalyzerInnerBodies`
+    int inner_ast_scope_body_index;
+    bool is_inner_body;
+
+    uintptr_t inner_ast_scope_declaration; // The declaration of the if statement or the for statement.
 
     // To show error messages, eg: "Undeclared variable in scope: _____"
     char *current_declaration_name; // For debugging purposes
@@ -48,7 +61,11 @@ void semantic_analyzer_check_function_declaration_arguments(SemanticAnalyzer *an
 
 void semantic_analyzer_check_body(SemanticAnalyzer *analyzer);
 
+void semantic_analyzer_check_inner_body(SemanticAnalyzer *analyzer, AST **body, uintptr_t body_size);
+
 void semantic_analyzer_check_variable_declaration(SemanticAnalyzer *analyzer);
+
+void semantic_analyzer_check_if_else_statement(SemanticAnalyzer *analyzer);
 
 void semantic_analyzer_check_return(SemanticAnalyzer *analyzer);
 
@@ -56,7 +73,7 @@ void semantic_analyzer_check_duplicate_variable_definitions(SemanticAnalyzer *an
 
 int semantic_analyzer_check_expression(SemanticAnalyzer *analyzer, AST *expression);
 
-int semantic_analyzer_check_expression_binary(SemanticAnalyzer *analyzer, AST *expression);
+int semantic_analyzer_check_expression_binary(SemanticAnalyzer *analyzer, AST *expression, bool is_equality);
 
 int semantic_analyzer_check_expression_self(SemanticAnalyzer *analyzer, AST *expression);
 

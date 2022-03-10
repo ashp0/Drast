@@ -27,7 +27,7 @@ simplicity
     - [x] Improve the if statement AST
     - [ ] Add support for booleans
     - [ ] Add support for casting
-    - [ ] Check if function has a return type
+    - [x] Check if function has a return type, for return statements
 - [ ] Semantic Analyzer
     - [x] Duplicate Variable and Functions
     - [ ] Duplicate Struct Initializers
@@ -37,7 +37,7 @@ simplicity
     - [ ] Variable Assignments
     - [x] Function Calls
     - [x] Return Statement
-    - [ ] If Statements
+    - [x] If Statements
     - [ ] Alias Types
 - [ ] Optimizations? ( Might not do this stage since LLVM does this )
 - [ ] Code Generation

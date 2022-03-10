@@ -22,7 +22,8 @@ void mxDynamicArrayAdd(mxDynamicArray *array, void *item) {
         array->capacity *= 2;
         array->data = realloc(array->data, sizeof(void *) * array->capacity);
     }
-    array->data[array->size++] = item;
+    array->data[array->size] = item;
+    array->size += 1;
 }
 
 __attribute__((unused)) void mxDynamicArrayRemove(mxDynamicArray *array, int index) {
