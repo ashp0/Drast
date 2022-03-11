@@ -39,6 +39,7 @@ simplicity
     - [x] Return Statement
     - [x] If Statements
     - [ ] Alias Types
+    - [ ] Struct Variable Members
 - [ ] Optimizations? ( Might not do this stage since LLVM does this )
 - [ ] Code Generation
 - [ ] Improvements to the CLI

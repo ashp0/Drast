@@ -49,6 +49,8 @@ void semantic_analyzer_run_analysis(mxDynamicArray *ast_items);
 
 void semantic_analyzer_check_scope(SemanticAnalyzer *analyzer);
 
+void semantic_analyzer_check_enum_declaration(SemanticAnalyzer *analyzer);
+
 void semantic_analyzer_check_struct_declaration(SemanticAnalyzer *analyzer);
 
 void semantic_analyzer_check_duplicate_struct_members(SemanticAnalyzer *analyzer);
@@ -73,17 +75,24 @@ void semantic_analyzer_check_duplicate_variable_definitions(SemanticAnalyzer *an
 
 int semantic_analyzer_check_expression(SemanticAnalyzer *analyzer, AST *expression);
 
+int semantic_analyzer_check_struct_member_call(SemanticAnalyzer *analyzer, AST *expression);
+
+AST *semantic_analyzer_check_struct_member_exist(SemanticAnalyzer *analyzer, AST *struct_ast, char *member_name);
+
 int semantic_analyzer_check_expression_binary(SemanticAnalyzer *analyzer, AST *expression, bool is_equality);
 
 int semantic_analyzer_check_expression_self(SemanticAnalyzer *analyzer, AST *expression);
 
 int semantic_analyzer_check_expression_literal(SemanticAnalyzer *analyzer, AST *expression);
 
-int semantic_analyzer_check_expression_function_call(SemanticAnalyzer *analyzer, AST *expression);
+int
+semantic_analyzer_check_expression_function_call(SemanticAnalyzer *analyzer, AST *expression, AST *binary_expression);
 
 AST *semantic_analyzer_check_function_exists(SemanticAnalyzer *analyzer, char *identifier);
 
-int semantic_analyzer_check_type_name_exists(SemanticAnalyzer *analyzer, char *type_name, bool is_value_keyword);
+AST *semantic_analyzer_check_struct_name_exists(SemanticAnalyzer *analyzer, char *type_name, bool quits_program);
+
+Token *semantic_analyzer_check_type_name_exists(SemanticAnalyzer *analyzer, char *type_name, bool is_value_keyword);
 
 void semantic_analyzer_check_duplicate_declaration(mxDynamicArray *declarations);
 

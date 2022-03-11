@@ -27,3 +27,7 @@ add_executable(drast src/main.c
         src/compiler/ast_print.h
         src/compiler/semantic_analyzer.c
         src/compiler/semantic_analyzer.h)
+
+install(TARGETS drast
+        CONFIGURATIONS Release
+        DESTINATION bin)

@@ -2,6 +2,12 @@
 // Drast Programming Language Examples
 //
 
+enum Test {
+    case A,
+    case B,
+    case C,
+}
+
 struct myTestStruct {
     string first_name
     string last_name
@@ -34,7 +40,13 @@ void :: test_function(int lmao) {
     int test2 = test + lmao
 }
 
+myTestStruct :: myTestStruct_init(int age) {
+}
+
 private int :: main(myTestStruct argc, string[] argv) {
+    argc.first_name = "John"
+    myTestStruct_init(50).first_name = "ewlkfamwelfkm"
+
     int test4 = (40.4 + 20.4 + 4.30) // TODO: Add support for casting, -> int
     string test = test(10) + "test"
     int main = 40

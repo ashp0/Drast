@@ -6,7 +6,6 @@
 //
 
 #include <stdio.h>
-#include <time.h>
 #include "compiler/lexer.h"
 #include "compiler/parser.h"
 #include "compiler/ast.h"

@@ -290,7 +290,31 @@ AST *parser_parse_function_or_variable_declaration(Parser *parser, bool is_inner
 
 
     if (parser->current->type == T_PARENS_OPEN) {
-        return parser_parse_function_call(parser, type->value.Literal.literal_value->value);
+        AST *function_call = parser_parse_function_call(parser, type->value.Literal.literal_value->value);
+        if (parser_is_binary_operator(parser->current)) {
+            AST *binary_ast = ast_init_with_type(AST_TYPE_BINARY);
+
+            {
+                binary_ast->value.Binary.left = function_call;
+                binary_ast->value.Binary.operator = parser->current;
+                parser_advance(parser, parser->current->type);
+                binary_ast->value.Binary.right = parser_parse_primary(parser);
+            }
+
+            if (parser_is_binary_operator(parser->current)) {
+                AST *new_binary_ast = ast_init_with_type(AST_TYPE_BINARY);
+                new_binary_ast->value.Binary.left = binary_ast;
+                new_binary_ast->value.Binary.operator = parser->current;
+                parser_advance(parser, parser->current->type);
+                new_binary_ast->value.Binary.right = parser_parse_expression(parser);
+
+                return new_binary_ast;
+            }
+
+            return binary_ast;
+        } else {
+            return function_call;
+        }
     } else if (parser->current->type == T_DOUBLE_COLON && !is_inner_statement) {
         parser_advance(parser, T_DOUBLE_COLON);
         if (is_volatile) {
@@ -850,7 +874,15 @@ AST *parser_parse_primary(Parser *parser) {
         parser_advance(parser, parser->current->type);
 
         if (parser->current->type == T_PARENS_OPEN) {
-            return parser_parse_function_call(parser, literal_ast->value.Literal.literal_value->value);
+            AST *function_call = parser_parse_function_call(parser, literal_ast->value.Literal.literal_value->value);
+            if (parser_is_binary_operator(parser->current)) {
+                AST *binary_operator = ast_init_with_type(AST_TYPE_BINARY);
+                binary_operator->value.Binary.operator = parser->current;
+                parser_advance(parser, parser->current->type);
+                binary_operator->value.Binary.left = function_call;
+                binary_operator->value.Binary.right = parser_parse_expression(parser);
+                return binary_operator;
+            }
         }
 
         return literal_ast;
