@@ -14,7 +14,7 @@ static void parse_short_argument(const char option, const char *value);
 static void parse_long_argument(const char *option, const char *value);
 
 int main(int argc, const char *argv[]) {
-    ArgumentParser *argument_parser = argument_parser_init(argc, argv, long_name_list);
+    ArgumentParser argument_parser = argument_parser_init(argc, argv, long_name_list);
 
     argument_parser_parse_arguments(argument_parser, &parse_short_argument, &parse_long_argument);
 

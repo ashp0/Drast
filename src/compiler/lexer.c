@@ -7,514 +7,295 @@
 
 #include "lexer.h"
 
+static Lexer lexer;
 
-Lexer *lexer_init(char *source) {
-    Lexer *lexer = malloc(sizeof(Lexer));
-    lexer->source = source;
-    lexer->source_length = strlen(lexer->source);
-
-    lexer->index = 0;
-    lexer->current = lexer->source[lexer->index];
-
-    lexer->line = 1;
-    lexer->position = 0;
-
-    return lexer;
-}
-
-Lexer *lexer_duplicate(Lexer *lexer) {
-    Lexer *new_lexer = lexer_init(lexer->source);
-    new_lexer->current = lexer->current;
-    new_lexer->source = lexer->source;
-    new_lexer->index = lexer->index;
-    new_lexer->position = lexer->position;
-    new_lexer->line = lexer->line;
-    new_lexer->source_length = lexer->source_length;
-
-    return new_lexer;
-}
-
-__attribute__((unused)) Token *lexer_get_next_token_without_advance(Lexer *lexer) {
-    Lexer *new_lexer = lexer_duplicate(lexer);
-    Token *next_token = lexer_get_next_token(new_lexer);
-
-    free(new_lexer);
-
-    return next_token;
-}
-
-__attribute__((unused)) Token *lexer_get_next_token_without_advance_offset(Lexer *lexer, uintptr_t offset) {
-    Lexer *new_lexer = lexer_duplicate(lexer);
-
-    for (int i = 0; i < offset - 1; ++i) {
-        lexer_get_next_token(new_lexer);
-    }
-    free(new_lexer);
-
-    return lexer_get_next_token(new_lexer);
-}
-
-Token *lexer_get_next_token(Lexer *lexer) {
-    if (lexer_is_eof(lexer)) {
-        return lexer_advance_token(T_EOF, (char[2]) {lexer->current, 0}, lexer, true);
+#define LEX_OPERATOR_WITH_EQUAL(value, type, value2, type2) \
+    if (lexer_peek() == '=') {                              \
+        lexer_advance();                                    \
+        return lexer_make_token(#value2, type2, true);      \
+    } else {                                                \
+        return lexer_make_token(#value, type, true);        \
     }
 
-    char c = lexer->current;
+#define LEX_WHILE(condition, is_string_or_character) \
+    lexer.start = lexer.index;                       \
+    if (is_string_or_character)                      \
+        lexer_advance();                             \
+    while (condition) {                              \
+        if ((is_string_or_character) && lexer_peek() == '\0') { \
+                     lexer_error("Unterminated String Or Character Literal"); \
+                exit(-1);                            \
+        }                                            \
+        if (lexer.current == '\n') {                 \
+            lexer.position.line++;                   \
+            lexer.position.column = 0;               \
+        }                                            \
+        lexer_advance();                             \
+        if ((is_string_or_character) && lexer.current == T_BACKSLASH) { \
+            lexer_advance();                         \
+            lexer_advance();                         \
+        }                                            \
+        if (lexer.current == '\0') {                 \
+            if (is_string_or_character) {            \
+                lexer_error("Unterminated String Or Character Literal"); \
+                exit(-1);                            \
+            }                                        \
+            break;                                   \
+        }                                            \
+    }
 
-    switch (c) {
+#define lexer_error printf
+
+void lexer_init(char *source) {
+    lexer.source = source;
+    lexer.source_length = strlen(lexer.source);
+    lexer.start = 0;
+    lexer.index = 0;
+    lexer.current = lexer.source[lexer.index];
+
+    lexer.position.line = 1;
+    lexer.position.column = 0;
+}
+
+Token lexer_get_token() {
+    lexer.start = lexer.index - 1;
+    lexer_skip_whitespace();
+
+    switch (lexer.current) {
+        case 'a' ... 'z':
+        case 'A' ... 'Z':
+        case '_':
+            return lexer_identifier();
+        case '0' ... '9':
+            return lexer_digit();
+        case '"':
+            return lexer_string();
+        case '\'':
+            return lexer_character();
         case ' ':
         case '\r':
         case '\t':
             break;
         case '\n':
-            lexer->line += 1;
-            lexer->position = 0;
+            lexer.position.line++;
+            lexer.position.column = 0;
             break;
         case '?':
-            return lexer_advance_token(T_QUESTION, "?", lexer, false);
-        case '<':
-            if (lexer_peek_next(lexer) == '<') {
-                lexer_advance(lexer);
-                if (lexer_peek_next(lexer) == '=') {
-                    lexer_advance(lexer);
-                    return lexer_advance_token(T_BITWISE_SHIFT_LEFT_EQUAL, "<<=", lexer, false);
-                } else {
-                    return lexer_advance_token(T_BITWISE_SHIFT_LEFT, "<<", lexer, false);
-                }
-            } else if (lexer_peek_next(lexer) == '=') {
-                lexer_advance(lexer);
-                return lexer_advance_token(T_LESS_THAN_EQUAL, "<=", lexer, false);
+            return lexer_make_token("?", T_QUESTION, true);
+        case '<': {
+            if (lexer_peek() == '<') {
+                lexer_advance();
+                LEX_OPERATOR_WITH_EQUAL(<<, T_BITWISE_SHIFT_LEFT, <<=, T_BITWISE_SHIFT_LEFT_EQUAL)
             } else {
-                return lexer_advance_token(T_LESS_THAN, "<", lexer, false);
+                LEX_OPERATOR_WITH_EQUAL(<, T_LESS_THAN, <=, T_LESS_THAN_EQUAL)
             }
-        case '>':
-            if (lexer_peek_next(lexer) == '>') {
-                lexer_advance(lexer);
-                if (lexer_peek_next(lexer) == '=') {
-                    lexer_advance(lexer);
-                    return lexer_advance_token(T_BITWISE_SHIFT_RIGHT_EQUAL, ">>=", lexer, false);
-                } else {
-                    return lexer_advance_token(T_BITWISE_SHIFT_RIGHT, ">>", lexer, false);
-                }
-            } else if (lexer_peek_next(lexer) == '=') {
-                lexer_advance(lexer);
-                return lexer_advance_token(T_GREATER_THAN_EQUAL, ">=", lexer, false);
+        }
+        case '>': {
+            if (lexer_peek() == '>') {
+                lexer_advance();
+                LEX_OPERATOR_WITH_EQUAL(>>, T_BITWISE_SHIFT_RIGHT, >>=, T_BITWISE_SHIFT_RIGHT_EQUAL)
             } else {
-                return lexer_advance_token(T_GREATER_THAN, ">", lexer, false);
+                LEX_OPERATOR_WITH_EQUAL(>, T_GREATER_THAN, >=, T_GREATER_THAN_EQUAL)
             }
+        }
         case '=':
-            if (lexer_peek_next(lexer) == '=') {
-                lexer_advance(lexer);
-                return lexer_advance_token(T_EQUAL_EQUAL, "==", lexer, false);
-            } else {
-                return lexer_advance_token(T_EQUAL, "=", lexer, false);
-            }
+            LEX_OPERATOR_WITH_EQUAL(=, T_EQUAL, ==, T_EQUAL_EQUAL)
         case '!':
-            if (lexer_peek_next(lexer) == '=') {
-                lexer_advance(lexer);
-                return lexer_advance_token(T_NOT_EQUAL, "!=", lexer, false);
-            } else {
-                return lexer_advance_token(T_NOT, "!", lexer, false);
-            }
+            LEX_OPERATOR_WITH_EQUAL(!, T_NOT, !=, T_NOT_EQUAL)
         case '+':
-            if (lexer_peek_next(lexer) == '=') {
-                lexer_advance(lexer);
-                return lexer_advance_token(T_OPERATOR_ADD_EQUAL, "+=", lexer, false);
-            } else {
-                return lexer_advance_token(T_OPERATOR_ADD, "+", lexer, false);
-            }
+            LEX_OPERATOR_WITH_EQUAL(+, T_OPERATOR_ADD, +=, T_OPERATOR_ADD_EQUAL)
         case '-':
-            if (lexer_peek_next(lexer) == '=') {
-                lexer_advance(lexer);
-                return lexer_advance_token(T_OPERATOR_SUB_EQUAL, "-=", lexer, false);
-            } else if (lexer_peek_next(lexer) == '>') {
-                lexer_advance(lexer);
-                return lexer_advance_token(T_ARROW, "->", lexer, false);
-            } else if (isdigit(lexer_peek_next(lexer))) {
-                return lexer_parse_number(lexer);
-            } else {
-                return lexer_advance_token(T_OPERATOR_SUB, "-", lexer, false);
-            }
+            LEX_OPERATOR_WITH_EQUAL(-, T_OPERATOR_SUB, -=, T_OPERATOR_SUB_EQUAL)
         case '*':
-            if (lexer_peek_next(lexer) == '=') {
-                lexer_advance(lexer);
-                return lexer_advance_token(T_OPERATOR_MUL_EQUAL, "*=", lexer, false);
-            } else {
-                return lexer_advance_token(T_OPERATOR_MUL, "*", lexer, false);
+            LEX_OPERATOR_WITH_EQUAL(*, T_OPERATOR_MUL, *=, T_OPERATOR_MUL_EQUAL)
+        case '/': {
+            if (lexer_peek() == '/') {
+                lexer_skip_line();
+                return lexer_get_token();
+            } else if (lexer_peek() == '*') {
+                lexer_skip_block_comment();
+                return lexer_get_token();
             }
-        case '/':
-            if (lexer_peek_next(lexer) == '=') {
-                lexer_advance(lexer);
-                return lexer_advance_token(T_OPERATOR_DIV_EQUAL, "/=", lexer, false);
-            } else if (lexer_peek_next(lexer) == '/') {
-                lexer_skip_line(lexer);
-                return lexer_get_next_token(lexer);
-            } else if (lexer_peek_next(lexer) == '*') {
-                lexer_skip_block_comment(lexer);
-                return lexer_get_next_token(lexer);
-            } else {
-                return lexer_advance_token(T_OPERATOR_DIV, "/", lexer, false);
-            }
+            LEX_OPERATOR_WITH_EQUAL(/, T_OPERATOR_DIV, /=, T_OPERATOR_DIV_EQUAL)
+        }
         case '%':
-            if (lexer_peek_next(lexer) == '=') {
-                lexer_advance(lexer);
-                return lexer_advance_token(T_OPERATOR_MOD_EQUAL, "%=", lexer, false);
+            LEX_OPERATOR_WITH_EQUAL(%, T_OPERATOR_MOD, %=, T_OPERATOR_MOD_EQUAL)
+        case '&': {
+            if (lexer_peek() == '&') {
+                lexer_advance();
+                LEX_OPERATOR_WITH_EQUAL(&&, T_BITWISE_AND_AND, &&=, T_BITWISE_AND_AND_EQUAL)
             } else {
-                return lexer_advance_token(T_OPERATOR_MOD, "%", lexer, false);
+                LEX_OPERATOR_WITH_EQUAL(&, T_BITWISE_AND, &=, T_BITWISE_AND_EQUAL)
             }
-        case '&':
-            if (lexer_peek_next(lexer) == '&') {
-                lexer_advance(lexer);
-                if (lexer_peek_next(lexer) == '=') {
-                    lexer_advance(lexer);
-                    return lexer_advance_token(T_BITWISE_AND_AND_EQUAL, "&&=", lexer, false);
-                } else {
-                    return lexer_advance_token(T_BITWISE_AND_AND, "&&", lexer, false);
-                }
-            }
-            if (lexer_peek_next(lexer) == '=') {
-                lexer_advance(lexer);
-                return lexer_advance_token(T_BITWISE_AND_EQUAL, "&=", lexer, false);
+        }
+        case '|': {
+            if (lexer_peek() == '|') {
+                lexer_advance();
+                LEX_OPERATOR_WITH_EQUAL(||, T_BITWISE_PIPE_PIPE, ||=, T_BITWISE_PIPE_PIPE_EQUAL)
             } else {
-                return lexer_advance_token(T_BITWISE_AND, "&", lexer, false);
+                LEX_OPERATOR_WITH_EQUAL(|, T_BITWISE_PIPE, |=, T_BITWISE_PIPE_EQUAL)
             }
-        case '|':
-            if (lexer_peek_next(lexer) == '|') {
-                lexer_advance(lexer);
-                if (lexer_peek_next(lexer) == '=') {
-                    lexer_advance(lexer);
-                    return lexer_advance_token(T_BITWISE_PIPE_PIPE_EQUAL, "||=", lexer, false);
-                } else {
-                    return lexer_advance_token(T_BITWISE_PIPE_PIPE, "||", lexer, false);
-                }
-            }
-            if (lexer_peek_next(lexer) == '=') {
-                lexer_advance(lexer);
-                return lexer_advance_token(T_BITWISE_PIPE_EQUAL, "|=", lexer, false);
-            } else {
-                return lexer_advance_token(T_BITWISE_PIPE, "|", lexer, false);
-            }
+        }
+
         case '^':
-            if (lexer_peek_next(lexer) == '=') {
-                lexer_advance(lexer);
-                return lexer_advance_token(T_BITWISE_POWER_EQUAL, "^=", lexer, false);
-            } else {
-                return lexer_advance_token(T_BITWISE_POWER, "^", lexer, false);
-            }
+            LEX_OPERATOR_WITH_EQUAL(^, T_BITWISE_POWER, ^=, T_BITWISE_POWER_EQUAL)
         case '~':
-            return lexer_advance_token(T_BITWISE_NOT, "~", lexer, false);
-        case ':':
-            if (lexer_peek_next(lexer) == ':') {
-                lexer_advance(lexer);
-                return lexer_advance_token(T_DOUBLE_COLON, "::", lexer, false);
+            return lexer_make_token("~", T_BITWISE_NOT, true);
+        case ':': {
+            if (lexer_peek() == ':') {
+                lexer_advance();
+                return lexer_make_token("::", T_DOUBLE_COLON, true);
             } else
-                return lexer_advance_token(T_COLON, ":", lexer, false);
+                return lexer_make_token(":", T_COLON, true);
+        }
         case ';':
-            return lexer_advance_token(T_SEMICOLON, ";", lexer, false);
+            return lexer_make_token(";", T_SEMICOLON, true);
         case '(':
-            return lexer_advance_token(T_PARENS_OPEN, "(", lexer, false);
+            return lexer_make_token("(", T_PARENS_OPEN, true);
         case ')':
-            return lexer_advance_token(T_PARENS_CLOSE, ")", lexer, false);
-        case '{':
-            return lexer_advance_token(T_BRACE_OPEN, "{", lexer, false);
-        case '}':
-            return lexer_advance_token(T_BRACE_CLOSE, "}", lexer, false);
+            return lexer_make_token(")", T_PARENS_CLOSE, true);
         case '[':
-            return lexer_advance_token(T_SQUARE_OPEN, "[", lexer, false);
+            return lexer_make_token("[", T_SQUARE_OPEN, true);
         case ']':
-            return lexer_advance_token(T_SQUARE_CLOSE, "]", lexer, false);
+            return lexer_make_token("]", T_SQUARE_CLOSE, true);
+        case '{':
+            return lexer_make_token("{", T_BRACE_OPEN, true);
+        case '}':
+            return lexer_make_token("}", T_BRACE_CLOSE, true);
         case ',':
-            return lexer_advance_token(T_COMMA, ",", lexer, false);
+            return lexer_make_token(",", T_COMMA, true);
         case '.':
-            return lexer_advance_token(T_PERIOD, ".", lexer, false);
+            return lexer_make_token(".", T_PERIOD, true);
         case '$':
-            return lexer_advance_token(T_DOLLAR, "$", lexer, false);
+            return lexer_make_token("$", T_DOLLAR, true);
         case '#':
-            return lexer_advance_token(T_HASHTAG, "#", lexer, false);
+            return lexer_make_token("#", T_HASHTAG, true);
         case '@':
-            return lexer_advance_token(T_AT, "@", lexer, false);
+            return lexer_make_token("@", T_AT, true);
         case '\\':
-            return lexer_advance_token(T_BACKSLASH, "\\", lexer, false);
-        case '"':
-            return lexer_parse_string(lexer);
-        case '\'':
-            return lexer_parse_character(lexer);
+            return lexer_make_token("\\", T_BACKSLASH, true);
         case '\0':
             break;
         default:
-            if (isalpha(c) || c == '_')
-                return lexer_parse_identifier(lexer);
-            else if (isdigit(c) || isxdigit(c))
-                return lexer_parse_number(lexer);
-            fprintf(stderr, "Lexer: Unrecognized Character: `%c`\n", c);
+            lexer_error("Unknown Character `%c` || %lu :: %lu\n", lexer.current, lexer.position.line,
+                        lexer.position.column);
             exit(-1);
     }
 
-    return lexer_advance_token(T_EOF, (char[2]) {lexer->current, 0}, lexer, false);
+    return lexer_make_token("", T_EOF, false);
 }
 
-Token *lexer_parse_character(Lexer *lexer) {
-    lexer_advance(lexer);
-    char *value = calloc(2, sizeof(char));
-    value[0] = lexer->current;
-    lexer_advance(lexer);
-    value[1] = '\0';
-    if (lexer->current != '\'') {
-        fprintf(stderr,
-                "Lexer: Characters can't have more than 1 character, perhaps you meant to use the `\"` operator?\n");
-        exit(-1);
+Token lexer_identifier(void) {
+    LEX_WHILE(isalnum(lexer.current), false)
+
+    char *identifier = &lexer.source[lexer.start];
+
+    int type = token_is_keyword(identifier, lexer.index - lexer.start);
+
+    return lexer_make_token(identifier, type, true);
+}
+
+Token lexer_digit(void) {
+    lexer.start = lexer.index;
+
+    while (isdigit(lexer.current)) {
+        lexer_advance();
     }
 
-    lexer_advance(lexer);
+    char *digit = &lexer.source[lexer.start];
 
-    return lexer_advance_token(T_CHAR, value, lexer, true);
+    return lexer_make_token(digit, T_NUMBER, true);
 }
 
-Token *lexer_parse_string(Lexer *lexer) {
-    uintptr_t line_size = lexer_get_line_count(lexer);
+Token lexer_string(void) {
+    LEX_WHILE(lexer.current != '"', true)
 
-    char *value = calloc(line_size, sizeof(char));
-    uintptr_t value_count = 0;
-    lexer_advance(lexer);
+    char *string = &lexer.source[lexer.start];
 
-    while (lexer->current != '"') {
-        if (lexer->current == '\\' && (lexer_peek_next(lexer) == '\"')) {
-            lexer_advance(lexer);
-            lexer_advance(lexer);
-            continue;
-        } else if (lexer->current == '\n') {
-            fprintf(stderr, "Lexer: Can't have multi-line string, use the \\n operator instead\n");
+    return lexer_make_token(string, T_STRING, true);
+}
+
+Token lexer_character(void) {
+    LEX_WHILE(lexer.current != '\'', true)
+
+    char *character = &lexer.source[lexer.start];
+
+    return lexer_make_token(character, T_CHAR, true);
+}
+
+Token lexer_make_token(char *value, TokenType type, bool advances) {
+    Token token;
+
+    token.type = type;
+    token.start = lexer.start;
+    token.line = lexer.position.line;
+    token.value = value;
+
+    if (advances) {
+        if (lexer.current == '\n') {
+            lexer.position.line++;
+            lexer.position.column = 0;
+        }
+        lexer_advance();
+    }
+
+    token.length = lexer.index - lexer.start;
+
+    return token;
+}
+
+void lexer_skip_whitespace(void) {
+    while (lexer.current == '\t' || lexer.current == ' ' || lexer.current == '\n' || lexer.current == '\r') {
+        if (lexer.current == '\n') {
+            lexer.position.column = 0;
+            lexer.position.line++;
+        }
+        if (lexer.current == '\0') {
+            return;
+        }
+        lexer_advance();
+    }
+}
+
+void lexer_skip_line(void) {
+    while (lexer.current != '\n' && lexer.current != '\0') {
+        lexer_advance();
+    }
+
+    lexer.position.column = 0;
+    lexer.position.line++;
+
+    lexer_skip_whitespace();
+}
+
+void lexer_skip_block_comment(void) {
+    lexer.index += 2;
+    lexer.position.column += 2;
+    lexer.current = lexer.source[lexer.index];
+
+    while (lexer.current != '*' && lexer_peek() != '/') {
+        if (lexer.current == '\n') {
+            lexer.position.line++;
+            lexer.position.column = 0;
+        }
+        if (lexer.current == '\0') {
+            fprintf(stderr, "Lexer: Unterminated Block Comment\n");
             exit(-1);
         }
-
-        lexer_check_eof(lexer, "Unterminated String Literal\n");
-
-        value_count++;
-        strcat(value, (char[2]) {lexer->current, 0});
-
-        lexer_advance(lexer);
+        lexer_advance();
     }
 
-    value = realloc(value, (value_count + 2) * sizeof(char));
-
-    lexer_advance(lexer);
-
-    return lexer_advance_token(T_STRING, value, lexer, true);
+    lexer.index += 2;
+    lexer.position.column += 2;
+    lexer.current = lexer.source[lexer.index];
 }
 
-Token *lexer_parse_number(Lexer *lexer) {
-    uintptr_t line_size = lexer_get_line_count(lexer);
-
-    char *value = calloc(line_size + 2, sizeof(char));
-    uintptr_t value_count = 0;
-
-    while (isdigit(lexer->current) || lexer->current == '.' || lexer->current == '-' || lexer->current == '+' ||
-           isxdigit(lexer->current) || lexer->current == 'x' || lexer->current == 'X') {
-        value_count++;
-        strcat(value, (char[2]) {lexer->current, 0});
-
-        lexer_advance(lexer);
-    }
-
-    value = realloc(value, (value_count + 2) * sizeof(char));
-
-    if (string_is_float(value))
-        return lexer_advance_token(T_FLOAT, value, lexer, true);
-    else if (string_is_hex(value))
-        return lexer_advance_token(T_HEX, value, lexer, true);
-    else if (string_is_octal(value))
-        return lexer_advance_token(T_OCTAL, value, lexer, true);
-    else
-        return lexer_advance_token(T_INT, value, lexer, true);
+void lexer_advance(void) {
+    lexer.index++;
+    lexer.current = lexer.source[lexer.index];
+    lexer.position.column++;
 }
 
-Token *lexer_parse_identifier(Lexer *lexer) {
-    uintptr_t line_size = lexer_get_line_count(lexer);
-
-    char *value = calloc(line_size + 1, sizeof(char));
-    uintptr_t value_count = 0;
-
-    while (isalnum(lexer->current) || lexer->current == '_') {
-        value_count++;
-        strcat(value, (char[2]) {lexer->current, 0});
-
-        lexer_advance(lexer);
-    }
-
-    value = realloc(value, (value_count + 1) * sizeof(char));
-
-    return lexer_is_keyword(value, lexer);
-}
-
-Token *lexer_is_keyword(char *identifier, Lexer *lexer) {
-    // TODO: Faster way to do this?
-    if (strcmp(identifier, "struct") == 0)
-        return lexer_advance_token(T_K_STRUCT, identifier, lexer, true);
-    else if (strcmp(identifier, "self") == 0)
-        return lexer_advance_token(T_K_SELF, identifier, lexer, true);
-    else if (strcmp(identifier, "enum") == 0)
-        return lexer_advance_token(T_K_ENUM, identifier, lexer, true);
-    else if (strcmp(identifier, "alias") == 0)
-        return lexer_advance_token(T_K_ALIAS, identifier, lexer, true);
-    else if (strcmp(identifier, "return") == 0)
-        return lexer_advance_token(T_K_RETURN, identifier, lexer, true);
-    else if (strcmp(identifier, "if") == 0)
-        return lexer_advance_token(T_K_IF, identifier, lexer, true);
-    else if (strcmp(identifier, "else") == 0)
-        return lexer_advance_token(T_K_ELSE, identifier, lexer, true);
-    else if (strcmp(identifier, "import") == 0)
-        return lexer_advance_token(T_K_IMPORT, identifier, lexer, true);
-    else if (strcmp(identifier, "asm") == 0)
-        return lexer_advance_token(T_K_ASM, identifier, lexer, true);
-    else if (strcmp(identifier, "volatile") == 0)
-        return lexer_advance_token(T_K_VOLATILE, identifier, lexer, true);
-    else if (strcmp(identifier, "cast") == 0)
-        return lexer_advance_token(T_K_CAST, identifier, lexer, true);
-    else if (strcmp(identifier, "switch") == 0)
-        return lexer_advance_token(T_K_SWITCH, identifier, lexer, true);
-    else if (strcmp(identifier, "matches") == 0)
-        return lexer_advance_token(T_K_MATCHES, identifier, lexer, true);
-    else if (strcmp(identifier, "case") == 0)
-        return lexer_advance_token(T_K_CASE, identifier, lexer, true);
-    else if (strcmp(identifier, "break") == 0)
-        return lexer_advance_token(T_K_BREAK, identifier, lexer, true);
-    else if (strcmp(identifier, "default") == 0)
-        return lexer_advance_token(T_K_DEFAULT, identifier, lexer, true);
-    else if (strcmp(identifier, "while") == 0)
-        return lexer_advance_token(T_K_WHILE, identifier, lexer, true);
-    else if (strcmp(identifier, "for") == 0)
-        return lexer_advance_token(T_K_FOR, identifier, lexer, true);
-    else if (strcmp(identifier, "continue") == 0)
-        return lexer_advance_token(T_K_CONTINUE, identifier, lexer, true);
-    else if (strcmp(identifier, "union") == 0)
-        return lexer_advance_token(T_K_UNION, identifier, lexer, true);
-    else if (strcmp(identifier, "false") == 0)
-        return lexer_advance_token(T_K_FALSE, identifier, lexer, true);
-    else if (strcmp(identifier, "true") == 0)
-        return lexer_advance_token(T_K_TRUE, identifier, lexer, true);
-    else if (strcmp(identifier, "bool") == 0)
-        return lexer_advance_token(T_K_BOOL, identifier, lexer, true);
-    else if (strcmp(identifier, "int") == 0)
-        return lexer_advance_token(T_K_INT, identifier, lexer, true);
-    else if (strcmp(identifier, "float") == 0)
-        return lexer_advance_token(T_K_FLOAT, identifier, lexer, true);
-    else if (strcmp(identifier, "void") == 0)
-        return lexer_advance_token(T_K_VOID, identifier, lexer, true);
-    else if (strcmp(identifier, "string") == 0)
-        return lexer_advance_token(T_K_STRING, identifier, lexer, true);
-    else if (strcmp(identifier, "char") == 0)
-        return lexer_advance_token(T_K_CHAR, identifier, lexer, true);
-    else if (strcmp(identifier, "goto") == 0)
-        return lexer_advance_token(T_K_GOTO, identifier, lexer, true);
-    else if (strcmp(identifier, "private") == 0)
-        return lexer_advance_token(T_K_PRIVATE, identifier, lexer, true);
-    else if (strcmp(identifier, "do") == 0)
-        return lexer_advance_token(T_K_DO, identifier, lexer, true);
-    else if (strcmp(identifier, "try") == 0)
-        return lexer_advance_token(T_K_TRY, identifier, lexer, true);
-    else if (strcmp(identifier, "catch") == 0)
-        return lexer_advance_token(T_K_CATCH, identifier, lexer, true);
-    else
-        return lexer_advance_token(T_IDENTIFIER, identifier, lexer, true);
-}
-
-uintptr_t lexer_get_line_count(Lexer *lexer) {
-    Lexer *fake_lexer = lexer_duplicate(lexer);
-
-    uintptr_t line_size = 0;
-    while (fake_lexer->current != '\n' && !lexer_is_eof(fake_lexer)) {
-        line_size++;
-        lexer_advance(fake_lexer);
-    }
-
-    free(fake_lexer);
-
-    return line_size;
-}
-
-void lexer_skip_block_comment(Lexer *lexer) {
-    lexer_advance(lexer);
-    lexer_advance(lexer);
-    while (!lexer_is_eof(lexer)) {
-        if (lexer->current == '*' && lexer_peek_next(lexer) == '/') {
-            break;
-        }
-        if (lexer->current == '\n') {
-            lexer->line++;
-        }
-        lexer_advance(lexer);
-    }
-
-    if (!lexer_is_eof(lexer)) {
-        lexer_advance(lexer);
-        lexer_advance(lexer);
-    } else {
-        fprintf(stderr, "Lexer: Unterminated Block Comment\n");
-        exit(-1);
-    }
-
-    lexer_skip_whitespace(lexer);
-}
-
-bool lexer_is_whitespace(Lexer *lexer) {
-    return lexer->current == '\t' || lexer->current == ' ' || lexer->current == '\n' || lexer->current == '\r';
-}
-
-void lexer_skip_whitespace(Lexer *lexer) {
-    do {
-        if (lexer->current == '\n') {
-            lexer->position = 0;
-            lexer->line++;
-        }
-        lexer_advance(lexer);
-    } while (!lexer_is_eof(lexer) &&
-             (lexer->current == '\t' || lexer->current == ' ' || lexer->current == '\n' || lexer->current == '\r'));
-}
-
-void lexer_skip_line(Lexer *lexer) {
-    while (!lexer_is_eof(lexer) && lexer->current != '\n') {
-        lexer_advance(lexer);
-    }
-
-    if (lexer_is_whitespace(lexer))
-        lexer_skip_whitespace(lexer);
-    lexer->position = 0;
-}
-
-char lexer_peek_next(Lexer *lexer) {
-    return lexer->source[lexer->index + 1];
-}
-
-void lexer_advance(Lexer *lexer) {
-    if (lexer_is_eof(lexer)) {
-        return;
-    } else {
-        lexer->position += 1;
-        lexer->index += 1;
-        lexer->current = lexer->source[lexer->index];
-    }
-}
-
-Token *lexer_advance_token(int token_type, char *value, Lexer *lexer, bool does_not_advance) {
-    Token *new_token = calloc(1, sizeof(Token));
-    new_token->value = value;
-    new_token->type = token_type;
-
-    if (!does_not_advance)
-        lexer_advance(lexer);
-    if (lexer_is_whitespace(lexer))
-        lexer_skip_whitespace(lexer);
-
-    return new_token;
-}
-
-bool lexer_is_eof(Lexer *lexer) {
-    return (lexer->index >= lexer->source_length);
-}
-
-void lexer_check_eof(Lexer *lexer, char *error_message) {
-    if (lexer_is_eof(lexer)) {
-        fprintf(stderr, "Lexer: %s\n", error_message);
-        exit(-1);
-    }
+char lexer_peek(void) {
+    return lexer.source[lexer.index + 1];
 }

@@ -21,7 +21,7 @@ char *read_file_contents(char *file_name) {
     }
     fseek(f, 0, SEEK_END);
     long length = ftell(f);
-    fseek(f, 0, SEEK_SET);
+    rewind(f);
     char *buffer = (char *) malloc(length + 1);
     buffer[length] = '\0';
     fread(buffer, 1, length, f);
@@ -32,39 +32,17 @@ char *read_file_contents(char *file_name) {
 int main(__attribute__((unused)) int argc, char **argv) {
     char *file_contents = read_file_contents(argv[1]);
 
-    Lexer *lexer = lexer_init(file_contents);
-    Parser *parser = parser_init(lexer);
+    lexer_init(file_contents);
 
-    // double time = 0;
-
-//    clock_t t;
-//    t = clock();
-
-    mxDynamicArray *items = mxDynamicArrayCreate(sizeof(AST *));
-    while (parser->lexer->index < parser->lexer->source_length) {
-        if (parser->next_token->type == T_EOF)
+    for (;;) {
+        Token token = lexer_get_token();
+        if (token.type == T_EOF)
             break;
-//        printf("%s(`%s`)\n", token_print(next_token->type), next_token->value);
-//        if (next_token->type == T_EOF)
-//            break;
-        AST *ast = parser_parse(parser);
-        ast_print(ast);
-        // Add the item into the array
-        mxDynamicArrayAdd(items, ast);
+
+        // If it's debug
+        printf("%s :: %.*s\n", token_print(token.type), (int) token.length - 1, token.value);
     }
-    /*
-     t = clock() - t;
-    double time_taken = ((double) t) / CLOCKS_PER_SEC;
 
-    printf("\n%f seconds to lex and parse the file \n", time_taken);
-     */
-
-    semantic_analyzer_run_analysis(items);
-
-    free(lexer);
-    free(parser->current);
-    free(parser);
-    free(items);
     free(file_contents);
 
     return 0;

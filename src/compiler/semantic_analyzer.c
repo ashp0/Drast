@@ -2,7 +2,7 @@
 //  semantic_analyzer.c
 //  drast
 //
-//  Created by Ashwin Paudel on 2022-02-05.
+//  Created by Ashwin Paudel on 2022-02-05
 //
 
 #include "semantic_analyzer.h"
@@ -655,8 +655,8 @@ void semantic_analyzer_check_duplicate_declaration(mxDynamicArray *declarations)
 }
 
 bool semantic_analyzer_check_types_valid(int type1, int type2) {
-    if ((type1 == T_INT || type1 == T_K_INT || type1 == T_FLOAT || type1 == T_K_FLOAT) &&
-        (type2 == T_INT || type2 == T_K_INT || type2 == T_FLOAT || type2 == T_K_FLOAT)) {
+    if ((type1 == T_NUMBER || type1 == T_K_INT || type1 == T_FLOAT || type1 == T_K_FLOAT) &&
+        (type2 == T_NUMBER || type2 == T_K_INT || type2 == T_FLOAT || type2 == T_K_FLOAT)) {
         return true;
     } else if ((type1 == T_CHAR || type1 == T_K_CHAR || type1 == T_STRING || type1 == T_K_STRING) &&
                (type2 == T_CHAR || type2 == T_K_CHAR || type2 == T_STRING || type2 == T_K_STRING)) {

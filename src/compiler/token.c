@@ -75,10 +75,12 @@ char *token_print(int type) {
         case T_IDENTIFIER:
             return "T_IDENTIFIER";
 
-        case T_INT:
-            return "T_INT";
+        case T_NUMBER:
+            return "T_NUMBER";
         case T_FLOAT:
             return "T_FLOAT";
+        case T_CHAR:
+            return "T_CHAR";
         case T_STRING:
             return "T_STRING";
 
@@ -177,8 +179,6 @@ char *token_print(int type) {
         case T_BITWISE_NOT:
             return "T_BITWISE_NOT";
 
-        case T_ARROW:
-            return "T_ARROW";
         case T_COLON:
             return "T_COLON";
         case T_DOUBLE_COLON:
@@ -215,5 +215,100 @@ char *token_print(int type) {
 
         default:
             return "UNKNOWN TOKEN";
+    }
+}
+
+TokenType token_is_keyword(char *value, uint64_t length) {
+    switch (length) {
+        case 2: {
+            if (string_compare(value, "if", length) == 0) {
+                return T_K_IF;
+            } else if (string_compare(value, "do", length) == 0) {
+                return T_K_DO;
+            }
+        }
+        case 3: {
+            if (string_compare(value, "asm", length) == 0) {
+                return T_K_ASM;
+            } else if (string_compare(value, "for", length) == 0) {
+                return T_K_FOR;
+            } else if (string_compare(value, "int", length) == 0) {
+                return T_K_INT;
+            } else if (string_compare(value, "try", length) == 0) {
+                return T_K_TRY;
+            }
+        }
+        case 4: {
+            if (string_compare(value, "self", length) == 0) {
+                return T_K_SELF;
+            } else if (string_compare(value, "enum", length) == 0) {
+                return T_K_ENUM;
+            } else if (string_compare(value, "else", length) == 0) {
+                return T_K_ELSE;
+            } else if (string_compare(value, "cast", length) == 0) {
+                return T_K_CAST;
+            } else if (string_compare(value, "case", length) == 0) {
+                return T_K_CASE;
+            } else if (string_compare(value, "true", length) == 0) {
+                return T_K_TRUE;
+            } else if (string_compare(value, "bool", length) == 0) {
+                return T_K_BOOL;
+            } else if (string_compare(value, "void", length) == 0) {
+                return T_K_VOID;
+            } else if (string_compare(value, "char", length) == 0) {
+                return T_K_CHAR;
+            } else if (string_compare(value, "goto", length) == 0) {
+                return T_K_GOTO;
+            }
+        }
+        case 5: {
+            if (string_compare(value, "alias", length) == 0) {
+                return T_K_ALIAS;
+            } else if (string_compare(value, "break", length) == 0) {
+                return T_K_BREAK;
+            } else if (string_compare(value, "while", length) == 0) {
+                return T_K_WHILE;
+            } else if (string_compare(value, "union", length) == 0) {
+                return T_K_UNION;
+            } else if (string_compare(value, "false", length) == 0) {
+                return T_K_FALSE;
+            } else if (string_compare(value, "float", length) == 0) {
+                return T_K_FLOAT;
+            } else if (string_compare(value, "catch", length) == 0) {
+                return T_K_CATCH;
+            }
+        }
+        case 6: {
+            if (string_compare(value, "struct", length) == 0) {
+                return T_K_STRUCT;
+            } else if (string_compare(value, "return", length) == 0) {
+                return T_K_RETURN;
+            } else if (string_compare(value, "import", length) == 0) {
+                return T_K_IMPORT;
+            } else if (string_compare(value, "switch", length) == 0) {
+                return T_K_SWITCH;
+            } else if (string_compare(value, "string", length) == 0) {
+                return T_K_STRING;
+            }
+        }
+        case 7: {
+            if (string_compare(value, "matches", length) == 0) {
+                return T_K_MATCHES;
+            } else if (string_compare(value, "default", length) == 0) {
+                return T_K_DEFAULT;
+            } else if (string_compare(value, "private", length) == 0) {
+                return T_K_PRIVATE;
+            }
+        }
+        case 8: {
+            if (string_compare(value, "volatile", length) == 0) {
+                return T_K_VOLATILE;
+            } else if (string_compare(value, "continue", length) == 0) {
+                return T_K_CONTINUE;
+            }
+        }
+        default: {
+            return T_IDENTIFIER;
+        }
     }
 }
