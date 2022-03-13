@@ -7,10 +7,7 @@
 
 #include <stdio.h>
 #include "compiler/lexer.h"
-#include "compiler/parser.h"
 #include "compiler/ast.h"
-#include "compiler/ast_print.h"
-#include "compiler/semantic_analyzer.h"
 
 // https://stackoverflow.com/a/47195924
 char *read_file_contents(char *file_name) {
@@ -40,7 +37,8 @@ int main(__attribute__((unused)) int argc, char **argv) {
             break;
 
         // If it's debug
-        printf("%s :: %.*s\n", token_print(token.type), (int) token.length - 1, token.value);
+        printf("%s :: %.*s :: %zu :: %zu\n", token_print(token.type), (int) token.length - 1, token.value, token.line,
+               token.column);
     }
 
     free(file_contents);

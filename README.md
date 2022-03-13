@@ -4,6 +4,7 @@ The Drast Programming Language that is meant to be a modernized and better versi
 simplicity
 
 ## Speeds
+
 * Lexer - 3.016 seconds / 1GB
 * Parser - TODO
 * Semantic Analysis - TODO

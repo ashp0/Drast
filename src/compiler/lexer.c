@@ -26,10 +26,6 @@ static Lexer lexer;
                      lexer_error("Unterminated String Or Character Literal"); \
                 exit(-1);                            \
         }                                            \
-        if (lexer.current == '\n') {                 \
-            lexer.position.line++;                   \
-            lexer.position.column = 0;               \
-        }                                            \
         lexer_advance();                             \
         if ((is_string_or_character) && lexer.current == T_BACKSLASH) { \
             lexer_advance();                         \
@@ -77,8 +73,6 @@ Token lexer_get_token() {
         case '\t':
             break;
         case '\n':
-            lexer.position.line++;
-            lexer.position.column = 0;
             break;
         case '?':
             return lexer_make_token("?", T_QUESTION, true);
@@ -229,6 +223,7 @@ Token lexer_make_token(char *value, TokenType type, bool advances) {
     token.type = type;
     token.start = lexer.start;
     token.line = lexer.position.line;
+    token.column = lexer.position.column;
     token.value = value;
 
     if (advances) {
@@ -248,7 +243,7 @@ void lexer_skip_whitespace(void) {
     while (lexer.current == '\t' || lexer.current == ' ' || lexer.current == '\n' || lexer.current == '\r') {
         if (lexer.current == '\n') {
             lexer.position.column = 0;
-            lexer.position.line++;
+            lexer.position.line += 1;
         }
         if (lexer.current == '\0') {
             return;
@@ -263,7 +258,6 @@ void lexer_skip_line(void) {
     }
 
     lexer.position.column = 0;
-    lexer.position.line++;
 
     lexer_skip_whitespace();
 }
@@ -275,7 +269,7 @@ void lexer_skip_block_comment(void) {
 
     while (lexer.current != '*' && lexer_peek() != '/') {
         if (lexer.current == '\n') {
-            lexer.position.line++;
+            lexer.position.line += 1;
             lexer.position.column = 0;
         }
         if (lexer.current == '\0') {

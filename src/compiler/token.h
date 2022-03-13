@@ -138,6 +138,7 @@ typedef struct {
     uintptr_t start;
     uintptr_t line;
     size_t length;
+    size_t column;
 } Token;
 
 char *token_print(int type);
