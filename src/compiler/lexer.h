@@ -5,8 +5,8 @@
 //  Created by Ashwin Paudel on 2022-02-05.
 //
 
-#ifndef LEXER_H
-#define LEXER_H
+#ifndef DRAST_LEXER_H
+#define DRAST_LEXER_H
 
 #include <stdio.h>
 #include <stdint.h>
@@ -34,7 +34,7 @@ typedef struct {
     Position position;
 } Lexer;
 
-void lexer_init(char *source);
+void lexer_init(char *source, long length);
 
 Token lexer_get_token(void);
 
@@ -46,7 +46,7 @@ Token lexer_string(void);
 
 Token lexer_character(void);
 
-Token lexer_make_token(char *value, TokenType type, bool advances);
+Token lexer_make_token(char *value, size_t length, bool advances, TokenType type);
 
 void lexer_skip_whitespace(void);
 
@@ -58,4 +58,6 @@ void lexer_advance(void);
 
 char lexer_peek(void);
 
-#endif /* LEXER_H */
+Lexer *lexer_get(void);
+
+#endif /* DRAST_LEXER_H */

@@ -32,11 +32,11 @@ char *token_print(int type) {
             return "T_K_VOLATILE";
         case T_K_CAST:
             return "T_K_CAST";
+        case T_K_EXTERN:
+            return "T_K_EXTERN";
 
         case T_K_SWITCH:
             return "T_K_SWITCH";
-        case T_K_MATCHES:
-            return "T_K_MATCHES";
         case T_K_CASE:
             return "T_K_CASE";
         case T_K_BREAK:
@@ -289,12 +289,12 @@ TokenType token_is_keyword(char *value, uint64_t length) {
                 return T_K_SWITCH;
             } else if (string_compare(value, "string", length) == 0) {
                 return T_K_STRING;
+            } else if (string_compare(value, "extern", length) == 0) {
+                return T_K_EXTERN;
             }
         }
         case 7: {
-            if (string_compare(value, "matches", length) == 0) {
-                return T_K_MATCHES;
-            } else if (string_compare(value, "default", length) == 0) {
+            if (string_compare(value, "default", length) == 0) {
                 return T_K_DEFAULT;
             } else if (string_compare(value, "private", length) == 0) {
                 return T_K_PRIVATE;

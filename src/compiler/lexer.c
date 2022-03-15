@@ -12,9 +12,9 @@ static Lexer lexer;
 #define LEX_OPERATOR_WITH_EQUAL(value, type, value2, type2) \
     if (lexer_peek() == '=') {                              \
         lexer_advance();                                    \
-        return lexer_make_token(#value2, type2, true);      \
+        return lexer_make_token(#value2, 2, true, type2);   \
     } else {                                                \
-        return lexer_make_token(#value, type, true);        \
+        return lexer_make_token(#value, 1, true, type);     \
     }
 
 #define LEX_WHILE(condition, is_string_or_character) \
@@ -42,9 +42,9 @@ static Lexer lexer;
 
 #define lexer_error printf
 
-void lexer_init(char *source) {
+void lexer_init(char *source, long length) {
     lexer.source = source;
-    lexer.source_length = strlen(lexer.source);
+    lexer.source_length = length;
     lexer.start = 0;
     lexer.index = 0;
     lexer.current = lexer.source[lexer.index];
@@ -75,7 +75,7 @@ Token lexer_get_token() {
         case '\n':
             break;
         case '?':
-            return lexer_make_token("?", T_QUESTION, true);
+            return lexer_make_token("?", 1, true, T_QUESTION);
         case '<': {
             if (lexer_peek() == '<') {
                 lexer_advance();
@@ -134,40 +134,40 @@ Token lexer_get_token() {
         case '^':
             LEX_OPERATOR_WITH_EQUAL(^, T_BITWISE_POWER, ^=, T_BITWISE_POWER_EQUAL)
         case '~':
-            return lexer_make_token("~", T_BITWISE_NOT, true);
+            return lexer_make_token("~", 1, true, T_BITWISE_NOT);
         case ':': {
             if (lexer_peek() == ':') {
                 lexer_advance();
-                return lexer_make_token("::", T_DOUBLE_COLON, true);
+                return lexer_make_token("::", 2, true, T_DOUBLE_COLON);
             } else
-                return lexer_make_token(":", T_COLON, true);
+                return lexer_make_token(":", 1, true, T_COLON);
         }
         case ';':
-            return lexer_make_token(";", T_SEMICOLON, true);
+            return lexer_make_token(";", 1, true, T_SEMICOLON);
         case '(':
-            return lexer_make_token("(", T_PARENS_OPEN, true);
+            return lexer_make_token("(", 1, true, T_PARENS_OPEN);
         case ')':
-            return lexer_make_token(")", T_PARENS_CLOSE, true);
+            return lexer_make_token(")", 1, true, T_PARENS_CLOSE);
         case '[':
-            return lexer_make_token("[", T_SQUARE_OPEN, true);
+            return lexer_make_token("[", 1, true, T_SQUARE_OPEN);
         case ']':
-            return lexer_make_token("]", T_SQUARE_CLOSE, true);
+            return lexer_make_token("]", 1, true, T_SQUARE_CLOSE);
         case '{':
-            return lexer_make_token("{", T_BRACE_OPEN, true);
+            return lexer_make_token("{", 1, true, T_BRACE_OPEN);
         case '}':
-            return lexer_make_token("}", T_BRACE_CLOSE, true);
+            return lexer_make_token("}", 1, true, T_BRACE_CLOSE);
         case ',':
-            return lexer_make_token(",", T_COMMA, true);
+            return lexer_make_token(",", 1, true, T_COMMA);
         case '.':
-            return lexer_make_token(".", T_PERIOD, true);
+            return lexer_make_token(".", 1, true, T_PERIOD);
         case '$':
-            return lexer_make_token("$", T_DOLLAR, true);
+            return lexer_make_token("$", 1, true, T_DOLLAR);
         case '#':
-            return lexer_make_token("#", T_HASHTAG, true);
+            return lexer_make_token("#", 1, true, T_HASHTAG);
         case '@':
-            return lexer_make_token("@", T_AT, true);
+            return lexer_make_token("@", 1, true, T_AT);
         case '\\':
-            return lexer_make_token("\\", T_BACKSLASH, true);
+            return lexer_make_token("\\", 1, true, T_BACKSLASH);
         case '\0':
             break;
         default:
@@ -176,29 +176,29 @@ Token lexer_get_token() {
             exit(-1);
     }
 
-    return lexer_make_token("", T_EOF, false);
+    return lexer_make_token("", 1, false, T_EOF);
 }
 
 Token lexer_identifier(void) {
-    LEX_WHILE(isalnum(lexer.current), false)
+    LEX_WHILE(isalnum(lexer_peek()), false)
 
     char *identifier = &lexer.source[lexer.start];
 
     int type = token_is_keyword(identifier, lexer.index - lexer.start);
 
-    return lexer_make_token(identifier, type, true);
+    return lexer_make_token(identifier, (lexer.index - lexer.start + 1), true, type);
 }
 
 Token lexer_digit(void) {
     lexer.start = lexer.index;
 
-    while (isdigit(lexer.current)) {
+    while (isdigit(lexer_peek())) {
         lexer_advance();
     }
 
     char *digit = &lexer.source[lexer.start];
 
-    return lexer_make_token(digit, T_NUMBER, true);
+    return lexer_make_token(digit, lexer.index - lexer.start + 1, true, T_NUMBER);
 }
 
 Token lexer_string(void) {
@@ -206,7 +206,7 @@ Token lexer_string(void) {
 
     char *string = &lexer.source[lexer.start];
 
-    return lexer_make_token(string, T_STRING, true);
+    return lexer_make_token(string, lexer.index - lexer.start + 1, true, T_STRING);
 }
 
 Token lexer_character(void) {
@@ -214,10 +214,10 @@ Token lexer_character(void) {
 
     char *character = &lexer.source[lexer.start];
 
-    return lexer_make_token(character, T_CHAR, true);
+    return lexer_make_token(character, lexer.index - lexer.start + 1, true, T_CHAR);
 }
 
-Token lexer_make_token(char *value, TokenType type, bool advances) {
+Token lexer_make_token(char *value, size_t length, bool advances, TokenType type) {
     Token token;
 
     token.type = type;
@@ -225,6 +225,7 @@ Token lexer_make_token(char *value, TokenType type, bool advances) {
     token.line = lexer.position.line;
     token.column = lexer.position.column;
     token.value = value;
+    token.length = length;
 
     if (advances) {
         if (lexer.current == '\n') {
@@ -233,8 +234,6 @@ Token lexer_make_token(char *value, TokenType type, bool advances) {
         }
         lexer_advance();
     }
-
-    token.length = lexer.index - lexer.start;
 
     return token;
 }
@@ -267,7 +266,16 @@ void lexer_skip_block_comment(void) {
     lexer.position.column += 2;
     lexer.current = lexer.source[lexer.index];
 
-    while (lexer.current != '*' && lexer_peek() != '/') {
+    for (;;) {
+        if (lexer.current == '*') {
+            lexer_advance();
+            if (lexer.current == '/') {
+                break;
+            }
+
+            continue;
+        }
+
         if (lexer.current == '\n') {
             lexer.position.line += 1;
             lexer.position.column = 0;
@@ -292,4 +300,8 @@ void lexer_advance(void) {
 
 char lexer_peek(void) {
     return lexer.source[lexer.index + 1];
+}
+
+Lexer *lexer_get(void) {
+    return &lexer;
 }

@@ -8,6 +8,19 @@
 #include <stdio.h>
 #include "compiler/lexer.h"
 #include "compiler/ast.h"
+#include "compiler/parser.h"
+#include <time.h>
+#include "utils/mxHashmap.h"
+
+#define measure_time(x) \
+    clock_t t; \
+    t = clock(); \
+    x; \
+    t = clock() - t; \
+    double time_taken = ((double)t)/CLOCKS_PER_SEC; \
+    printf("%s took %f seconds to execute \n", #x, time_taken);
+
+long file_size = 0;
 
 // https://stackoverflow.com/a/47195924
 char *read_file_contents(char *file_name) {
@@ -19,6 +32,7 @@ char *read_file_contents(char *file_name) {
     fseek(f, 0, SEEK_END);
     long length = ftell(f);
     rewind(f);
+    file_size = length;
     char *buffer = (char *) malloc(length + 1);
     buffer[length] = '\0';
     fread(buffer, 1, length, f);
@@ -27,21 +41,40 @@ char *read_file_contents(char *file_name) {
 }
 
 int main(__attribute__((unused)) int argc, char **argv) {
+    printf("Drast Compiler\n");
+
     char *file_contents = read_file_contents(argv[1]);
 
-    lexer_init(file_contents);
+    lexer_init(file_contents, file_size);
+    parser_init(lexer_get());
 
-    for (;;) {
-        Token token = lexer_get_token();
-        if (token.type == T_EOF)
-            break;
 
-        // If it's debug
-        printf("%s :: %.*s :: %zu :: %zu\n", token_print(token.type), (int) token.length - 1, token.value, token.line,
-               token.column);
-    }
+//    for (;;) {
+//        Token token = lexer_get_token();
+//        if (token.type == T_EOF) {
+//            break;
+//        }
+////        printf("%s :: %.*s :: %zu :: %zu\n",
+////               token_print(token.type),
+////               (int) token.length, token.value,
+////               token.line,
+////               token.column);
+//
+//    }
+
+    measure_time(parser_parse());
 
     free(file_contents);
+
+//    char *key = "hello world";
+//    mxHashmap *map = mxHashmap_create();
+//    mxHashmap_set(map, key, 11, T_IDENTIFIER);
+//
+//    uintptr_t out = 0;
+//    if (mxHashmap_get(map, "hello world", 11, &out)) {
+//        printf("%s\n", token_print((int)out));
+//    }
+
 
     return 0;
 }

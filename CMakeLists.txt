@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.7.2)
 project(drast C)
 set(CMAKE_C_STANDARD 17)
 
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
-set(CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+#set(CMAKE_C_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+#set(CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -Ofast")
 
 add_executable(drast src/main.c
@@ -13,6 +13,8 @@ add_executable(drast src/main.c
         src/utils/string.h
         src/utils/mxDynamicArray.c
         src/utils/mxDynamicArray.h
+        src/utils/mxBitmap.c
+        src/utils/mxBitmap.h
 
         src/compiler/lexer.c
         src/compiler/lexer.h
@@ -24,7 +26,7 @@ add_executable(drast src/main.c
         src/compiler/parser.h
         #        src/compiler/semantic_analyzer.c
         #        src/compiler/semantic_analyzer.h
-        )
+        src/utils/mxHashmap.c src/utils/mxHashmap.h)
 
 install(TARGETS drast
         CONFIGURATIONS Release

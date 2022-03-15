@@ -2,69 +2,13 @@
 // Drast Programming Language Examples
 //
 
-enum Test {
-    case A,
-    case B,
-    case C,
+extern private void :: printf(string format, ...)
+
+extern int myTestVariable
+
+void :: myFunction(int test) {
+    extern int myTestVariable
+    int myTestVariabl = 50 + myTestVariable + 40 + myTestVariable
 }
 
-struct myTestStruct {
-    string first_name
-    string last_name
-    int age
-
-    @init(string first_name, string last_name, int age) {
-        self.first_name = "John"
-        self.last_name = "Doe"
-        self.age = 30
-    }
-
-    string :: test(int lmao) {
-        string test2 = self.first_name + "30"
-        // test2 = 50 + 40
-        // self.test2 = 50 + 30
-        // test5 = "540"
-        self.first_name = test2
-
-        return "40"
-    }
-}
-
-string :: test(int lmao) {
-    int test = 3203 + lmao
-    int test2 = test + lmao
-}
-
-void :: test_function(int lmao) {
-    int test = 3203 + lmao
-    int test2 = test + lmao
-}
-
-myTestStruct :: myTestStruct_init(int age) {
-}
-
-private int :: main(myTestStruct argc, string[] argv) {
-    argc.first_name = "John"
-    myTestStruct_init(50).first_name = "ewlkfamwelfkm"
-
-    int test4 = (40.4 + 20.4 + 4.30) // TODO: Add support for casting, -> int
-    string test = test(10) + "test"
-    int main = 40
-    test(49)
-    bool test = true
-    int main3 = main
-    int main2 = 50 + main + 40
-    int main5 = 30 + main + 40
-
-    if (50 == 30) {
-        int main4 = main + main2
-        int main5 = main + test4
-    } else if (50 == 30) {
-        int main4 = main + main2
-        int main5 = main + test4
-    } else {
-        int main4 = main + main2
-        int main5 = main + test4
-    }
-
-}
+extern int myTestVariable
