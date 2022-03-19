@@ -284,7 +284,8 @@ AST parser_parse_unary(void) {
 AST parser_parse_primary(void) {
     if (parser.current.type == T_IDENTIFIER || parser.current.type == T_STRING || parser.current.type == T_NUMBER ||
         parser.current.type == T_FLOAT || parser.current.type == T_HEX || parser.current.type == T_OCTAL ||
-        parser.current.type == T_CHAR || parser.current.type == T_K_SELF) {
+        parser.current.type == T_CHAR || parser.current.type == T_K_SELF || parser.current.type == T_K_TRUE ||
+        parser.current.type == T_K_FALSE) {
         create_ast$(literal_ast, AST_TYPE_LITERAL);
         literal_ast.value.Literal.token = &parser.current;
 

@@ -2,13 +2,13 @@
 // Drast Programming Language Examples
 //
 
-extern private void :: printf(string format, ...)
+extern private void :: printf(string fmt, ...)
 
 extern int myTestVariable
 
 void :: myFunction(int test) {
     extern int myTestVariable
-    int myTestVariabl = 50 + myTestVariable + 40 + myTestVariable
+    int myTestVariable1 = 50 + myTestVariable + 40 + myTestVariable
 }
 
-extern int myTestVariable
+extern bool myTestVariable1 = true
