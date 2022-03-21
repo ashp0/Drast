@@ -1,63 +1,64 @@
 //
-//  lexer.h
-//  drast
-//
-//  Created by Ashwin Paudel on 2022-02-05.
+// Created by Ashwin Paudel on 2022-03-20.
 //
 
 #ifndef DRAST_LEXER_H
 #define DRAST_LEXER_H
 
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdbool.h>
-#include <assert.h>
-#include <ctype.h>
-#include "token.h"
-#include "../utils/string.h"
+#include <iostream>
+#include <vector>
+#include "Token.h"
 
-typedef struct {
-    size_t line;
-    size_t column;
-} Position;
+class Lexer {
+private:
+	std::string source; // Support for unicode
 
-typedef struct {
-    char *source;
-    size_t source_length;
+	size_t line;
+	size_t column;
 
-    size_t start;
-    size_t index;
-    char current;
+	size_t start;
+	size_t index;
+	char current;
 
-    Position position;
-} Lexer;
+public:
+	std::vector<std::unique_ptr<Token>> tokens;
 
-void lexer_init(char *source, long length);
+public:
+	explicit Lexer(const std::string &source) : source(source), line(1), column(0), start(0), index(0),
+	                                            current(source[0]) {}
 
-Token lexer_get_token(void);
+	void lex();
 
-Token lexer_identifier(void);
+protected:
+	std::unique_ptr<Token> getToken();
 
-Token lexer_digit(void);
+	std::unique_ptr<Token> identifier();
 
-Token lexer_string(void);
+	std::unique_ptr<Token> number();
 
-Token lexer_character(void);
+	std::unique_ptr<Token> string();
 
-Token lexer_make_token(char *value, size_t length, bool advances, TokenType type);
+	std::unique_ptr<Token> character();
 
-void lexer_skip_whitespace(void);
+	std::unique_ptr<Token> returnToken(TokenType type);
 
-void lexer_skip_line(void);
+	std::unique_ptr<Token> returnToken(TokenType type, std::string &string, bool without_advance = false);
 
-void lexer_skip_block_comment(void);
+	std::unique_ptr<Token> returnToken(TokenType first_type, TokenType second_type);
 
-void lexer_advance(void);
+	void skipWhitespace();
 
-char lexer_peek(void);
+	void skipLine();
 
-Lexer *lexer_get(void);
+	void skipBlockComment();
 
-#endif /* DRAST_LEXER_H */
+	void advance();
+
+	char peek(size_t offset = 1);
+
+	template<typename predicate>
+	std::unique_ptr<Token> lexWhile(TokenType type, predicate &&pred, bool is_string = false);
+};
+
+
+#endif //DRAST_LEXER_H

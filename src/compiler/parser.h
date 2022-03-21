@@ -1,62 +1,70 @@
 //
-//  parser.h
-//  drast
-//
-//  Created by Ashwin Paudel on 2022-02-05.
+// Created by Ashwin Paudel on 2022-03-20.
 //
 
-#ifndef DRAST_PARSE_H
-#define DRAST_PARSE_H
+#ifndef DRAST_PARSER_H
+#define DRAST_PARSER_H
 
-#include "lexer.h"
-#include "ast.h"
+#include <iostream>
+#include <optional>
+#include <vector>
+#include "Token.h"
+#include "AST.h"
 
-typedef struct {
-    Lexer *lexer;
-    Token current;
-    Token next_token;
-} Parser;
+class Parser {
+private:
+	std::string &file_name;
+	std::vector<std::unique_ptr<Token>> &tokens;
 
-void parser_init(Lexer *lexer);
+	size_t index;
+	std::unique_ptr<Token> &current;
 
-AST parser_parse(void);
+public:
+	Parser(std::string &file_name, std::vector<std::unique_ptr<Token>> &tokens) : file_name(file_name),
+	                                                                              tokens(tokens), index(0),
+	                                                                              current(tokens[index]) {}
 
-AST parser_parse_compound(void);
+	std::unique_ptr<AST> parse();
 
-AST parser_parse_statement(void);
+private:
+	std::unique_ptr<AST> compound();
 
-AST parser_parse_import(void);
+	std::unique_ptr<AST> statement();
 
-AST parser_parse_function_or_variable_declaration(mxBitmap *modifiers);
+	std::unique_ptr<AST> import();
 
-AST parser_parse_function_declaration(mxBitmap *modifiers, AST *return_type);
+	std::unique_ptr<AST> functionOrVariableDeclaration(std::optional<std::vector<TokenType>> modifiers);
 
-mxDynamicArray *parser_parse_function_arguments(void);
+	std::unique_ptr<AST>
+	functionDeclaration(std::optional<std::vector<TokenType>> modifiers, std::unique_ptr<AST> return_type);
 
-AST parser_parse_variable_declaration(mxBitmap *modifiers, AST *variable_type);
+	std::vector<std::unique_ptr<AST>> functionArguments();
 
-AST parser_parse_expression(void);
+	std::unique_ptr<AST>
+	variableDeclaration(std::optional<std::vector<TokenType>> modifiers, std::unique_ptr<AST> variable_type);
 
-AST parser_parse_equality(void);
+	std::unique_ptr<AST> expression();
 
-AST parser_parse_comparison(void);
+	std::unique_ptr<AST> equality();
 
-AST parser_parse_term(void);
+	std::unique_ptr<AST> comparison();
 
-AST parser_parse_factor(void);
+	std::unique_ptr<AST> term();
 
-AST parser_parse_unary(void);
+	std::unique_ptr<AST> factor();
 
-AST parser_parse_primary(void);
+	std::unique_ptr<AST> unary();
 
-AST parser_parse_type(void);
+	std::unique_ptr<AST> primary();
 
-AST parser_parse_modifiers(void);
+	std::unique_ptr<AST> type();
 
-void parser_advance(int type);
+	std::unique_ptr<AST> modifiers();
 
-void parser_advance_without_check(void);
+	void advance(TokenType type);
 
-Parser *parser_get(void);
+	void advance();
 
-#endif /* DRAST_PARSE_H */
+};
+
+#endif //DRAST_PARSER_H

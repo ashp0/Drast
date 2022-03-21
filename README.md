@@ -3,48 +3,33 @@
 The Drast Programming Language that is meant to be a modernized and better version of C, while still maintaining its
 simplicity
 
-## Speeds
-
-* Lexer - 3.016 seconds / 1GB
-* Parser - TODO
-* Semantic Analysis - TODO
-* Code Generation - TODO
-
 ## TODO
 
 - [x] Lexing
 - [x] Parsing
-    - [x] Variables
-    - [x] If, Else, Else If
-    - [x] Return
-    - [x] ASM
-    - [x] Switch, break, case, default
-    - [x] For, While, Continue
-    - [x] Union
-    - [x] Do Catch Try
-    - [x] matches keyword
-    - [x] Import
-    - [x] Functions
-    - [x] Struct
-    - [x] Enums
-- [x] Improvements
-    - [x] Lexer: Problem where is there are block comments, the lexer will loop
-    - [x] Parser: Improvements with Optional Semi-colons
-    - [x] Parser: Problem where using brackets in expressions didn't work
-    - [x] Improve the if statement AST
-    - [ ] Add support for booleans
-    - [ ] Add support for casting
-    - [x] Check if function has a return type, for return statements
+    - [ ] Variables
+    - [ ] If, Else, Else If
+    - [ ] Return
+    - [ ] ASM
+    - [ ] Switch, break, case, default
+    - [ ] For, While, Continue
+    - [ ] Union
+    - [ ] Do Catch Try
+    - [ ] matches keyword
+    - [ ] Import
+    - [ ] Functions
+    - [ ] Struct
+    - [ ] Enums
 - [ ] Semantic Analyzer
-    - [x] Duplicate Variable and Functions
+    - [ ] Duplicate Variable and Functions
     - [ ] Duplicate Struct Initializers
-    - [x] Check Expressions
-    - [x] Struct initializers
-    - [x] Check if self.xxx is an actual member in the struct
-    - [x] Variable Assignments
-    - [x] Function Calls
-    - [x] Return Statement
-    - [x] If Statements
+    - [ ] Check Expressions
+    - [ ] Struct initializers
+    - [ ] Check if self.xxx is an actual member in the struct
+    - [ ] Variable Assignments
+    - [ ] Function Calls
+    - [ ] Return Statement
+    - [ ] If Statements
     - [ ] Alias Types
     - [ ] Struct Variable Members
 - [ ] Optimizations? ( Might not do this stage since LLVM does this )

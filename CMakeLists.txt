@@ -1,33 +1,15 @@
-cmake_minimum_required(VERSION 3.7.2)
-project(drast C)
-set(CMAKE_C_STANDARD 17)
+cmake_minimum_required(VERSION 3.21)
+project(drast)
 
-#set(CMAKE_C_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
-#set(CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
-set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -Ofast")
+set(CMAKE_CXX_STANDARD 17)
 
-add_executable(drast src/main.c
-        src/utils/argument_parser.c
-        src/utils/argument_parser.h
-        src/utils/string.c
-        src/utils/string.h
-        src/utils/mxDynamicArray.c
-        src/utils/mxDynamicArray.h
-        src/utils/mxBitmap.c
-        src/utils/mxBitmap.h
-
-        src/compiler/lexer.c
-        src/compiler/lexer.h
-        src/compiler/token.c
-        src/compiler/token.h
-        src/compiler/ast.c
-        src/compiler/ast.h
-        src/compiler/parser.c
-        src/compiler/parser.h
-        #        src/compiler/semantic_analyzer.c
-        #        src/compiler/semantic_analyzer.h
-        src/utils/mxHashmap.c src/utils/mxHashmap.h)
-
-install(TARGETS drast
-        CONFIGURATIONS Release
-        DESTINATION bin)
+add_executable(drast
+        src/main.cpp
+        src/compiler/Lexer.cpp
+        src/compiler/Lexer.h
+        src/compiler/Token.cpp
+        src/compiler/Token.h
+        src/compiler/Parser.cpp
+        src/compiler/Parser.h
+        src/compiler/AST.cpp
+        src/compiler/AST.h)

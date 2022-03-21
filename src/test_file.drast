@@ -2,13 +2,6 @@
 // Drast Programming Language Examples
 //
 
-extern private void :: printf(string fmt, ...)
+int[]*?
 
-extern int myTestVariable
-
-void :: myFunction(int test) {
-    extern int myTestVariable
-    int myTestVariable1 = 50 + myTestVariable + 40 + myTestVariable
-}
-
-extern bool myTestVariable1 = true
+import "test_file.drast"

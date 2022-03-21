@@ -1,220 +1,388 @@
 //
-//  ast.h
-//  drast
-//
-//  Created by Ashwin Paudel on 2022-02-05.
+// Created by Ashwin Paudel on 2022-03-20.
 //
 
 #ifndef DRAST_AST_H
 #define DRAST_AST_H
 
-#include <stdlib.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include "token.h"
-#include "../utils/mxDynamicArray.h"
-#include "../utils/mxBitmap.h"
-#include "../utils/mxHashmap.h"
+#include <iostream>
+#include <vector>
+#include <sstream>
+#include <memory>
+#include <optional>
+#include "Token.h"
 
-typedef enum {
-    AST_TYPE_COMPOUND_STATEMENT, // { ... }
+enum class ASTType {
+	COMPOUND_STATEMENT, // { ... }
 
-    AST_TYPE_IMPORT, // import io
+	IMPORT, // import io
 
-    AST_TYPE_FUNCTION_DECLARATION, // int :: test(int a, int b) { ... }
-    AST_TYPE_FUNCTION_ARGUMENT, // int a, int b
-    AST_TYPE_FUNCTION_CALL, // test(1, 2)
+	FUNCTION_DECLARATION, // int :: test(int a, int b) { ... }
+	FUNCTION_ARGUMENT, // int a, int b
+	FUNCTION_CALL, // test(1, 2)
 
-    AST_TYPE_TYPE, // int, string, float, bool, etc.
+	TYPE, // int, string, float, bool, etc.
 
-    AST_TYPE_STRUCT_DECLARATION, // struct Test { ... }
-    AST_TYPE_STRUCT_INITIALIZER_CALL, // .init(1, 2)
+	STRUCT_DECLARATION, // struct Test { ... }
+	STRUCT_INITIALIZER_CALL, // .init(1, 2)
 
-    AST_TYPE_ENUM_DECLARATION, // enum Test { ... }
-    AST_TYPE_ENUM_CASE, // case A = 50, B = 100 etc.
+	ENUM_DECLARATION, // enum Test { ... }
+	ENUM_CASE, // case A = 50, B = 100 etc.
 
-    AST_TYPE_VARIABLE_DECLARATION, // int a = 1
+	VARIABLE_DECLARATION, // int a = 1
 
-    AST_TYPE_WHILE, // while (a == 1) { ... }
-    AST_TYPE_FOR, // for (int i = 0; i < 10; i++) { ... }
+	WHILE, // while (a == 1) { ... }
+	FOR, // for (int i = 0; i < 10; i++) { ... }
 
-    AST_TYPE_SWITCH, // switch (a) { case 1: ... }
-    AST_TYPE_SWITCH_CASE, // case 1: ...
+	SWITCH, // switch (a) { case 1: ... }
+	SWITCH_CASE, // case 1: ...
 
-    AST_TYPE_DO, // do { ... }
-    AST_TYPE_CATCH, // catch (...) { ... }
-    AST_TYPE_TRY, // try myVariable = myFunction()
+	DO, // do { ... }
+	CATCH, // catch (...) { ... }
+	TRY, // try myVariable = myFunction()
 
 
-    AST_TYPE_RETURN, // return 1
-    AST_TYPE_IF, // if (a == 1) { ... } else { ... }
-    AST_TYPE_ASM, // asm("mov rax, 1")
-    AST_TYPE_ALIAS, // alias Test = int
+	RETURN, // return 1
+	IF, // if (a == 1) { ... } else { ... }
+	ASM, // asm("mov rax, 1")
+	ALIAS, // alias Test = int
 
-    AST_TYPE_BINARY_EXPRESSION, // 5 + 6;
-    AST_TYPE_UNARY_EXPRESSION, // -5;
-    AST_TYPE_GROUPING_EXPRESSION, // (5 + 6)
-    AST_TYPE_LITERAL, // 5;
-    AST_TYPE_CAST, // cast(5.50, int);
-} ASTType;
+	BINARY_EXPRESSION, // 5 + 6;
+	UNARY_EXPRESSION, // -5;
+	GROUPING_EXPRESSION, // (5 + 6)
+	LITERAL, // 5;
+	CAST, // cast(5.50, int);
+};
 
-typedef union {
-    struct {
-        mxDynamicArray *statements;
-        mxHashmap *declarations; // declaration.collided, for duplicate declarations
-    } CompoundStatement;
+class AST {
+protected:
+	ASTType ast_type;
+	size_t line;
 
-    struct {
-        Token *import;
-        // Just check the token type, if it's a string, then it's a file import
-        // if it's a keyword, then it's a library import
-        // No need to make a new variable for this
-    } Import;
+public:
+	AST(ASTType ast_type, size_t line) : ast_type(ast_type), line(line) {}
 
-    struct {
-        mxBitmap *modifiers;
-        struct AST *return_type; // AST_TYPE_TYPE
-        Token *name;
-        mxDynamicArray *arguments; // struct AST *
-        struct AST *body; // AST_TYPE_COMPOUND_STATEMENT
-        bool is_extern_or_header; // C functions, Assembly functions, etc.
-    } FunctionDeclaration;
+	virtual std::string toString() const = 0;
 
-    struct {
-        struct AST *type; // AST_TYPE_TYPE
-        Token *name;
-        bool is_vaarg;
-    } FunctionArgument;
 
-    struct {
-        Token *name;
-        mxDynamicArray *arguments; // struct AST *
-    } FunctionCall;
+	friend std::ostream &operator<<(std::ostream &out, AST const &ast) {
+		out << "AST: " << ast.toString();
+		return out;
+	}
+};
 
-    struct {
-        Token *token_type;
-        bool is_optional;
-        bool is_pointer;
-        bool is_array;
-    } Type;
+class CompoundStatement : public AST {
+private:
+	std::vector<std::unique_ptr<AST>> statements;
 
-    struct {
-        Token *name;
-        mxDynamicArray *members; // struct AST *
-    } StructDeclaration;
+public:
+	explicit CompoundStatement(size_t line) : AST(ASTType::COMPOUND_STATEMENT, line) {}
 
-    struct {
-        mxDynamicArray *arguments; // struct AST *
-    } StructInitializerCall;
+	void insertStatement(std::unique_ptr<AST> &statement) {
+		statements.push_back(std::move(statement));
+	}
 
-    struct {
-        Token *name;
-        mxDynamicArray *cases; // struct AST *
-    } EnumDeclaration;
+	std::string toString() const override {
+		std::stringstream ss;
+		ss << "CompoundStatement: {";
+		for (auto &statement: statements) {
+			ss << statement->toString() << "; ";
+		}
+		ss << "}";
+		return ss.str();
+	}
+};
 
-    struct {
-        Token *name;
-        int index;
-    } EnumCase;
+class Import : public AST {
+private:
+	std::string &import_path;
 
-    struct {
-        mxBitmap *modifiers;
-        struct AST *type; // AST_TYPE_TYPE
-        Token *name;
-        struct AST *initializer; // AST_TYPE_LITERAL
-        bool is_initialized;
-    } VariableDeclaration;
+public:
+	Import(std::string &import_path, size_t line) : AST(ASTType::IMPORT, line), import_path(import_path) {}
 
-    struct {
-        struct AST *condition; // AST_TYPE_BINARY_EXPRESSION
-        struct AST *body; // AST_TYPE_COMPOUND_STATEMENT
-    } While;
+	std::string &getImportPath() const {
+		return this->import_path;
+	}
 
-    struct {
-        struct AST *condition; // AST_TYPE_BINARY_EXPRESSION
-        struct AST *condition1; // AST_TYPE_BINARY_EXPRESSION
-        struct AST *variable_declaration; // AST_TYPE_VARIABLE_DECLARATION
-        struct AST *body; // AST_TYPE_COMPOUND_STATEMENT
-    } For;
+	void setImportPath(std::string &path) {
+		this->import_path = path;
+	}
 
-    struct {
-        struct AST *condition; // AST_TYPE_BINARY_EXPRESSION
-        mxDynamicArray *cases; // struct AST *
-    } Switch;
+	std::string toString() const override {
+		return "import '" + import_path + "'";
+	}
+};
 
-    struct {
-        struct AST *condition; // AST_TYPE_BINARY_EXPRESSION
-        struct AST *body; // AST_TYPE_COMPOUND_STATEMENT
-    } SwitchCase;
+class FunctionDeclaration : public AST {
+private:
+	std::optional<std::vector<TokenType>> modifiers;
+	std::string &name;
+	std::vector<std::unique_ptr<AST>> &arguments;
+	std::unique_ptr<AST> &body; // AST CompoundStatement
 
-    // TODO:
-    struct {
-        struct AST *body; // AST_TYPE_COMPOUND_STATEMENT
-    } Do;
+public:
+	FunctionDeclaration(std::string &name, std::vector<std::unique_ptr<AST>> &arguments, std::unique_ptr<AST> &body,
+	                    size_t line) : AST(
+		ASTType::FUNCTION_DECLARATION, line), name(name), arguments(arguments), body(body) {}
 
-    struct {
-        struct AST *body; // AST_TYPE_COMPOUND_STATEMENT
-    } Catch;
+	std::string &getName() const {
+		return this->name;
+	}
 
-    struct {
-        struct AST *expression; // AST_TYPE_COMPOUND_STATEMENT, should be function call?
-    } Try;
-    // @end todo
+	std::vector<std::unique_ptr<AST>> &getArguments() {
+		return this->arguments;
+	}
 
-    struct {
-        struct AST *expression; // AST_TYPE_LITERAL
-        bool has_return;
-        // Return call also be empty
-    } Return;
+	std::unique_ptr<AST> &getBody() {
+		return this->body;
+	}
 
-    struct {
-        struct AST *if_condition; // AST_TYPE_BINARY_EXPRESSION
-        struct AST *if_body; // AST_TYPE_COMPOUND_STATEMENT
+	std::string toString() const override {
+		std::stringstream ss;
+		ss << "FunctionDeclaration: " << name << "(";
+		for (auto &argument: arguments) {
+			ss << argument->toString() << ", ";
+		}
+		ss << ") {\n";
+		ss << body->toString() << "}";
+		return ss.str();
+	}
+};
 
-        mxDynamicArray *else_if_conditions; // AST_TYPE_BINARY_EXPRESSION
-        mxDynamicArray *else_if_bodies; // AST_TYPE_COMPOUND_STATEMENT
+class FunctionArgument : public AST {
+private:
+	std::string &name;
+	std::unique_ptr<AST> &type;
 
-        struct AST *else_body; // AST_TYPE_COMPOUND_STATEMENT
-        bool has_else;
-    } If;
+public:
+	FunctionArgument(std::string &name, std::unique_ptr<AST> &type, size_t line) : AST(ASTType::FUNCTION_ARGUMENT,
+	                                                                                   line), name(name),
+	                                                                               type(type) {}
 
-    struct {
-        struct AST *asm_string; // AST_TYPE_LITERAL
-    } Asm;
+	std::string &getName() const {
+		return this->name;
+	}
 
-    struct {
-        Token *name;
-        struct AST *type; // AST_TYPE_TYPE
-    } Alias;
+	std::unique_ptr<AST> &getType() {
+		return this->type;
+	}
 
-    struct {
-        struct AST *left; // AST_TYPE_VARIABLE_DECLARATION
-        Token *operator;
-        struct AST *right; // AST_TYPE_LITERAL
-    } BinaryExpression;
+	std::string toString() const override {
+		return name + ": " + type->toString();
+	}
+};
 
-    struct {
-        Token *operator;
-        struct AST *right; // AST_TYPE_LITERAL
-    } UnaryExpression;
+class FunctionCall : public AST {
+private:
+	std::string &name;
+	std::vector<std::unique_ptr<AST>> &arguments;
 
-    struct {
-        struct AST *expression; // AST_TYPE_COMPOUND_STATEMENT
-    } Grouping;
+public:
+	FunctionCall(std::string &name, std::vector<std::unique_ptr<AST>> &arguments, size_t line) : AST(
+		ASTType::FUNCTION_CALL, line),
+	                                                                                             name(name),
+	                                                                                             arguments(
+		                                                                                             arguments) {}
 
-    struct {
-        Token *token;
-    } Literal;
+	std::string &getName() const {
+		return this->name;
+	}
 
-    struct {
-        struct AST *to_type; // AST_TYPE_TYPE
-        struct AST *expression; // AST_TYPE_COMPOUND_STATEMENT
-    } Cast;
-} ASTValue;
+	std::vector<std::unique_ptr<AST>> &getArguments() {
+		return this->arguments;
+	}
 
-typedef struct AST {
-    ASTType type;
-    ASTValue value;
-} AST;
+	std::string toString() const override {
+		std::stringstream ss;
+		ss << name << "(";
+		for (auto &argument: arguments) {
+			ss << argument->toString() << ", ";
+		}
+		ss << ")";
+		return ss.str();
+	}
+};
 
-#endif /* DRAST_AST_H */
+class Type : public AST {
+private:
+	Token &token;
+	bool is_pointer;
+	bool is_array;
+	bool is_optional;
+
+public:
+	Type(Token token, bool is_pointer, bool is_array, bool is_optional, size_t line) : AST(ASTType::TYPE, line),
+	                                                                                   token(token),
+	                                                                                   is_pointer(is_pointer),
+	                                                                                   is_array(is_array),
+	                                                                                   is_optional(is_optional) {};
+
+	void setIsPointer(bool isPointer) {
+		this->is_pointer = isPointer;
+	}
+
+	void setIsArray(bool isArray) {
+		this->is_array = isArray;
+	}
+
+	void setIsOptional(bool isOptional) {
+		this->is_optional = isOptional;
+	}
+
+	void setType(Token token) {
+		this->token = token;
+	}
+
+	Token &getType() const {
+		return this->token;
+	}
+
+	std::string toString() const override {
+		return this->token.value + (is_array ? "[]" : "") + (is_pointer ? "*" : "") + (is_optional ? "?" : "");
+	}
+};
+
+class StructDeclaration : public AST {
+private:
+	std::string &name;
+	std::vector<std::unique_ptr<AST>> &fields; // Variable Or Function Declarations
+
+public:
+	StructDeclaration(std::string &name, std::vector<std::unique_ptr<AST>> &fields, size_t line) :
+		AST(ASTType::STRUCT_DECLARATION, line), name(name), fields(fields) {}
+
+	std::string &getName() const {
+		return this->name;
+	}
+
+	std::vector<std::unique_ptr<AST>> &getFields() {
+		return this->fields;
+	}
+
+	std::string toString() const override {
+		std::stringstream ss;
+		ss << "StructDeclaration: " << name << " {\n";
+		for (auto &field: fields) {
+			ss << field->toString() << "\n";
+		}
+		ss << "}";
+		return ss.str();
+	}
+};
+
+class StructInitializerCall : public AST {
+private:
+	std::string &name;
+	std::vector<std::unique_ptr<AST>> &arguments;
+
+public:
+	StructInitializerCall(std::string &name, std::vector<std::unique_ptr<AST>> &arguments, size_t line) : AST(
+		ASTType::STRUCT_INITIALIZER_CALL, line), name(name), arguments(arguments) {}
+
+	std::string &getName() const {
+		return this->name;
+	}
+
+	std::vector<std::unique_ptr<AST>> &getArguments() {
+		return this->arguments;
+	}
+
+	std::string toString() const override {
+		std::stringstream ss;
+		ss << name << "(";
+		for (auto &argument: arguments) {
+			ss << argument->toString() << ", ";
+		}
+		ss << ")";
+		return ss.str();
+	}
+};
+
+class EnumDeclaration : public AST {
+private:
+	std::string &name;
+	std::vector<std::unique_ptr<AST>> &cases;
+
+public:
+	EnumDeclaration(std::string &name, std::vector<std::unique_ptr<AST>> &cases, size_t line) : AST(
+		ASTType::ENUM_DECLARATION, line),
+	                                                                                            name(name),
+	                                                                                            cases(cases) {}
+
+	std::string &getName() const {
+		return this->name;
+	}
+
+	std::vector<std::unique_ptr<AST>> &getCases() {
+		return this->cases;
+	}
+
+	std::string toString() const override {
+		std::stringstream ss;
+		ss << "EnumDeclaration: " << name << " {\n";
+		for (auto &case_: cases) {
+			ss << case_->toString() << "\n";
+		}
+		ss << "}";
+		return ss.str();
+	}
+};
+
+class EnumCase : public AST {
+private:
+	std::string &name;
+	std::unique_ptr<AST> &value;
+
+public:
+	EnumCase(std::string &name, std::unique_ptr<AST> &value, size_t line) : AST(ASTType::ENUM_CASE, line),
+	                                                                        name(name),
+	                                                                        value(value) {}
+
+	std::string &getName() const {
+		return this->name;
+	}
+
+	std::unique_ptr<AST> &getValue() {
+		return this->value;
+	}
+
+	std::string toString() const override {
+		return "case " + name + " = " + value->toString();
+	}
+};
+
+class VariableDeclaration : public AST {
+private:
+	std::string &name;
+	std::unique_ptr<AST> &type;
+	std::unique_ptr<AST> &value;
+	bool has_value;
+
+public:
+	VariableDeclaration(std::string &name, std::unique_ptr<AST> &type, std::unique_ptr<AST> &value, size_t line,
+	                    bool has_value) : AST(ASTType::VARIABLE_DECLARATION,
+	                                          line), name(name), type(type),
+	                                      value(value), has_value(has_value) {}
+
+	std::string &getName() const {
+		return this->name;
+	}
+
+	std::unique_ptr<AST> &getType() {
+		return this->type;
+	}
+
+	std::unique_ptr<AST> &getValue() {
+		return this->value;
+	}
+
+	std::string toString() const override {
+		if (has_value) {
+			return type->toString() + " " + name + " = " + value->toString();
+		} else {
+			return type->toString() + " " + name;
+		}
+	}
+};
+
+#endif //DRAST_AST_H
