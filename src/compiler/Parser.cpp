@@ -24,7 +24,7 @@ std::unique_ptr<CompoundStatement> Parser::compound() {
 std::unique_ptr<AST> Parser::statement() {
 	switch (this->current->type) {
 		case TokenType::IMPORT:
-			return import();
+			return this->import();
 		case TokenType::INT:
 		case TokenType::CHAR:
 		case TokenType::VOID:
@@ -34,7 +34,7 @@ std::unique_ptr<AST> Parser::statement() {
 		case TokenType::IDENTIFIER:
 			return this->functionOrVariableDeclaration(std::nullopt);
 		default:
-			advance();
+//			advance();
 			return nullptr;
 	}
 

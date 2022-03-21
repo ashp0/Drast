@@ -134,7 +134,7 @@ std::unique_ptr<Token> Lexer::getToken() {
 			exit(EXIT_FAILURE);
 	}
 
-	return returnToken(TokenType::T_EOF);
+	return returnToken(TokenType::T_EOF, true);
 }
 
 std::unique_ptr<Token> Lexer::identifier() {
@@ -154,9 +154,9 @@ std::unique_ptr<Token> Lexer::character() {
 	return this->lexWhile(TokenType::V_CHAR, [this]() { return (this->current != '\''); }, true);
 }
 
-std::unique_ptr<Token> Lexer::returnToken(TokenType type) {
+std::unique_ptr<Token> Lexer::returnToken(TokenType type, bool without_advance) {
 	std::string current_string = {this->current};
-	return this->returnToken(type, current_string);
+	return this->returnToken(type, current_string, without_advance);
 }
 
 std::unique_ptr<Token> Lexer::returnToken(TokenType type, std::string &string, bool without_advance) {

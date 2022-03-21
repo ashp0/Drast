@@ -6,6 +6,7 @@
 #define DRAST_AST_H
 
 #include <iostream>
+#include <utility>
 #include <vector>
 #include <sstream>
 #include <memory>
@@ -62,7 +63,7 @@ public:
 public:
 	AST(ASTType ast_type, size_t line) : ast_type(ast_type), line(line) {}
 
-	~AST() = default;
+	virtual ~AST() = default;
 
 	virtual std::string toString() const = 0;
 
@@ -74,7 +75,7 @@ public:
 
 class CompoundStatement : public AST {
 public:
-	std::vector<std::unique_ptr<AST>> statements = {};
+	std::vector<std::unique_ptr<AST>> statements;
 
 public:
 	explicit CompoundStatement(size_t line) : AST(ASTType::COMPOUND_STATEMENT, line) {}
@@ -96,10 +97,11 @@ public:
 
 class Import : public AST {
 public:
-	std::string &import_path;
+	std::string import_path;
 
 public:
-	Import(std::string &import_path, size_t line) : AST(ASTType::IMPORT, line), import_path(import_path) {}
+	Import(std::string import_path, size_t line) : AST(ASTType::IMPORT, line),
+	                                               import_path(std::move(import_path)) {}
 
 	std::string toString() const override {
 		return "import '" + this->import_path + "'";
@@ -170,17 +172,17 @@ public:
 
 class Type : public AST {
 public:
-	Token &token;
+	Token token;
 	bool is_pointer;
 	bool is_array;
 	bool is_optional;
 
 public:
-	Type(Token &token, bool is_pointer, bool is_array, bool is_optional, size_t line) : AST(ASTType::TYPE, line),
-	                                                                                    token(token),
-	                                                                                    is_pointer(is_pointer),
-	                                                                                    is_array(is_array),
-	                                                                                    is_optional(is_optional) {};
+	Type(Token token, bool is_pointer, bool is_array, bool is_optional, size_t line) : AST(ASTType::TYPE, line),
+	                                                                                   token(std::move(token)),
+	                                                                                   is_pointer(is_pointer),
+	                                                                                   is_array(is_array),
+	                                                                                   is_optional(is_optional) {};
 
 	std::string toString() const override {
 		return this->token.value + (is_array ? "[]" : "") + (is_pointer ? "*" : "") + (is_optional ? "?" : "");

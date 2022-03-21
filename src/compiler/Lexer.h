@@ -29,7 +29,7 @@ public:
 
 	void lex();
 
-protected:
+private:
 	std::unique_ptr<Token> getToken();
 
 	std::unique_ptr<Token> identifier();
@@ -40,7 +40,7 @@ protected:
 
 	std::unique_ptr<Token> character();
 
-	std::unique_ptr<Token> returnToken(TokenType type);
+	std::unique_ptr<Token> returnToken(TokenType type, bool without_advance = false);
 
 	std::unique_ptr<Token> returnToken(TokenType type, std::string &string, bool without_advance = false);
 

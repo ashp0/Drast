@@ -17,12 +17,13 @@ private:
 	std::vector<std::unique_ptr<Token>> &tokens;
 
 	size_t index;
-	std::unique_ptr<Token> &current;
+	std::unique_ptr<Token> current;
 
 public:
 	Parser(std::string &file_name, std::vector<std::unique_ptr<Token>> &tokens) : file_name(file_name),
 	                                                                              tokens(tokens), index(0),
-	                                                                              current(tokens[index]) {}
+	                                                                              current(std::move(
+		                                                                              tokens[index])) {}
 
 	std::unique_ptr<AST> parse();
 
