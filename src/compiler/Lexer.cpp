@@ -38,33 +38,33 @@ std::unique_ptr<Token> Lexer::getToken() {
 			this->column = 0;
 			break;
 		case '?':
-			return returnToken(TokenType::T_QUESTION);
+			return returnToken(TokenType::QUESTION);
 		case '<':
 			if (this->peek() == '<') {
 				this->advance();
-				return this->returnToken(TokenType::T_BITWISE_SHIFT_LEFT,
-				                         TokenType::T_BITWISE_SHIFT_LEFT_EQUAL);
+				return this->returnToken(TokenType::BITWISE_SHIFT_LEFT,
+				                         TokenType::BITWISE_SHIFT_LEFT_EQUAL);
 			}
 
-			return this->returnToken(TokenType::T_LESS_THAN, TokenType::T_LESS_THAN_EQUAL);
+			return this->returnToken(TokenType::LESS_THAN, TokenType::LESS_THAN_EQUAL);
 		case '>':
 			if (this->peek() == '>') {
 				this->advance();
-				return this->returnToken(TokenType::T_BITWISE_SHIFT_RIGHT,
-				                         TokenType::T_BITWISE_SHIFT_RIGHT_EQUAL);
+				return this->returnToken(TokenType::BITWISE_SHIFT_RIGHT,
+				                         TokenType::BITWISE_SHIFT_RIGHT_EQUAL);
 			}
 
-			return this->returnToken(TokenType::T_GREATER_THAN, TokenType::T_GREATER_THAN_EQUAL);
+			return this->returnToken(TokenType::GREATER_THAN, TokenType::GREATER_THAN_EQUAL);
 		case '=':
-			return this->returnToken(TokenType::T_EQUAL, TokenType::T_EQUAL_EQUAL);
+			return this->returnToken(TokenType::EQUAL, TokenType::EQUAL_EQUAL);
 		case '!':
-			return this->returnToken(TokenType::T_NOT, TokenType::T_NOT_EQUAL);
+			return this->returnToken(TokenType::NOT, TokenType::NOT_EQUAL);
 		case '+':
-			return this->returnToken(TokenType::T_OPERATOR_ADD, TokenType::T_OPERATOR_ADD_EQUAL);
+			return this->returnToken(TokenType::OPERATOR_ADD, TokenType::OPERATOR_ADD_EQUAL);
 		case '-':
-			return this->returnToken(TokenType::T_OPERATOR_SUB, TokenType::T_OPERATOR_SUB_EQUAL);
+			return this->returnToken(TokenType::OPERATOR_SUB, TokenType::OPERATOR_SUB_EQUAL);
 		case '*':
-			return this->returnToken(TokenType::T_OPERATOR_MUL, TokenType::T_OPERATOR_MUL_EQUAL);
+			return this->returnToken(TokenType::OPERATOR_MUL, TokenType::OPERATOR_MUL_EQUAL);
 		case '/':
 			if (peek() == '/') {
 				this->skipLine();
@@ -73,60 +73,60 @@ std::unique_ptr<Token> Lexer::getToken() {
 				this->skipBlockComment();
 				return this->getToken();
 			}
-			return this->returnToken(TokenType::T_OPERATOR_DIV, TokenType::T_OPERATOR_DIV_EQUAL);
+			return this->returnToken(TokenType::OPERATOR_DIV, TokenType::OPERATOR_DIV_EQUAL);
 		case '%':
-			return this->returnToken(TokenType::T_OPERATOR_MOD, TokenType::T_OPERATOR_MOD_EQUAL);
+			return this->returnToken(TokenType::OPERATOR_MOD, TokenType::OPERATOR_MOD_EQUAL);
 
 		case '&':
 			if (peek() == '&') {
 				this->advance();
-				return this->returnToken(TokenType::T_BITWISE_AND_AND,
-				                         TokenType::T_BITWISE_AND_AND_EQUAL);
+				return this->returnToken(TokenType::BITWISE_AND_AND,
+				                         TokenType::BITWISE_AND_AND_EQUAL);
 			}
-			return this->returnToken(TokenType::T_BITWISE_AND, TokenType::T_BITWISE_AND_EQUAL);
+			return this->returnToken(TokenType::BITWISE_AND, TokenType::BITWISE_AND_EQUAL);
 		case '|':
 			if (peek() == '|') {
 				this->advance();
-				return this->returnToken(TokenType::T_BITWISE_PIPE_PIPE,
-				                         TokenType::T_BITWISE_PIPE_PIPE_EQUAL);
+				return this->returnToken(TokenType::BITWISE_PIPE_PIPE,
+				                         TokenType::BITWISE_PIPE_PIPE_EQUAL);
 			}
-			return this->returnToken(TokenType::T_BITWISE_PIPE, TokenType::T_BITWISE_PIPE_EQUAL);
+			return this->returnToken(TokenType::BITWISE_PIPE, TokenType::BITWISE_PIPE_EQUAL);
 		case '^':
-			return this->returnToken(TokenType::T_BITWISE_POWER, TokenType::T_BITWISE_POWER_EQUAL);
+			return this->returnToken(TokenType::BITWISE_POWER, TokenType::BITWISE_POWER_EQUAL);
 		case '~':
-			return this->returnToken(TokenType::T_BITWISE_NOT);
+			return this->returnToken(TokenType::BITWISE_NOT);
 		case ':':
 			if (peek() == ':') {
 				this->advance();
-				return this->returnToken(TokenType::T_DOUBLE_COLON);
+				return this->returnToken(TokenType::DOUBLE_COLON);
 			}
-			return this->returnToken(TokenType::T_COLON);
+			return this->returnToken(TokenType::COLON);
 		case ';':
-			return this->returnToken(TokenType::T_SEMICOLON);
+			return this->returnToken(TokenType::SEMICOLON);
 		case '(':
-			return this->returnToken(TokenType::T_PARENS_OPEN);
+			return this->returnToken(TokenType::PARENS_OPEN);
 		case ')':
-			return this->returnToken(TokenType::T_PARENS_CLOSE);
+			return this->returnToken(TokenType::PARENS_CLOSE);
 		case '[':
-			return this->returnToken(TokenType::T_SQUARE_OPEN);
+			return this->returnToken(TokenType::SQUARE_OPEN);
 		case ']':
-			return this->returnToken(TokenType::T_SQUARE_CLOSE);
+			return this->returnToken(TokenType::SQUARE_CLOSE);
 		case '{':
-			return this->returnToken(TokenType::T_BRACE_OPEN);
+			return this->returnToken(TokenType::BRACE_OPEN);
 		case '}':
-			return this->returnToken(TokenType::T_BRACE_CLOSE);
+			return this->returnToken(TokenType::BRACE_CLOSE);
 		case ',':
-			return this->returnToken(TokenType::T_COMMA);
+			return this->returnToken(TokenType::COMMA);
 		case '.':
-			return this->returnToken(TokenType::T_PERIOD);
+			return this->returnToken(TokenType::PERIOD);
 		case '$':
-			return this->returnToken(TokenType::T_DOLLAR);
+			return this->returnToken(TokenType::DOLLAR);
 		case '#':
-			return this->returnToken(TokenType::T_HASHTAG);
+			return this->returnToken(TokenType::HASHTAG);
 		case '@':
-			return this->returnToken(TokenType::T_AT);
+			return this->returnToken(TokenType::AT);
 		case '\\':
-			return this->returnToken(TokenType::T_BACKSLASH);
+			return this->returnToken(TokenType::BACKSLASH);
 		case '\0':
 			break;
 		default:
@@ -138,24 +138,24 @@ std::unique_ptr<Token> Lexer::getToken() {
 }
 
 std::unique_ptr<Token> Lexer::identifier() {
-	return this->lexWhile(TokenType::T_IDENTIFIER,
+	return this->lexWhile(TokenType::IDENTIFIER,
 	                      [this]() { return isalnum(this->current) || this->current == '_'; });
 }
 
 std::unique_ptr<Token> Lexer::number() {
-	return this->lexWhile(TokenType::T_NUMBER, [this]() { return isnumber(this->current); });
+	return this->lexWhile(TokenType::V_NUMBER, [this]() { return isnumber(this->current); });
 }
 
 std::unique_ptr<Token> Lexer::string() {
-	return this->lexWhile(TokenType::T_STRING, [this]() { return (this->current != '"'); }, true);
+	return this->lexWhile(TokenType::V_STRING, [this]() { return (this->current != '"'); }, true);
 }
 
 std::unique_ptr<Token> Lexer::character() {
-	return this->lexWhile(TokenType::T_CHAR, [this]() { return (this->current != '\''); }, true);
+	return this->lexWhile(TokenType::V_CHAR, [this]() { return (this->current != '\''); }, true);
 }
 
 std::unique_ptr<Token> Lexer::returnToken(TokenType type) {
-	std::string current_string = std::string(1, this->current);
+	std::string current_string = {this->current};
 	return this->returnToken(type, current_string);
 }
 
@@ -168,11 +168,7 @@ std::unique_ptr<Token> Lexer::returnToken(TokenType type, std::string &string, b
 }
 
 std::unique_ptr<Token> Lexer::returnToken(TokenType first_type, TokenType second_type) {
-	if (this->peek() == '=') {
-		return this->returnToken(second_type);
-	}
-
-	return this->returnToken(first_type);
+	return this->returnToken(this->peek() == '=' ? second_type : first_type);
 }
 
 void Lexer::skipWhitespace() {
@@ -189,11 +185,7 @@ void Lexer::skipWhitespace() {
 }
 
 void Lexer::skipLine() {
-	for (;;) {
-		if (this->current == '\n' || this->current == '\0') {
-			break;
-		}
-
+	while (this->current != '\n' && this->current != '\0') {
 		this->advance();
 	}
 
@@ -264,7 +256,7 @@ std::unique_ptr<Token> Lexer::lexWhile(TokenType type, predicate &&pred, bool is
 	size_t position = is_string ? this->index - this->start - 1 : this->index - this->start;
 	std::string value = this->source.substr(this->start, position);
 
-	if (type == TokenType::T_IDENTIFIER) {
+	if (type == TokenType::IDENTIFIER) {
 		TokenType type1 = Token::is_keyword(value, this->index - this->start);
 		return this->returnToken(type1, value, true);
 	}

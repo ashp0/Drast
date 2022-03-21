@@ -18,15 +18,15 @@ std::unique_ptr<AST> Parser::compound() {
 
 std::unique_ptr<AST> Parser::statement() {
 	switch (this->current->type) {
-		case TokenType::T_K_IMPORT:
+		case TokenType::IMPORT:
 			return import();
-		case TokenType::T_K_INT:
-		case TokenType::T_K_CHAR:
-		case TokenType::T_K_VOID:
-		case TokenType::T_K_BOOL:
-		case TokenType::T_K_FLOAT:
-		case TokenType::T_K_STRING:
-		case TokenType::T_IDENTIFIER:
+		case TokenType::INT:
+		case TokenType::CHAR:
+		case TokenType::VOID:
+		case TokenType::BOOL:
+		case TokenType::FLOAT:
+		case TokenType::STRING:
+		case TokenType::IDENTIFIER:
 			return this->functionOrVariableDeclaration(std::nullopt);
 		default:
 			return nullptr;
@@ -38,15 +38,15 @@ std::unique_ptr<AST> Parser::statement() {
 std::unique_ptr<AST> Parser::import() {
 	std::unique_ptr<Import> import = std::make_unique<Import>(this->current->value, this->current->line);
 
-	this->advance(TokenType::T_K_IMPORT);
+	this->advance(TokenType::IMPORT);
 
-	if (this->current->type != TokenType::T_STRING) {
+	if (this->current->type != TokenType::STRING) {
 		throw std::runtime_error("Expected string literal\n");
 	}
 
 	import->setImportPath(this->current->value);
 
-	this->advance(TokenType::T_STRING);
+	this->advance(TokenType::STRING);
 
 	return import;
 }
@@ -83,13 +83,13 @@ std::unique_ptr<AST> Parser::type() {
 	std::unique_ptr<Type> type = std::make_unique<Type>(*this->current, false, false, false, this->current->line);
 
 	switch (this->current->type) {
-		case TokenType::T_K_INT:
-		case TokenType::T_K_CHAR:
-		case TokenType::T_K_VOID:
-		case TokenType::T_K_BOOL:
-		case TokenType::T_K_FLOAT:
-		case TokenType::T_K_STRING:
-		case TokenType::T_IDENTIFIER:
+		case TokenType::INT:
+		case TokenType::CHAR:
+		case TokenType::VOID:
+		case TokenType::BOOL:
+		case TokenType::FLOAT:
+		case TokenType::STRING:
+		case TokenType::IDENTIFIER:
 			type->setType(*this->current);
 			break;
 		default:
@@ -100,13 +100,13 @@ std::unique_ptr<AST> Parser::type() {
 
 	for (;;) {
 		switch (this->current->type) {
-			case TokenType::T_QUESTION:
+			case TokenType::QUESTION:
 				type->setIsOptional(true);
 				break;
-			case TokenType::T_OPERATOR_MUL:
+			case TokenType::OPERATOR_MUL:
 				type->setIsPointer(true);
 				break;
-			case TokenType::T_SQUARE_OPEN:
+			case TokenType::SQUARE_OPEN:
 				this->advance();
 				type->setIsArray(true);
 				break;

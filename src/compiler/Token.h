@@ -9,121 +9,121 @@
 
 enum class TokenType {
 	// Keywords
-	T_K_STRUCT,
-	T_K_SELF,
-	T_K_ENUM,
-	T_K_ALIAS,
-	T_K_RETURN,
-	T_K_IF,
-	T_K_ELSE,
-	T_K_IMPORT,
-	T_K_ASM,
-	T_K_VOLATILE,
-	T_K_CAST,
-	T_K_EXTERN,
+	STRUCT,
+	SELF,
+	ENUM,
+	ALIAS,
+	RETURN,
+	IF,
+	ELSE,
+	IMPORT,
+	ASM,
+	VOLATILE,
+	CAST,
+	EXTERN,
 
-	T_K_INT,
-	T_K_FLOAT,
-	T_K_VOID,
-	T_K_STRING,
-	T_K_CHAR,
-	T_K_BOOL,
-	T_K_FALSE,
-	T_K_TRUE,
+	INT,
+	FLOAT,
+	VOID,
+	STRING,
+	CHAR,
+	BOOL,
+	FALSE,
+	TRUE,
 
-	T_K_SWITCH,
-	T_K_CASE,
-	T_K_BREAK,
-	T_K_DEFAULT,
-	T_K_WHILE,
-	T_K_FOR,
-	T_K_CONTINUE,
-	T_K_UNION,
+	SWITCH,
+	CASE,
+	BREAK,
+	DEFAULT,
+	WHILE,
+	FOR,
+	CONTINUE,
+	UNION,
 
 	// Values
-	T_NUMBER,
-	T_FLOAT,
-	T_STRING,
-	T_CHAR,
-	T_HEX,
-	T_OCTAL,
-	T_IDENTIFIER,
+	V_NUMBER,
+	V_FLOAT,
+	V_STRING,
+	V_CHAR,
+	V_HEX,
+	V_OCTAL,
+	IDENTIFIER,
 
-	T_K_GOTO,
-	T_K_PRIVATE,
+	GOTO,
+	PRIVATE,
 
-	T_K_DO,
-	T_K_TRY,
-	T_K_CATCH,
+	DO,
+	TRY,
+	CATCH,
 
 	// Operators
-	T_QUESTION, // ?
+	QUESTION, // ?
 
-	T_LESS_THAN,       // <
-	T_LESS_THAN_EQUAL, // <=
+	LESS_THAN,       // <
+	LESS_THAN_EQUAL, // <=
 
-	T_GREATER_THAN,       // >
-	T_GREATER_THAN_EQUAL, // >=
+	GREATER_THAN,       // >
+	GREATER_THAN_EQUAL, // >=
 
-	T_EQUAL,       // =
-	T_EQUAL_EQUAL, // ==
+	EQUAL,       // =
+	EQUAL_EQUAL, // ==
 
-	T_NOT,       // !
-	T_NOT_EQUAL, // !=
+	NOT,       // !
+	NOT_EQUAL, // !=
 
-	T_OPERATOR_ADD,       // +
-	T_OPERATOR_ADD_EQUAL, // +=
+	OPERATOR_ADD,       // +
+	OPERATOR_ADD_EQUAL, // +=
 
-	T_OPERATOR_SUB,       // -
-	T_OPERATOR_SUB_EQUAL, // -=
+	OPERATOR_SUB,       // -
+	OPERATOR_SUB_EQUAL, // -=
 
-	T_OPERATOR_MUL,       // *
-	T_OPERATOR_MUL_EQUAL, // *=
+	OPERATOR_MUL,       // *
+	OPERATOR_MUL_EQUAL, // *=
 
-	T_OPERATOR_DIV,       // /
-	T_OPERATOR_DIV_EQUAL, // /=
+	OPERATOR_DIV,       // /
+	OPERATOR_DIV_EQUAL, // /=
 
-	T_OPERATOR_MOD,       // %
-	T_OPERATOR_MOD_EQUAL, // %=
+	OPERATOR_MOD,       // %
+	OPERATOR_MOD_EQUAL, // %=
 
 	// Bitwise Operators
-	T_BITWISE_AND,           // &
-	T_BITWISE_AND_EQUAL,     // &=
-	T_BITWISE_AND_AND,       // &&
-	T_BITWISE_AND_AND_EQUAL, // &&=
+	BITWISE_AND,           // &
+	BITWISE_AND_EQUAL,     // &=
+	BITWISE_AND_AND,       // &&
+	BITWISE_AND_AND_EQUAL, // &&=
 
-	T_BITWISE_PIPE,            // |
-	T_BITWISE_PIPE_EQUAL,      // |=
-	T_BITWISE_PIPE_PIPE,       // ||
-	T_BITWISE_PIPE_PIPE_EQUAL, // ||=
+	BITWISE_PIPE,            // |
+	BITWISE_PIPE_EQUAL,      // |=
+	BITWISE_PIPE_PIPE,       // ||
+	BITWISE_PIPE_PIPE_EQUAL, // ||=
 
-	T_BITWISE_SHIFT_LEFT,       // <<
-	T_BITWISE_SHIFT_LEFT_EQUAL, // <<=
+	BITWISE_SHIFT_LEFT,       // <<
+	BITWISE_SHIFT_LEFT_EQUAL, // <<=
 
-	T_BITWISE_SHIFT_RIGHT,       // >>
-	T_BITWISE_SHIFT_RIGHT_EQUAL, // >>=
+	BITWISE_SHIFT_RIGHT,       // >>
+	BITWISE_SHIFT_RIGHT_EQUAL, // >>=
 
-	T_BITWISE_POWER,       // ^
-	T_BITWISE_POWER_EQUAL, // ^=
+	BITWISE_POWER,       // ^
+	BITWISE_POWER_EQUAL, // ^=
 
-	T_BITWISE_NOT, // ~
+	BITWISE_NOT, // ~
 
 	// Symbols
-	T_COLON,        // :
-	T_DOUBLE_COLON, // ::
-	T_SEMICOLON,    // ;
-	T_PARENS_OPEN,  // (
-	T_PARENS_CLOSE, // )
-	T_BRACE_OPEN,   // {
-	T_BRACE_CLOSE,  // }
-	T_SQUARE_OPEN,  // [
-	T_SQUARE_CLOSE, // ]
-	T_COMMA,        // ,
-	T_PERIOD,       // .
-	T_DOLLAR,       // $
-	T_HASHTAG,      // #
-	T_AT,           // @
-	T_BACKSLASH,
+	COLON,        // :
+	DOUBLE_COLON, // ::
+	SEMICOLON,    // ;
+	PARENS_OPEN,  // (
+	PARENS_CLOSE, // )
+	BRACE_OPEN,   // {
+	BRACE_CLOSE,  // }
+	SQUARE_OPEN,  // [
+	SQUARE_CLOSE, // ]
+	COMMA,        // ,
+	PERIOD,       // .
+	DOLLAR,       // $
+	HASHTAG,      // #
+	AT,           // @
+	BACKSLASH,
 
 	// Other
 	T_EOF,
@@ -142,7 +142,7 @@ public:
 	Token(std::string &value, TokenType type, size_t line, size_t column) : value(
 		value), type(type), line(line), column(column) {}
 
-	static TokenType is_keyword(std::string &string, size_t length);
+	static TokenType is_keyword(const std::string &string, size_t length);
 
 	friend std::ostream &operator<<(std::ostream &out, Token const &token) {
 		out << "Token: `" << token.value << "` " << tokenTypeAsLiteral(token.type) << " L`" << token.line
