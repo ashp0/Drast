@@ -8,12 +8,17 @@ std::unique_ptr<AST> Parser::parse() {
 	return compound();
 }
 
-std::unique_ptr<AST> Parser::compound() {
+std::unique_ptr<CompoundStatement> Parser::compound() {
 	std::unique_ptr<CompoundStatement> compoundStatement = std::make_unique<CompoundStatement>(this->current->line);
 
-	std::unique_ptr<AST> statement = this->statement();
-	std::cout << statement->toString() << std::endl;
-	return statement;
+	while (this->current->type != TokenType::T_EOF) {
+		std::unique_ptr<AST> statement = this->statement();
+		compoundStatement->insertStatement(statement);
+	}
+
+
+	std::cout << *compoundStatement << std::endl;
+	return compoundStatement;
 }
 
 std::unique_ptr<AST> Parser::statement() {
@@ -29,24 +34,25 @@ std::unique_ptr<AST> Parser::statement() {
 		case TokenType::IDENTIFIER:
 			return this->functionOrVariableDeclaration(std::nullopt);
 		default:
+			advance();
 			return nullptr;
 	}
 
 	return nullptr;
 }
 
-std::unique_ptr<AST> Parser::import() {
+std::unique_ptr<Import> Parser::import() {
 	std::unique_ptr<Import> import = std::make_unique<Import>(this->current->value, this->current->line);
 
 	this->advance(TokenType::IMPORT);
 
-	if (this->current->type != TokenType::STRING) {
+	if (this->current->type != TokenType::V_STRING) {
 		throw std::runtime_error("Expected string literal\n");
 	}
 
-	import->setImportPath(this->current->value);
+	import->import_path = this->current->value;
 
-	this->advance(TokenType::STRING);
+	this->advance(TokenType::V_STRING);
 
 	return import;
 }
@@ -90,7 +96,6 @@ std::unique_ptr<AST> Parser::type() {
 		case TokenType::FLOAT:
 		case TokenType::STRING:
 		case TokenType::IDENTIFIER:
-			type->setType(*this->current);
 			break;
 		default:
 			throw std::runtime_error("Parser: Expected type\n");
@@ -101,14 +106,14 @@ std::unique_ptr<AST> Parser::type() {
 	for (;;) {
 		switch (this->current->type) {
 			case TokenType::QUESTION:
-				type->setIsOptional(true);
+				type->is_optional = true;
 				break;
 			case TokenType::OPERATOR_MUL:
-				type->setIsPointer(true);
+				type->is_pointer = true;
 				break;
 			case TokenType::SQUARE_OPEN:
 				this->advance();
-				type->setIsArray(true);
+				type->is_array = true;
 				break;
 			default:
 				goto end;

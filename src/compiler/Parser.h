@@ -27,11 +27,11 @@ public:
 	std::unique_ptr<AST> parse();
 
 private:
-	std::unique_ptr<AST> compound();
+	std::unique_ptr<CompoundStatement> compound();
 
 	std::unique_ptr<AST> statement();
 
-	std::unique_ptr<AST> import();
+	std::unique_ptr<Import> import();
 
 	std::unique_ptr<AST> functionOrVariableDeclaration(std::optional<std::vector<TokenType>> modifiers);
 
