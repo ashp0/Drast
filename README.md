@@ -7,7 +7,7 @@
 
 A general-purpose language, that is meant to be a more modernized version of C, while still maintaining its simplicity.
 
-[Docs](docs/docs.md) | [Changes](Changes.md) | [TODO](TODO.md)
+[Docs](docs/docs.md) | [TODO](TODO.md)
 
 </div>
 

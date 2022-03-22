@@ -6,13 +6,14 @@
 #define DRAST_TOKEN_H
 
 #include <iostream>
+#include <unordered_map>
 
 enum class TokenType {
     // Keywords
     STRUCT,
     SELF,
     ENUM,
-    ALIAS,
+    TYPEALIAS,
     RETURN,
     IF,
     ELSE,

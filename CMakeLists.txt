@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.21)
 project(drast)
 
 set(CMAKE_CXX_STANDARD 20)
- 
+
 add_executable(drast
         src/main.cpp
         src/compiler/Lexer.cpp

@@ -1,4 +1,4 @@
-# TODO 
+# TODO
 
 - [x] Lexing
 - [x] Parsing

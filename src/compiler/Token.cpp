@@ -4,6 +4,46 @@
 
 #include "Token.h"
 
+static std::unordered_map<std::string, TokenType> keywords = {
+    {"struct", TokenType::STRUCT},
+    {"self", TokenType::SELF},
+    {"enum", TokenType::ENUM},
+    {"typealias", TokenType::TYPEALIAS},
+    {"return", TokenType::RETURN},
+    {"if", TokenType::IF},
+    {"else", TokenType::ELSE},
+    {"import", TokenType::IMPORT},
+    {"asm", TokenType::ASM},
+    {"volatile", TokenType::VOLATILE},
+    {"cast", TokenType::CAST},
+    {"extern", TokenType::EXTERN},
+
+    {"switch", TokenType::SWITCH},
+    {"case", TokenType::CASE},
+    {"break", TokenType::BREAK},
+    {"default", TokenType::DEFAULT},
+    {"while", TokenType::WHILE},
+    {"for", TokenType::FOR},
+    {"continue", TokenType::CONTINUE},
+    {"union", TokenType::UNION},
+
+    {"false", TokenType::FALSE},
+    {"true", TokenType::TRUE},
+    {"bool", TokenType::BOOL},
+    {"int", TokenType::INT},
+    {"float", TokenType::FLOAT},
+    {"void", TokenType::VOID},
+    {"string", TokenType::STRING},
+    {"char", TokenType::CHAR},
+
+    {"goto", TokenType::GOTO},
+    {"private", TokenType::PRIVATE},
+
+    {"do", TokenType::DO},
+    {"try", TokenType::TRY},
+    {"catch", TokenType::CATCH},
+};
+
 std::string tokenTypeAsLiteral(TokenType type) {
     switch (type) {
     case TokenType::STRUCT:
@@ -12,8 +52,8 @@ std::string tokenTypeAsLiteral(TokenType type) {
         return "SELF";
     case TokenType::ENUM:
         return "ENUM";
-    case TokenType::ALIAS:
-        return "ALIAS";
+    case TokenType::TYPEALIAS:
+        return "TYPEALIAS";
     case TokenType::RETURN:
         return "RETURN";
     case TokenType::IF:
@@ -215,96 +255,11 @@ std::string tokenTypeAsLiteral(TokenType type) {
 }
 
 TokenType Token::is_keyword(const std::string &string, size_t length) {
-    switch (length) {
-    case 2: {
-        if (string == "if") {
-            return TokenType::IF;
-        } else if (string == "do") {
-            return TokenType::DO;
-        }
-    }
-    case 3: {
-        if (string == "asm") {
-            return TokenType::ASM;
-        } else if (string == "for") {
-            return TokenType::FOR;
-        } else if (string == "int") {
-            return TokenType::INT;
-        } else if (string == "try") {
-            return TokenType::TRY;
-        }
-    }
-    case 4: {
-        if (string == "self") {
-            return TokenType::SELF;
-        } else if (string == "enum") {
-            return TokenType::ENUM;
-        } else if (string == "else") {
-            return TokenType::ELSE;
-        } else if (string == "cast") {
-            return TokenType::CAST;
-        } else if (string == "case") {
-            return TokenType::CASE;
-        } else if (string == "true") {
-            return TokenType::TRUE;
-        } else if (string == "bool") {
-            return TokenType::BOOL;
-        } else if (string == "void") {
-            return TokenType::VOID;
-        } else if (string == "char") {
-            return TokenType::CHAR;
-        } else if (string == "goto") {
-            return TokenType::GOTO;
-        }
-    }
-    case 5: {
-        if (string == "alias") {
-            return TokenType::ALIAS;
-        } else if (string == "break") {
-            return TokenType::BREAK;
-        } else if (string == "while") {
-            return TokenType::WHILE;
-        } else if (string == "union") {
-            return TokenType::UNION;
-        } else if (string == "false") {
-            return TokenType::FALSE;
-        } else if (string == "float") {
-            return TokenType::FLOAT;
-        } else if (string == "catch") {
-            return TokenType::CATCH;
-        }
-    }
-    case 6: {
-        if (string == "struct") {
-            return TokenType::STRUCT;
-        } else if (string == "return") {
-            return TokenType::RETURN;
-        } else if (string == "import") {
-            return TokenType::IMPORT;
-        } else if (string == "switch") {
-            return TokenType::SWITCH;
-        } else if (string == "string") {
-            return TokenType::STRING;
-        } else if (string == "extern") {
-            return TokenType::EXTERN;
-        }
-    }
-    case 7: {
-        if (string == "default") {
-            return TokenType::DEFAULT;
-        } else if (string == "private") {
-            return TokenType::PRIVATE;
-        }
-    }
-    case 8: {
-        if (string == "volatile") {
-            return TokenType::VOLATILE;
-        } else if (string == "continue") {
-            return TokenType::CONTINUE;
-        }
-    }
-    default: {
+    auto it = keywords.find(string);
+
+    if (it == keywords.end()) {
         return TokenType::IDENTIFIER;
-    }
+    } else {
+        return it->second;
     }
 }

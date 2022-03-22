@@ -2,9 +2,9 @@
 
 Functions must be defined as camelCase
 
-`myFunction`, 
-`myFunction2`, 
-`printHelloWorld`, 
+`myFunction`,
+`myFunction2`,
+`printHelloWorld`,
 
 ## Define a function
 

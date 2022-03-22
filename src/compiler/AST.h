@@ -43,10 +43,10 @@ enum class ASTType {
     CATCH, // catch (...) { ... }
     TRY,   // try myVariable = myFunction()
 
-    RETURN, // return 1
-    IF,     // if (a == 1) { ... } else { ... }
-    ASM,    // asm("mov rax, 1")
-    ALIAS,  // alias Test = int
+    RETURN,    // return 1
+    IF,        // if (a == 1) { ... } else { ... }
+    ASM,       // asm("mov rax, 1")
+    TYPEALIAS, // typealias Test = int
 
     BINARY_EXPRESSION,   // 5 + 6;
     UNARY_EXPRESSION,    // -5;
