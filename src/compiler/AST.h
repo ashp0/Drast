@@ -84,15 +84,7 @@ public:
 		statements.push_back(std::move(statement));
 	}
 
-	std::string toString() const override {
-		std::stringstream ss;
-		ss << "CompoundStatement: {";
-		for (auto &statement: statements) {
-			ss << (*statement).toString() << "; ";
-		}
-		ss << "}";
-		return ss.str();
-	}
+	std::string toString() const override;
 };
 
 class Import : public AST {
@@ -104,16 +96,12 @@ public:
 	Import(std::string import_path, size_t line) : AST(ASTType::IMPORT, line),
 	                                               import_path(std::move(import_path)) {}
 
-	std::string toString() const override {
-		return "import '" + this->import_path + "'";
-	}
+	std::string toString() const override;
 };
 
-class FunctionArgument; // TODO: delete later
-
 class FunctionDeclaration : public AST {
-//private:
-//	class FunctionArgument;
+private:
+      using FunctionArgument = class FunctionArgument;
 public:
 	std::vector<TokenType> modifiers;
 	std::unique_ptr<AST> return_type;
@@ -129,13 +117,7 @@ public:
 		name(std::move(name)), arguments(std::move(arguments)), body(std::move(body)) {};
 
 
-	std::string toString() const override {
-		std::stringstream ss;
-		ss << "FunctionDeclaration: " << name << "(";
-		ss << ") {";
-		ss << body << "}";
-		return ss.str();
-	}
+	std::string toString() const override;
 };
 
 class FunctionArgument : public AST {
@@ -153,13 +135,7 @@ public:
 	                                type(std::nullopt) {};
 
 
-	std::string toString() const override {
-		if (!is_vaarg) {
-			return name.value() + ": " + type->get()->toString();
-		}
-
-		return "...";
-	}
+	std::string toString() const override;
 };
 
 class FunctionCall : public AST {
@@ -174,15 +150,7 @@ public:
 	                                                                                             arguments(
 		                                                                                             arguments) {}
 
-	std::string toString() const override {
-		std::stringstream ss;
-		ss << name << "(";
-		for (auto &argument: arguments) {
-			ss << argument->toString() << ", ";
-		}
-		ss << ")";
-		return ss.str();
-	}
+	std::string toString() const override;
 };
 
 class Type : public AST {
@@ -199,9 +167,7 @@ public:
 	                                                                                   is_array(is_array),
 	                                                                                   is_optional(is_optional) {};
 
-	std::string toString() const override {
-		return this->token.value + (is_array ? "[]" : "") + (is_pointer ? "*" : "") + (is_optional ? "?" : "");
-	}
+	std::string toString() const override;
 };
 
 class StructDeclaration : public AST {
@@ -213,15 +179,7 @@ public:
 	StructDeclaration(std::string &name, std::vector<std::unique_ptr<AST>> &fields, size_t line) :
 		AST(ASTType::STRUCT_DECLARATION, line), name(name), fields(fields) {}
 
-	std::string toString() const override {
-		std::stringstream ss;
-		ss << "StructDeclaration: " << name << " {\n";
-		for (auto &field: fields) {
-			ss << field->toString() << "\n";
-		}
-		ss << "}";
-		return ss.str();
-	}
+	std::string toString() const override;
 };
 
 class StructInitializerCall : public AST {
@@ -233,15 +191,7 @@ public:
 	StructInitializerCall(std::string &name, std::vector<std::unique_ptr<AST>> &arguments, size_t line) : AST(
 		ASTType::STRUCT_INITIALIZER_CALL, line), name(name), arguments(arguments) {}
 
-	std::string toString() const override {
-		std::stringstream ss;
-		ss << name << "(";
-		for (auto &argument: arguments) {
-			ss << argument->toString() << ", ";
-		}
-		ss << ")";
-		return ss.str();
-	}
+	std::string toString() const override;
 };
 
 class EnumDeclaration : public AST {
@@ -255,15 +205,7 @@ public:
 	                                                                                            name(name),
 	                                                                                            cases(cases) {}
 
-	std::string toString() const override {
-		std::stringstream ss;
-		ss << "EnumDeclaration: " << name << " {\n";
-		for (auto &case_: cases) {
-			ss << case_->toString() << "\n";
-		}
-		ss << "}";
-		return ss.str();
-	}
+	std::string toString() const override;
 };
 
 class EnumCase : public AST {
@@ -276,9 +218,7 @@ public:
 	                                                                        name(name),
 	                                                                        value(value) {}
 
-	std::string toString() const override {
-		return "case " + name + " = " + value->toString();
-	}
+	std::string toString() const override;
 };
 
 class VariableDeclaration : public AST {
@@ -296,13 +236,8 @@ public:
 	                                                                line), name(name), type(type),
 	                                      value(value), has_value(has_value) {}
 
-	std::string toString() const override {
-		if (has_value) {
-			return type->toString() + " " + name + " = " + value->toString();
-		} else {
-			return type->toString() + " " + name;
-		}
-	}
+
+	std::string toString() const override;
 };
 
 

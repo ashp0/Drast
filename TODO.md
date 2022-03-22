@@ -1,0 +1,35 @@
+# TODO
+
+- [x] Lexing
+- [x] Parsing
+    - [x] Import Statements
+    - [x] Function Declaration
+    - [ ] Variables
+    - [ ] If, Else, Else If
+    - [ ] Return
+    - [ ] ASM
+    - [ ] Switch, break, case, default
+    - [ ] For, While, Continue
+    - [ ] Union
+    - [ ] Do Catch Try
+    - [ ] matches keyword
+    - [ ] Functions
+    - [ ] Struct
+    - [ ] Enums
+- [ ] Semantic Analyzer
+    - [ ] Duplicate Variable and Functions
+    - [ ] Duplicate Struct Initializers
+    - [ ] Check Expressions
+    - [ ] Struct initializers
+    - [ ] Check if self.xxx is an actual member in the struct
+    - [ ] Variable Assignments
+    - [ ] Function Calls
+    - [ ] Return Statement
+    - [ ] If Statements
+    - [ ] Alias Types
+    - [ ] Struct Variable Members
+- [ ] Optimizations? ( Might not do this stage since LLVM does this )
+- [ ] Code Generation
+- [ ] Improvements to the CLI
+- [ ] Standard Library
+- [ ] Self Compile

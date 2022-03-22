@@ -1,6 +1,7 @@
 .vscode
 build
 .DS_Store
-/src/1GB.drast # just a 1 gb file to test the speeds
 cmake-build-release
 cmake-build-debug
+.idea
+*.xcodeproj

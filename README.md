@@ -1,42 +1,23 @@
-# Drast
+<div align="center">
 
-The Drast Programming Language that is meant to be a modernized and better version of C, while still maintaining its
-simplicity
+# Drast Programming Language
 
-## TODO
+![issues](https://img.shields.io/github/issues/Malvion/drast?style=flat-square)
+![license](https://img.shields.io/github/license/Malvion/drast?style=flat-square)
 
-- [x] Lexing
-- [x] Parsing
-    - [ ] Variables
-    - [ ] If, Else, Else If
-    - [ ] Return
-    - [ ] ASM
-    - [ ] Switch, break, case, default
-    - [ ] For, While, Continue
-    - [ ] Union
-    - [ ] Do Catch Try
-    - [ ] matches keyword
-    - [ ] Import
-    - [ ] Functions
-    - [ ] Struct
-    - [ ] Enums
-- [ ] Semantic Analyzer
-    - [ ] Duplicate Variable and Functions
-    - [ ] Duplicate Struct Initializers
-    - [ ] Check Expressions
-    - [ ] Struct initializers
-    - [ ] Check if self.xxx is an actual member in the struct
-    - [ ] Variable Assignments
-    - [ ] Function Calls
-    - [ ] Return Statement
-    - [ ] If Statements
-    - [ ] Alias Types
-    - [ ] Struct Variable Members
-- [ ] Optimizations? ( Might not do this stage since LLVM does this )
-- [ ] Code Generation
-- [ ] Improvements to the CLI
-- [ ] Standard Library
-- [ ] Self Compile
+A general-purpose language, that is meant to be a more modernized version of C, while still maintaining its simplicity.
+
+[Docs](docs/docs.md) | [Changes](Changes.md) | [TODO](TODO.md)
+
+</div>
+
+> **NOTE:** This is still in its development phase, so things may be changed
+
+## Features
+
+- Super Simple and Easy to learn syntax ( basically the same thing as C, except optional semicolons and functions are
+  defined differently )
+- More are yet to come...
 
 ## Example
 
@@ -44,14 +25,15 @@ simplicity
 import io
 
 int :: main(int argc, string[] argv) {
-    print("Hello World!")
+	int variable = 40
+    print("Hello World! $(variable)\n")
     
     return 0
 }
 ```
 
-## Documentation
+## Building
 
-The Documentation is in the `docs` folder
+Drast is written in cpp20
 
-_NOTE: This programming language is a WIP, things may change_
+Just run the `CMakeLists.txt`

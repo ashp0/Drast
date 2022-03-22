@@ -7,7 +7,9 @@
 #include <utility>
 
 std::unique_ptr<AST> Parser::parse() {
-	return compound();
+	auto ast = this->compound();
+	std::cout << *ast << std::endl;
+	return ast;
 }
 
 std::unique_ptr<CompoundStatement> Parser::compound() {
@@ -22,7 +24,6 @@ std::unique_ptr<CompoundStatement> Parser::compound() {
 	}
 
 
-	std::cout << *compoundStatement << std::endl;
 	return compoundStatement;
 }
 
