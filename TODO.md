@@ -4,16 +4,16 @@
 - [x] Parsing
     - [x] Import Statements
     - [x] Function Declaration
+    - [x] Parsing Expression ( 5 + 3 )
     - [x] Variables
-    - [ ] Return Statement
+    - [x] Return Statement
+    - [x] ASM
     - [ ] If, Else, Else If
-    - [ ] ASM
     - [ ] Switch, break, case, default
     - [ ] For, While, Continue
     - [ ] Union
     - [ ] Do Catch Try
-    - [ ] matches keyword
-    - [ ] Functions
+    - [ ] matches keyword?
     - [ ] Struct
     - [ ] Enums
 - [ ] Semantic Analyzer

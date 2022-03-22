@@ -20,12 +20,18 @@ std::string Import::toString() const {
 
 std::string FunctionDeclaration::toString() const {
     std::stringstream ss;
-    ss << "FunctionDeclaration: " << return_type->toString() << " :: " << name
-       << "(";
+    ss << "FunctionDeclaration: ";
+    for (auto &modifier : modifiers) {
+        ss << tokenTypeAsLiteral(modifier) << " ";
+    }
+    ss << return_type->toString() << " :: " << name << "(";
     for (auto &argument : arguments) {
         ss << (*argument).toString() << ", ";
     }
-    ss << "\b\b) {";
+    if (arguments.size() > 0) {
+        ss.seekp(-2, ss.cur);
+    }
+    ss << ") {";
     ss << *body << "}";
     return ss.str();
 }
@@ -43,6 +49,9 @@ std::string FunctionCall::toString() const {
     ss << name << "(";
     for (auto &argument : arguments) {
         ss << argument->toString() << ", ";
+    }
+    if (arguments.size() > 0) {
+        ss.seekp(-2, ss.cur);
     }
     ss << ")";
     return ss.str();
@@ -93,6 +102,30 @@ std::string VariableDeclaration::toString() const {
     } else {
         return type->toString() + " " + name;
     }
+}
+
+std::string ASM::toString() const {
+    std::stringstream ss;
+    ss << "InlineAssembly: (";
+    for (auto &instruction : instructions) {
+        ss << "`" << instruction << "`, ";
+    }
+
+    if (instructions.size() > 0) {
+        ss.seekp(-2, ss.cur);
+    }
+    ss << ")";
+
+    return ss.str();
+}
+
+std::string Return::toString() const {
+    std::stringstream ss;
+    ss << "ReturnStatement: ";
+    if (expression.has_value()) {
+        ss << expression->get()->toString();
+    }
+    return ss.str();
 }
 
 std::string BinaryExpression::toString() const {

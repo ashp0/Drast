@@ -32,6 +32,9 @@ std::unique_ptr<AST> Parser::statement() {
     switch (this->current->type) {
     case TokenType::IMPORT:
         return this->import();
+    case TokenType::EXTERN:
+    case TokenType::VOLATILE:
+        return this->modifiers();
     case TokenType::INT:
     case TokenType::CHAR:
     case TokenType::VOID:
@@ -40,6 +43,10 @@ std::unique_ptr<AST> Parser::statement() {
     case TokenType::STRING:
     case TokenType::IDENTIFIER:
         return this->functionOrVariableDeclaration();
+    case TokenType::RETURN:
+        return this->returnStatement();
+    case TokenType::ASM:
+        return this->inlineAssembly();
     case TokenType::T_EOF:
         return nullptr;
     default:
@@ -169,6 +176,45 @@ Parser::variableDeclaration(std::unique_ptr<AST> &variable_type,
     return variable;
 }
 
+std::unique_ptr<Return> Parser::returnStatement() {
+    advance(TokenType::RETURN);
+
+    std::optional<std::unique_ptr<AST>> return_value = std::nullopt;
+
+    if (this->current->type == TokenType::V_NUMBER ||
+        this->current->type == TokenType::V_CHAR ||
+        this->current->type == TokenType::V_STRING ||
+        this->current->type == TokenType::TRUE ||
+        this->current->type == TokenType::FALSE ||
+        this->current->type == TokenType::IDENTIFIER) {
+        return_value = this->expression();
+    }
+
+    std::unique_ptr<Return> return_statement =
+        std::make_unique<Return>(return_value, this->current->line);
+
+    return return_statement;
+}
+
+std::unique_ptr<ASM> Parser::inlineAssembly() {
+    advance(TokenType::ASM);
+    advance(TokenType::PARENS_OPEN);
+
+    std::vector<std::string> instructions;
+
+    while (this->current->type != TokenType::PARENS_CLOSE) {
+        instructions.push_back(this->current->value);
+        advance(TokenType::V_STRING);
+    }
+
+    advance(TokenType::PARENS_CLOSE);
+
+    std::unique_ptr<ASM> inline_assembly =
+        std::make_unique<ASM>(instructions, this->current->line);
+
+    return inline_assembly;
+}
+
 std::unique_ptr<AST> Parser::expression() { return this->equality(); }
 
 std::unique_ptr<AST> Parser::equality() {
@@ -280,9 +326,15 @@ std::unique_ptr<AST> Parser::primary() {
         this->current->type == TokenType::TRUE ||
         this->current->type == TokenType::FALSE ||
         this->current->type == TokenType::IDENTIFIER) {
-        std::unique_ptr<AST> literal = std::make_unique<LiteralExpression>(
-            this->current, this->current->line);
+        std::unique_ptr<LiteralExpression> literal =
+            std::make_unique<LiteralExpression>(this->current,
+                                                this->current->line);
         advance();
+
+        if (this->current->type == TokenType::PARENS_OPEN) {
+            // Function Call
+            return this->functionCall(literal->token->value);
+        }
         return literal;
     } else if (this->current->type == TokenType::PARENS_OPEN) {
         advance(TokenType::PARENS_OPEN);
@@ -296,6 +348,27 @@ std::unique_ptr<AST> Parser::primary() {
     } else {
         throw std::runtime_error("Expected Expression");
     }
+}
+
+std::unique_ptr<AST> Parser::functionCall(std::string &name) {
+    advance(TokenType::PARENS_OPEN);
+
+    std::vector<std::unique_ptr<AST>> arguments;
+
+    while (this->current->type != TokenType::PARENS_CLOSE) {
+        arguments.push_back(this->expression());
+
+        if (this->current->type == TokenType::COMMA) {
+            advance(TokenType::COMMA);
+        }
+    }
+
+    advance(TokenType::PARENS_CLOSE);
+
+    std::unique_ptr<FunctionCall> function_call =
+        std::make_unique<FunctionCall>(name, arguments, this->current->line);
+
+    return function_call;
 }
 
 std::unique_ptr<AST> Parser::type() {
@@ -340,7 +413,23 @@ end:
     return type;
 }
 
-// std::unique_ptr<AST> Parser::modifiers();
+std::unique_ptr<AST> Parser::modifiers() {
+    std::vector<TokenType> modifiers;
+    for (;;) {
+        switch (this->current->type) {
+        case TokenType::EXTERN:
+        case TokenType::VOLATILE:
+            modifiers.push_back(this->current->type);
+            advance();
+            break;
+        default:
+            goto end;
+        }
+    }
+
+end:
+    return functionOrVariableDeclaration(modifiers);
+}
 
 void Parser::advance(TokenType type) {
     if (type != this->current->type) {

@@ -46,6 +46,10 @@ class Parser {
     variableDeclaration(std::unique_ptr<AST> &variable_type,
                         std::vector<TokenType> modifiers = {});
 
+    std::unique_ptr<Return> returnStatement();
+
+    std::unique_ptr<ASM> inlineAssembly();
+
     std::unique_ptr<AST> expression();
 
     std::unique_ptr<AST> equality();
@@ -59,6 +63,8 @@ class Parser {
     std::unique_ptr<AST> unary();
 
     std::unique_ptr<AST> primary();
+
+    std::unique_ptr<AST> functionCall(std::string &name);
 
     std::unique_ptr<AST> type();
 

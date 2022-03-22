@@ -10,6 +10,7 @@
 #include <memory>
 #include <optional>
 #include <sstream>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -144,13 +145,14 @@ class FunctionArgument : public AST {
 
 class FunctionCall : public AST {
   public:
-    std::string &name;
-    std::vector<std::unique_ptr<AST>> &arguments;
+    std::string name;
+    std::vector<std::unique_ptr<AST>> arguments;
 
   public:
     FunctionCall(std::string &name,
                  std::vector<std::unique_ptr<AST>> &arguments, size_t line)
-        : AST(ASTType::FUNCTION_CALL, line), name(name), arguments(arguments) {}
+        : AST(ASTType::FUNCTION_CALL, line), name(std::move(name)),
+          arguments(std::move(arguments)) {}
 
     std::string toString() const override;
 };
@@ -239,6 +241,28 @@ class VariableDeclaration : public AST {
                         std::optional<std::unique_ptr<AST>> &value)
         : AST(ASTType::VARIABLE_DECLARATION, line), modifiers(modifiers),
           name(name), type(std::move(type)), value(std::move(value)){};
+
+    std::string toString() const override;
+};
+
+class Return : public AST {
+  public:
+    std::optional<std::unique_ptr<AST>> expression;
+
+  public:
+    Return(std::optional<std::unique_ptr<AST>> &expression, size_t line)
+        : AST(ASTType::RETURN, line), expression(std::move(expression)){};
+
+    std::string toString() const override;
+};
+
+class ASM : public AST {
+  public:
+    std::vector<std::string> instructions;
+
+  public:
+    ASM(std::vector<std::string> &instructions, size_t line)
+        : AST(ASTType::ASM, line), instructions(std::move(instructions)){};
 
     std::string toString() const override;
 };

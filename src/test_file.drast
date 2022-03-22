@@ -4,6 +4,18 @@
 
 import io
 
-int[]*? :: hello(int test, ...) {
+asm("loop:"
+        "cli"
+        "htl"
+        "jmp loop"
+)
+
+extern int[]*? :: hello(int test, ...) {
+        int test = myFunction()
         int test = 50 + 30 + 40 + (30 * 40)
+        int test = 40 + myFunction(50 + 230, 40 + 20, "flaskdfm") + 50
+
+        bool test = true
+
+        return 50 + 30
 }
