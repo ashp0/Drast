@@ -12,7 +12,11 @@ void Lexer::lex() {
 		}
 
 		this->tokens.push_back(std::move(token));
+
 	}
+
+	// EOF
+	this->tokens.push_back(returnToken(TokenType::T_EOF, true));
 }
 
 std::unique_ptr<Token> Lexer::getToken() {

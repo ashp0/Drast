@@ -61,7 +61,7 @@ public:
 	size_t line;
 
 public:
-	AST(ASTType ast_type, size_t line) : ast_type(ast_type), line(line) {}
+	constexpr AST(ASTType ast_type, size_t line) : ast_type(ast_type), line(line) {}
 
 	virtual ~AST() = default;
 
@@ -98,6 +98,7 @@ public:
 class Import : public AST {
 public:
 	std::string import_path;
+	bool is_library = false;
 
 public:
 	Import(std::string import_path, size_t line) : AST(ASTType::IMPORT, line),
@@ -108,42 +109,56 @@ public:
 	}
 };
 
+class FunctionArgument; // TODO: delete later
+
 class FunctionDeclaration : public AST {
+//private:
+//	class FunctionArgument;
 public:
-	std::optional<std::vector<TokenType>> modifiers;
-	std::string &name;
-	std::vector<std::unique_ptr<AST>> &arguments;
-	std::unique_ptr<AST> &body; // AST CompoundStatement
+	std::vector<TokenType> modifiers;
+	std::unique_ptr<AST> return_type;
+	std::string name;
+	std::vector<std::unique_ptr<FunctionArgument>> arguments;
+	std::unique_ptr<CompoundStatement> body; // AST CompoundStatement
 
 public:
-	FunctionDeclaration(std::string &name, std::vector<std::unique_ptr<AST>> &arguments, std::unique_ptr<AST> &body,
-	                    size_t line) : AST(
-		ASTType::FUNCTION_DECLARATION, line), name(name), arguments(arguments), body(body) {}
+	FunctionDeclaration(std::vector<TokenType> &modifiers, std::unique_ptr<AST> &return_type, std::string &name,
+	                    std::vector<std::unique_ptr<FunctionArgument>> &arguments,
+	                    std::unique_ptr<CompoundStatement> &body, size_t line) :
+		AST(ASTType::FUNCTION_DECLARATION, line), modifiers(modifiers), return_type(std::move(return_type)),
+		name(std::move(name)), arguments(std::move(arguments)), body(std::move(body)) {};
+
 
 	std::string toString() const override {
 		std::stringstream ss;
 		ss << "FunctionDeclaration: " << name << "(";
-		for (auto &argument: arguments) {
-			ss << argument->toString() << ", ";
-		}
-		ss << ") {\n";
-		ss << body->toString() << "}";
+		ss << ") {";
+		ss << body << "}";
 		return ss.str();
 	}
 };
 
 class FunctionArgument : public AST {
 public:
-	std::string &name;
-	std::unique_ptr<AST> &type;
+	std::optional<std::string> name;
+	std::optional<std::unique_ptr<AST>> type;
+	bool is_vaarg = false;
 
 public:
-	FunctionArgument(std::string &name, std::unique_ptr<AST> &type, size_t line) : AST(ASTType::FUNCTION_ARGUMENT,
-	                                                                                   line), name(name),
-	                                                                               type(type) {}
+	FunctionArgument(std::string name, std::unique_ptr<AST> &type, size_t line) : AST(ASTType::FUNCTION_ARGUMENT,
+	                                                                                  line), name(name),
+	                                                                              type(std::move(type)) {};
+
+	FunctionArgument(size_t line) : AST(ASTType::FUNCTION_ARGUMENT, line), is_vaarg(true), name(std::nullopt),
+	                                type(std::nullopt) {};
+
 
 	std::string toString() const override {
-		return name + ": " + type->toString();
+		if (!is_vaarg) {
+			return name.value() + ": " + type->get()->toString();
+		}
+
+		return "...";
 	}
 };
 

@@ -19,6 +19,7 @@ std::string read_file(const char *file_name) {
 }
 
 int main(int argc, char *argv[]) {
+	std::cout << "Hello World" << std::endl;
 	std::string source = read_file(argv[1]);
 	Lexer lexer(source);
 	lexer.lex();

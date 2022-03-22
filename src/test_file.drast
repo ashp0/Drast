@@ -2,6 +2,8 @@
 // Drast Programming Language Examples
 //
 
-int[]*?
+int[]*? :: hello(int test, ...) {
 
-import "test_file.drast"
+}
+
+import io

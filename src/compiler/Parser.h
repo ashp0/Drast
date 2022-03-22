@@ -34,15 +34,15 @@ private:
 
 	std::unique_ptr<Import> import();
 
-	std::unique_ptr<AST> functionOrVariableDeclaration(std::optional<std::vector<TokenType>> modifiers);
+	std::unique_ptr<AST> functionOrVariableDeclaration(std::vector<TokenType> modifiers = {});
 
 	std::unique_ptr<AST>
-	functionDeclaration(std::optional<std::vector<TokenType>> modifiers, std::unique_ptr<AST> return_type);
+	functionDeclaration(std::unique_ptr<AST> &return_type, std::vector<TokenType> modifiers = {});
 
-	std::vector<std::unique_ptr<AST>> functionArguments();
+	std::vector<std::unique_ptr<FunctionArgument>> functionArguments();
 
 	std::unique_ptr<AST>
-	variableDeclaration(std::optional<std::vector<TokenType>> modifiers, std::unique_ptr<AST> variable_type);
+	variableDeclaration(std::unique_ptr<AST> &variable_type, std::vector<TokenType> modifiers = {});
 
 	std::unique_ptr<AST> expression();
 
