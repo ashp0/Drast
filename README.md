@@ -11,7 +11,7 @@ A general-purpose language, that is meant to be a more modernized version of C, 
 
 </div>
 
-> **NOTE:** This is still in its development phase, so things may be changed
+> **NOTE:** This is still in its development phase, so expect some bugs and missing features.
 
 ## Features
 
@@ -26,7 +26,7 @@ import io
 
 int :: main(int argc, string[] argv) {
     int variable = 40
-    print("Hello World! $(variable)\n")
+    print("Hello World!", variable, "\n")
     
     return 0
 }
