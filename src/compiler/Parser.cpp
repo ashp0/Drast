@@ -4,8 +4,6 @@
 
 #include "Parser.h"
 
-#include <utility>
-
 std::unique_ptr<AST> Parser::parse() {
     auto ast = this->compound();
 
@@ -319,7 +317,7 @@ std::unique_ptr<AST> Parser::type() {
 
     advance();
 
-    for (;;) {
+    while (!type->is_optional || !type->is_array || !type->is_optional) {
         switch (this->current->type) {
         case TokenType::QUESTION:
             type->is_optional = true;
@@ -344,19 +342,12 @@ end:
 
 std::unique_ptr<AST> Parser::modifiers() {
     std::vector<TokenType> modifiers;
-    for (;;) {
-        switch (this->current->type) {
-        case TokenType::EXTERN:
-        case TokenType::VOLATILE:
-            modifiers.push_back(this->current->type);
-            advance();
-            break;
-        default:
-            goto end;
-        }
+    while (this->current->type == TokenType::EXTERN ||
+           this->current->type == TokenType::VOLATILE) {
+        modifiers.push_back(this->current->type);
+        advance();
     }
 
-end:
     return functionOrVariableDeclaration(modifiers);
 }
 

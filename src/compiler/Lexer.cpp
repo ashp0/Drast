@@ -5,13 +5,9 @@
 #include "Lexer.h"
 
 void Lexer::lex() {
-    for (;;) {
-        auto token = this->getToken();
-        if (token->type == TokenType::T_EOF) {
-            break;
-        }
-
-        this->tokens.push_back(std::move(token));
+    for (auto token = getToken(); token->type != TokenType::T_EOF;
+         token = getToken()) {
+        tokens.push_back(std::move(token));
     }
 
     this->tokens.push_back(returnToken(TokenType::T_EOF, true));
@@ -217,21 +213,20 @@ void Lexer::skipBlockComment() {
     this->advance();
     this->advance();
 
-    for (;;) {
-        if (this->current == '*') {
-            if (peek() == '/') {
-                this->advance();
-                this->advance();
-                break;
-            }
-        }
+while_loop:
+    while (this->current != '*') {
+        this->advance();
 
         if (this->current == '\0') {
-            // Show error message
-            break;
+            throw std::runtime_error("Unterminated block comment");
         }
+    }
 
+    this->advance();
+    if (this->current == '/') {
         this->advance();
+    } else {
+        goto while_loop;
     }
 }
 
