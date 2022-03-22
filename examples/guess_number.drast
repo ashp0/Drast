@@ -5,7 +5,7 @@
 import io
 
 int :: main(int argc, string[] argv) {
-    int random_number = random_int_between(1, 10)
+    int random_number = randomIntBetween(1, 10)
 
     print("Type in a random number between 1 and 10")
     float user_input = getInt()

@@ -16,7 +16,6 @@ struct Person {
     }
 
     void :: print() {
-        // Parse Variable Call
         print(self.first_name, self.last_name, self.age)
     }
 }
