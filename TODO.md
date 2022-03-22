@@ -4,9 +4,9 @@
 - [x] Parsing
     - [x] Import Statements
     - [x] Function Declaration
-    - [ ] Variables
+    - [x] Variables
+    - [ ] Return Statement
     - [ ] If, Else, Else If
-    - [ ] Return
     - [ ] ASM
     - [ ] Switch, break, case, default
     - [ ] For, While, Continue

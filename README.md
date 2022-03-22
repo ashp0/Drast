@@ -25,7 +25,7 @@ A general-purpose language, that is meant to be a more modernized version of C, 
 import io
 
 int :: main(int argc, string[] argv) {
-	int variable = 40
+    int variable = 40
     print("Hello World! $(variable)\n")
     
     return 0

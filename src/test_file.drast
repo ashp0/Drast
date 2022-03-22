@@ -2,8 +2,8 @@
 // Drast Programming Language Examples
 //
 
-int[]*? :: hello(int test, ...) {
-        
-}
-
 import io
+
+int[]*? :: hello(int test, ...) {
+        int test = 50 + 30 + 40 + (30 * 40)
+}
