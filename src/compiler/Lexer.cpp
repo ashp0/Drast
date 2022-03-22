@@ -6,7 +6,7 @@
 
 void Lexer::lex() {
     for (;;) {
-        std::unique_ptr<Token> token = this->getToken();
+        auto token = this->getToken();
         if (token->type == TokenType::T_EOF) {
             break;
         }
@@ -14,7 +14,6 @@ void Lexer::lex() {
         this->tokens.push_back(std::move(token));
     }
 
-    // EOF
     this->tokens.push_back(returnToken(TokenType::T_EOF, true));
 }
 
@@ -179,7 +178,7 @@ std::unique_ptr<Token> Lexer::returnToken(TokenType type,
 
 std::unique_ptr<Token> Lexer::returnToken(TokenType type, std::string &string,
                                           bool without_advance) {
-    std::unique_ptr<Token> return_token =
+    auto return_token =
         std::make_unique<Token>(string, type, this->line, this->column);
     if (!without_advance) {
         this->advance();
@@ -273,7 +272,7 @@ std::unique_ptr<Token> Lexer::lexWhile(TokenType type, predicate &&pred,
         this->advance();
     }
 
-    size_t position =
+    auto position =
         is_string ? this->index - this->start - 1 : this->index - this->start;
     std::string value = this->source.substr(this->start, position);
 

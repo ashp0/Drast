@@ -95,8 +95,9 @@ class Import : public AST {
     bool is_library = false;
 
   public:
-    Import(std::string import_path, size_t line)
-        : AST(ASTType::IMPORT, line), import_path(std::move(import_path)) {}
+    Import(std::string import_path, size_t line, bool is_library)
+        : AST(ASTType::IMPORT, line), import_path(std::move(import_path)),
+          is_library(is_library) {}
 
     std::string toString() const override;
 };

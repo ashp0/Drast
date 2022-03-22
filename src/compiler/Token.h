@@ -131,6 +131,79 @@ enum class TokenType {
 
 std::string tokenTypeAsLiteral(TokenType type);
 
+constexpr bool isRegularType(TokenType type) {
+    switch (type) {
+    case TokenType::INT:
+    case TokenType::CHAR:
+    case TokenType::VOID:
+    case TokenType::BOOL:
+    case TokenType::FLOAT:
+    case TokenType::STRING:
+    case TokenType::IDENTIFIER:
+        return true;
+    default:
+        return false;
+    }
+}
+
+constexpr bool isRegularValue(TokenType type) {
+    switch (type) {
+    case TokenType::V_NUMBER:
+    case TokenType::V_CHAR:
+    case TokenType::V_STRING:
+    case TokenType::TRUE:
+    case TokenType::FALSE:
+    case TokenType::IDENTIFIER:
+        return true;
+    default:
+        return false;
+    }
+}
+
+constexpr bool isMultiplicativeOperator(TokenType type) {
+    switch (type) {
+    case TokenType::OPERATOR_MUL:
+    case TokenType::OPERATOR_DIV:
+    case TokenType::OPERATOR_MOD:
+        return true;
+    default:
+        return false;
+    }
+}
+
+constexpr bool isAdditiveOperator(TokenType type) {
+    switch (type) {
+    case TokenType::OPERATOR_ADD:
+    case TokenType::OPERATOR_SUB:
+    case TokenType::PERIOD:
+        return true;
+    default:
+        return false;
+    }
+}
+
+constexpr bool isEqualitiveOperator(TokenType type) {
+    switch (type) {
+    case TokenType::EQUAL_EQUAL:
+    case TokenType::NOT_EQUAL:
+        return true;
+    default:
+        return false;
+    }
+}
+
+constexpr bool isComparitiveOperator(TokenType type) {
+    switch (type) {
+    case TokenType::LESS_THAN:
+    case TokenType::LESS_THAN_EQUAL:
+    case TokenType::GREATER_THAN:
+    case TokenType::GREATER_THAN_EQUAL:
+        return true;
+    default:
+        return false;
+    }
+}
+
 class Token {
   public:
     std::string value;
