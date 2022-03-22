@@ -31,8 +31,11 @@ std::string FunctionDeclaration::toString() const {
     if (arguments.size() > 0) {
         ss.seekp(-2, ss.cur);
     }
-    ss << ") {";
-    ss << *body << "}";
+    ss << ")";
+    if (body) {
+        ss << "{ " << *body->get() << "}";
+    }
+
     return ss.str();
 }
 

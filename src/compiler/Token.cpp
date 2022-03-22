@@ -6,7 +6,6 @@
 
 std::string tokenTypeAsLiteral(TokenType type) {
     switch (type) {
-    // Keywords
     case TokenType::STRUCT:
         return "STRUCT";
     case TokenType::SELF:

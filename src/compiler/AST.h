@@ -111,7 +111,8 @@ class FunctionDeclaration : public AST {
     std::unique_ptr<AST> return_type;
     std::string name;
     std::vector<std::unique_ptr<FunctionArgument>> arguments;
-    std::unique_ptr<CompoundStatement> body; // AST CompoundStatement
+    std::optional<std::unique_ptr<CompoundStatement>> body =
+        std::nullopt; // AST CompoundStatement
 
   public:
     FunctionDeclaration(
@@ -122,6 +123,14 @@ class FunctionDeclaration : public AST {
         : AST(ASTType::FUNCTION_DECLARATION, line), modifiers(modifiers),
           return_type(std::move(return_type)), name(std::move(name)),
           arguments(std::move(arguments)), body(std::move(body)){};
+
+    FunctionDeclaration(
+        std::vector<TokenType> &modifiers, std::unique_ptr<AST> &return_type,
+        std::string &name,
+        std::vector<std::unique_ptr<FunctionArgument>> &arguments, size_t line)
+        : AST(ASTType::FUNCTION_DECLARATION, line), modifiers(modifiers),
+          return_type(std::move(return_type)), name(std::move(name)),
+          arguments(std::move(arguments)){};
 
     std::string toString() const override;
 };

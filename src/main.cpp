@@ -5,7 +5,7 @@
 std::string read_file(const char *file_name) {
     FILE *f = fopen(file_name, "rt");
     if (!f) {
-        printf("Error Reading File %s\n", file_name);
+        printf("Error: File `%s` cannot be found\n", file_name);
         exit(-1);
     }
     fseek(f, 0, SEEK_END);

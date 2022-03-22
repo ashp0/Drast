@@ -11,7 +11,7 @@
 
 class Lexer {
   private:
-    std::string source; // Support for unicode
+    std::string source; // Maybe add support for unicode?
 
     size_t line;
     size_t column;

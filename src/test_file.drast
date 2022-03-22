@@ -4,6 +4,8 @@
 
 import io
 
+extern int :: printf(string format, ...)
+
 asm("loop:"
         "cli"
         "htl"

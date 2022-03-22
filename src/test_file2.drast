@@ -2,7 +2,7 @@
 // Drast Programming Language Examples
 //
 
-extern private void :: printf(string fmt, ...)
+extern private void :: printf(string fmt, ...) 
 
 private enum AgeCategory {
     case Kid,

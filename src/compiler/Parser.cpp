@@ -100,13 +100,19 @@ Parser::functionDeclaration(std::unique_ptr<AST> &return_type,
     auto function_arguments = this->functionArguments();
     advance(TokenType::PARENS_CLOSE);
 
-    advance(TokenType::BRACE_OPEN);
-    auto function_body = this->compound();
-    advance(TokenType::BRACE_CLOSE);
+    if (this->current->type == TokenType::BRACE_OPEN) {
+        advance(TokenType::BRACE_OPEN);
+        std::unique_ptr<CompoundStatement> function_body = this->compound();
+        advance(TokenType::BRACE_CLOSE);
 
-    return std::make_unique<FunctionDeclaration>(
-        modifiers, return_type, function_name, function_arguments,
-        function_body, this->current->line);
+        return std::make_unique<FunctionDeclaration>(
+            modifiers, return_type, function_name, function_arguments,
+            function_body, this->current->line);
+    } else {
+        return std::make_unique<FunctionDeclaration>(
+            modifiers, return_type, function_name, function_arguments,
+            this->current->line);
+    }
 }
 
 std::vector<std::unique_ptr<FunctionArgument>> Parser::functionArguments() {
