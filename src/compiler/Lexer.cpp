@@ -138,8 +138,8 @@ std::unique_ptr<Token> Lexer::getToken() {
     case '\0':
         break;
     default:
-        std::cout << "ERROR" << std::endl;
-        exit(EXIT_FAILURE);
+        throw std::runtime_error("Unexpected Character" +
+                                 std::string({this->current}));
     }
 
     return returnToken(TokenType::T_EOF, true);

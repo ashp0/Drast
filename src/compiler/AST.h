@@ -214,26 +214,31 @@ class StructInitializerCall : public AST {
 };
 
 class EnumDeclaration : public AST {
-  public:
-    std::string &name;
-    std::vector<std::unique_ptr<AST>> &cases;
+  private:
+    using EnumCase = class EnumCase;
 
   public:
-    EnumDeclaration(std::string &name, std::vector<std::unique_ptr<AST>> &cases,
-                    size_t line)
-        : AST(ASTType::ENUM_DECLARATION, line), name(name), cases(cases) {}
+    std::string name;
+    std::vector<std::unique_ptr<EnumCase>> cases;
+
+  public:
+    EnumDeclaration(std::string &name,
+                    std::vector<std::unique_ptr<EnumCase>> &cases, size_t line)
+        : AST(ASTType::ENUM_DECLARATION, line), name(std::move(name)),
+          cases(std::move(cases)) {}
 
     std::string toString() const override;
 };
 
 class EnumCase : public AST {
   public:
-    std::string &name;
-    std::unique_ptr<AST> &value;
+    std::string name;
+    std::unique_ptr<AST> value;
 
   public:
     EnumCase(std::string &name, std::unique_ptr<AST> &value, size_t line)
-        : AST(ASTType::ENUM_CASE, line), name(name), value(value) {}
+        : AST(ASTType::ENUM_CASE, line), name(std::move(name)),
+          value(std::move(value)) {}
 
     std::string toString() const override;
 };

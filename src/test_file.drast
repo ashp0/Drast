@@ -6,13 +6,21 @@ import io
 
 extern int :: printf(string format, ...)
 
-asm("loop:"
+enum Color {
+  Red = 50,
+  Green,
+  Blue
+}
+
+asm (
+"loop:"
         "cli"
         "htl"
         "jmp loop"
 )
 
 extern int[]*? :: hello(int test, ...) {
+        int[]*? result = test
         int test = myFunction()
         int test = 50 + 30 + 40 + (30 * 40)
         int test = 40 + myFunction(50 + 230, 40 + 20, "flaskdfm") + 50

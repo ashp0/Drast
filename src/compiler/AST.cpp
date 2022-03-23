@@ -87,16 +87,16 @@ std::string StructInitializerCall::toString() const {
 
 std::string EnumDeclaration::toString() const {
     std::stringstream ss;
-    ss << "EnumDeclaration: " << name << " {\n";
+    ss << "EnumDeclaration: " << name << " {";
     for (auto &case_ : cases) {
-        ss << case_->toString() << "\n";
+        ss << case_->toString() << ", ";
     }
     ss << "}";
     return ss.str();
 }
 
 std::string EnumCase::toString() const {
-    return "case " + name + " = " + value->toString();
+    return name + " = " + value->toString();
 }
 
 std::string VariableDeclaration::toString() const {

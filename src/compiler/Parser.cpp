@@ -29,6 +29,8 @@ std::unique_ptr<AST> Parser::statement() {
     switch (this->current->type) {
     case TokenType::IMPORT:
         return this->import();
+    case TokenType::ENUM:
+        return this->enumDeclaration();
     case TokenType::EXTERN:
     case TokenType::VOLATILE:
         return this->modifiers();
@@ -76,6 +78,54 @@ std::unique_ptr<Import> Parser::import() {
 
     return std::make_unique<Import>(import_path, this->current->line,
                                     is_library);
+}
+
+std::unique_ptr<EnumDeclaration> Parser::enumDeclaration() {
+    this->advance(TokenType::ENUM);
+
+    auto enum_name = this->current->value;
+    this->advance(TokenType::IDENTIFIER);
+
+    // Cases
+    std::vector<std::unique_ptr<EnumCase>> enum_cases;
+    int case_enum_value = 0;
+
+    advance(TokenType::BRACE_OPEN);
+
+    while (this->current->type != TokenType::BRACE_CLOSE) {
+        auto case_name = this->current->value;
+        std::unique_ptr<AST> case_value;
+
+        this->advance(TokenType::IDENTIFIER);
+
+        if (this->current->type == TokenType::EQUAL) {
+            this->advance(TokenType::EQUAL);
+            case_value = this->expression();
+        } else {
+            auto case_value_string = std::to_string(case_enum_value);
+            std::unique_ptr<Token> token = std::make_unique<Token>(
+                case_value_string, TokenType::V_NUMBER, this->current->line,
+                this->current->column);
+
+            case_value =
+                std::make_unique<LiteralExpression>(token, this->current->line);
+        }
+
+        auto enum_case = std::make_unique<EnumCase>(case_name, case_value,
+                                                    this->current->line);
+
+        enum_cases.push_back(std::move(enum_case));
+        case_enum_value++;
+
+        if (this->current->type == TokenType::COMMA) {
+            this->advance(TokenType::COMMA);
+        }
+    }
+
+    advance(TokenType::BRACE_CLOSE);
+
+    return std::make_unique<EnumDeclaration>(enum_name, enum_cases,
+                                             this->current->line);
 }
 
 std::unique_ptr<AST>
@@ -127,19 +177,18 @@ std::vector<std::unique_ptr<FunctionArgument>> Parser::functionArguments() {
 
             arguments.push_back(std::move(argument));
             break;
-        } else {
-            auto argument_type = this->type();
-            auto argument_name = this->current->value;
-
-            advance(TokenType::IDENTIFIER);
-
-            auto argument = std::make_unique<FunctionArgument>(
-                argument_name, argument_type, this->current->line);
-
-            arguments.push_back(std::move(argument));
-
-            advance(TokenType::COMMA);
         }
+        auto argument_type = this->type();
+        auto argument_name = this->current->value;
+
+        advance(TokenType::IDENTIFIER);
+
+        auto argument = std::make_unique<FunctionArgument>(
+            argument_name, argument_type, this->current->line);
+
+        arguments.push_back(std::move(argument));
+
+        advance(TokenType::COMMA);
     }
 
     return arguments;

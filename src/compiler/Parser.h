@@ -33,6 +33,8 @@ class Parser {
 
     std::unique_ptr<Import> import();
 
+    std::unique_ptr<EnumDeclaration> enumDeclaration();
+
     std::unique_ptr<AST>
     functionOrVariableDeclaration(std::vector<TokenType> modifiers = {});
 
