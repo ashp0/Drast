@@ -31,6 +31,7 @@ enum class TokenType {
     BOOL,
     FALSE,
     TRUE,
+    NIL,
 
     SWITCH,
     CASE,
@@ -154,6 +155,7 @@ constexpr bool isRegularValue(TokenType type) {
     case TokenType::V_STRING:
     case TokenType::TRUE:
     case TokenType::FALSE:
+    case TokenType::NIL:
     case TokenType::IDENTIFIER:
         return true;
     default:

@@ -35,6 +35,7 @@ static std::unordered_map<std::string, TokenType> keywords = {
     {"void", TokenType::VOID},
     {"string", TokenType::STRING},
     {"char", TokenType::CHAR},
+    {"nil", TokenType::NIL},
 
     {"goto", TokenType::GOTO},
     {"private", TokenType::PRIVATE},
@@ -104,6 +105,8 @@ std::string tokenTypeAsLiteral(TokenType type) {
         return "STRING";
     case TokenType::CHAR:
         return "CHAR";
+    case TokenType::NIL:
+        return "NIL";
     case TokenType::IDENTIFIER:
         return "IDENTIFIER";
 

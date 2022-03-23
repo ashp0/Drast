@@ -1,0 +1,79 @@
+//
+// Drast Programming Language Tests
+//
+
+// T: - Unitialized Variables
+
+// ST: - Unitialized Integer Variables
+int* unitialized_int_pointer_variable
+int[] unitialized_int_array_variable
+int? unitialized_int_optional_variable
+int unitialized_int_variable
+
+// ST: - Unitialized Float Variables
+float* unitialized_float_pointer_variable
+float[] unitialized_float_array_variable
+float? unitialized_float_optional_variable
+float unitialized_float_variable
+
+// ST: - Unitialized String Variables
+string* unitialized_string_pointer_variable
+string[] unitialized_string_array_variable
+string? unitialized_string_optional_variable
+string unitialized_string_variable
+
+// ST: - Unitialized Boolean Variables
+bool* unitialized_bool_pointer_variable
+bool[] unitialized_bool_array_variable
+bool? unitialized_bool_optional_variable
+bool unitialized_bool_variable
+
+// ST: - Unitialized Char Variables
+char* unitialized_char_pointer_variable
+char[] unitialized_char_array_variable
+char? unitialized_char_optional_variable
+char unitialized_char_variable
+
+// ST: - Unitialized Void Variables
+void* unitialized_void_pointer_variable
+void[] unitialized_void_array_variable
+void? unitialized_void_optional_variable
+void unitialized_void_variable
+
+// T: - Initialized Variables
+
+// ST: - Initialized Integer Variables
+int *initialized_int_pointer_variable = nil
+int[] initialized_int_array_variable = nil
+int? initialized_int_optional_variable = nil
+int initialized_int_variable = 0
+
+// ST: - Initialized Float Variables
+float *initialized_float_pointer_variable = nil
+float[] initialized_float_array_variable = nil
+float? initialized_float_optional_variable = nil
+float initialized_float_variable = 0.0
+
+// ST: - Initialized String Variables
+string *initialized_string_pointer_variable = nil
+string[] initialized_string_array_variable = nil
+string? initialized_string_optional_variable = nil
+string initialized_string_variable = ""
+
+// ST: - Initialized Boolean Variables
+bool *initialized_bool_pointer_variable = nil
+bool[] initialized_bool_array_variable = nil
+bool? initialized_bool_optional_variable = nil
+bool initialized_bool_variable = false
+
+// ST: - Initialized Char Variables
+char *initialized_char_pointer_variable = nil
+char[] initialized_char_array_variable = nil
+char? initialized_char_optional_variable = nil
+char initialized_char_variable = '\0'
+
+// ST: - Initialized Void Variables
+void *void_pointer_variable = nil
+void[] void_array_variable = nil
+void? void_optional_variable = nil
+void void_variable = nil

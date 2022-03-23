@@ -1,5 +1,5 @@
 //
-// Drast Programming Language Examples
+// Drast Programming Language Tests
 //
 
 extern private void :: printf(string fmt, ...) 

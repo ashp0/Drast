@@ -257,7 +257,6 @@ std::unique_ptr<Token> Lexer::lexWhile(TokenType type, predicate &&pred,
         }
         if (is_string && this->current == '\\') {
             this->advance();
-            this->advance();
         }
 
         this->advance();

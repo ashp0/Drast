@@ -1,0 +1,32 @@
+//
+// Drast Programming Language Tests
+//
+
+enum Color {
+    Red = 50,
+    Green,
+    Blue,
+}
+
+enum NamesAndAges {
+    John,
+    Doe = 30,
+    Justin,
+    Smith,
+    James,
+}
+
+enum CarBrands {
+    Mercedes,
+    BMW,
+    Audi,
+    Tesla,
+    Volkswagen,
+    Toyota,
+    Honda,
+    Ford,
+    Mazda,
+    Chevrolet,
+    Dodge,
+    Jeep,
+}
