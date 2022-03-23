@@ -75,6 +75,9 @@ class Parser {
     void advance(TokenType type);
 
     void advance();
+
+    template <class ast_type, class... Args>
+    std::unique_ptr<ast_type> create_declaration(Args &&...args);
 };
 
 #endif // DRAST_PARSER_H

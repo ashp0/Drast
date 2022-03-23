@@ -8,14 +8,13 @@
     - [x] Variables
     - [x] Return Statement
     - [x] ASM
+    - [x] Enums
+    - [ ] Struct
     - [ ] If, Else, Else If
     - [ ] Switch, break, case, default
-    - [ ] For, While, Continue
-    - [ ] Union
+    - [ ] For, While, Continue, Break
     - [ ] Do Catch Try
     - [ ] matches keyword?
-    - [ ] Struct
-    - [ ] Enums
 - [ ] Semantic Analyzer
     - [ ] Duplicate Variable and Functions
     - [ ] Duplicate Struct Initializers

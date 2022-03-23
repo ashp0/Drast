@@ -34,6 +34,6 @@ int :: main(int argc, string[] argv) {
 
 ## Building
 
-Drast is written in cpp20
+Drast is written in cpp17
 
 Just run the `CMakeLists.txt`

@@ -13,8 +13,7 @@ std::unique_ptr<AST> Parser::parse() {
 }
 
 std::unique_ptr<CompoundStatement> Parser::compound() {
-    auto compoundStatement =
-        std::make_unique<CompoundStatement>(this->current->line);
+    auto compoundStatement = this->create_declaration<CompoundStatement>();
 
     while (this->current->type != TokenType::BRACE_CLOSE &&
            this->current->type != TokenType::T_EOF) {
@@ -76,8 +75,7 @@ std::unique_ptr<Import> Parser::import() {
         throw std::runtime_error("Expected string literal\n");
     }
 
-    return std::make_unique<Import>(import_path, this->current->line,
-                                    is_library);
+    return this->create_declaration<Import>(import_path, is_library);
 }
 
 std::unique_ptr<EnumDeclaration> Parser::enumDeclaration() {
@@ -86,7 +84,6 @@ std::unique_ptr<EnumDeclaration> Parser::enumDeclaration() {
     auto enum_name = this->current->value;
     this->advance(TokenType::IDENTIFIER);
 
-    // Cases
     std::vector<std::unique_ptr<EnumCase>> enum_cases;
     int case_enum_value = 0;
 
@@ -103,16 +100,16 @@ std::unique_ptr<EnumDeclaration> Parser::enumDeclaration() {
             case_value = this->expression();
         } else {
             auto case_value_string = std::to_string(case_enum_value);
-            std::unique_ptr<Token> token = std::make_unique<Token>(
+
+            auto token = std::make_unique<Token>(
                 case_value_string, TokenType::V_NUMBER, this->current->line,
                 this->current->column);
 
-            case_value =
-                std::make_unique<LiteralExpression>(token, this->current->line);
+            case_value = this->create_declaration<LiteralExpression>(token);
         }
 
-        auto enum_case = std::make_unique<EnumCase>(case_name, case_value,
-                                                    this->current->line);
+        auto enum_case =
+            this->create_declaration<EnumCase>(case_name, case_value);
 
         enum_cases.push_back(std::move(enum_case));
         case_enum_value++;
@@ -124,8 +121,7 @@ std::unique_ptr<EnumDeclaration> Parser::enumDeclaration() {
 
     advance(TokenType::BRACE_CLOSE);
 
-    return std::make_unique<EnumDeclaration>(enum_name, enum_cases,
-                                             this->current->line);
+    return this->create_declaration<EnumDeclaration>(enum_name, enum_cases);
 }
 
 std::unique_ptr<AST>
@@ -155,13 +151,12 @@ Parser::functionDeclaration(std::unique_ptr<AST> &return_type,
         std::unique_ptr<CompoundStatement> function_body = this->compound();
         advance(TokenType::BRACE_CLOSE);
 
-        return std::make_unique<FunctionDeclaration>(
+        return this->create_declaration<FunctionDeclaration>(
             modifiers, return_type, function_name, function_arguments,
-            function_body, this->current->line);
+            function_body);
     } else {
-        return std::make_unique<FunctionDeclaration>(
-            modifiers, return_type, function_name, function_arguments,
-            this->current->line);
+        return this->create_declaration<FunctionDeclaration>(
+            modifiers, return_type, function_name, function_arguments);
     }
 }
 
@@ -172,8 +167,7 @@ std::vector<std::unique_ptr<FunctionArgument>> Parser::functionArguments() {
             this->index += 3;
             this->current = std::move(this->tokens[this->index]);
 
-            std::unique_ptr<FunctionArgument> argument =
-                std::make_unique<FunctionArgument>(this->current->line);
+            auto argument = this->create_declaration<FunctionArgument>();
 
             arguments.push_back(std::move(argument));
             break;
@@ -183,8 +177,8 @@ std::vector<std::unique_ptr<FunctionArgument>> Parser::functionArguments() {
 
         advance(TokenType::IDENTIFIER);
 
-        auto argument = std::make_unique<FunctionArgument>(
-            argument_name, argument_type, this->current->line);
+        auto argument = this->create_declaration<FunctionArgument>(
+            argument_name, argument_type);
 
         arguments.push_back(std::move(argument));
 
@@ -209,9 +203,8 @@ Parser::variableDeclaration(std::unique_ptr<AST> &variable_type,
         variable_value = this->expression();
     }
 
-    return std::make_unique<VariableDeclaration>(
-        modifiers, variable_name, variable_type, this->current->line,
-        variable_value);
+    return this->create_declaration<VariableDeclaration>(
+        modifiers, variable_name, variable_type, variable_value);
 }
 
 std::unique_ptr<Return> Parser::returnStatement() {
@@ -223,7 +216,7 @@ std::unique_ptr<Return> Parser::returnStatement() {
         return_value = this->expression();
     }
 
-    return std::make_unique<Return>(return_value, this->current->line);
+    return this->create_declaration<Return>(return_value);
 }
 
 std::unique_ptr<ASM> Parser::inlineAssembly() {
@@ -239,7 +232,7 @@ std::unique_ptr<ASM> Parser::inlineAssembly() {
 
     advance(TokenType::PARENS_CLOSE);
 
-    return std::make_unique<ASM>(instructions, this->current->line);
+    return this->create_declaration<ASM>(instructions);
 }
 
 std::unique_ptr<AST> Parser::expression() { return this->equality(); }
@@ -253,8 +246,8 @@ std::unique_ptr<AST> Parser::equality() {
 
         auto right_ast = this->comparison();
 
-        return std::make_unique<BinaryExpression>(
-            left_ast, right_ast, operator_type, this->current->line);
+        return this->create_declaration<BinaryExpression>(left_ast, right_ast,
+                                                          operator_type);
     }
 
     return left_ast;
@@ -269,8 +262,8 @@ std::unique_ptr<AST> Parser::comparison() {
 
         auto right_ast = this->term();
 
-        return std::make_unique<BinaryExpression>(
-            left_ast, right_ast, operator_type, this->current->line);
+        return this->create_declaration<BinaryExpression>(left_ast, right_ast,
+                                                          operator_type);
     }
 
     return left_ast;
@@ -285,8 +278,8 @@ std::unique_ptr<AST> Parser::term() {
 
         auto right_ast = this->expression();
 
-        return std::make_unique<BinaryExpression>(
-            left_ast, right_ast, operator_type, this->current->line);
+        return this->create_declaration<BinaryExpression>(left_ast, right_ast,
+                                                          operator_type);
     }
 
     return left_ast;
@@ -301,8 +294,8 @@ std::unique_ptr<AST> Parser::factor() {
 
         auto right_ast = this->expression();
 
-        return std::make_unique<BinaryExpression>(
-            left_ast, right_ast, operator_type, this->current->line);
+        return this->create_declaration<BinaryExpression>(left_ast, right_ast,
+                                                          operator_type);
     }
 
     return left_ast;
@@ -315,8 +308,7 @@ std::unique_ptr<AST> Parser::unary() {
 
         auto expr = this->unary();
 
-        return std::make_unique<UnaryExpression>(expr, operator_type,
-                                                 this->current->line);
+        return this->create_declaration<UnaryExpression>(expr, operator_type);
     }
 
     return this->primary();
@@ -324,8 +316,8 @@ std::unique_ptr<AST> Parser::unary() {
 
 std::unique_ptr<AST> Parser::primary() {
     if (isRegularValue(this->current->type)) {
-        auto literal = std::make_unique<LiteralExpression>(this->current,
-                                                           this->current->line);
+        auto literal =
+            this->create_declaration<LiteralExpression>(this->current);
         advance();
 
         if (this->current->type == TokenType::PARENS_OPEN) {
@@ -338,7 +330,7 @@ std::unique_ptr<AST> Parser::primary() {
         auto expr = this->expression();
         advance(TokenType::PARENS_CLOSE);
 
-        return std::make_unique<GroupingExpression>(expr, this->current->line);
+        return this->create_declaration<GroupingExpression>(expr);
     } else {
         throw std::runtime_error("Expected Expression");
     }
@@ -359,12 +351,12 @@ std::unique_ptr<AST> Parser::functionCall(std::string &name) {
 
     advance(TokenType::PARENS_CLOSE);
 
-    return std::make_unique<FunctionCall>(name, arguments, this->current->line);
+    return this->create_declaration<FunctionCall>(name, arguments);
 }
 
 std::unique_ptr<AST> Parser::type() {
-    auto type = std::make_unique<Type>(*this->current, false, false, false,
-                                       this->current->line);
+    auto type =
+        this->create_declaration<Type>(*this->current, false, false, false);
 
     if (!isRegularType(this->current->type)) {
         throw std::runtime_error("Parser: Expected type\n");
@@ -422,4 +414,10 @@ void Parser::advance() {
     this->index += 1;
 
     this->current = std::move(this->tokens.at(this->index));
+}
+
+template <class ast_type, class... Args>
+std::unique_ptr<ast_type> Parser::create_declaration(Args &&...args) {
+    return std::make_unique<ast_type>(std::forward<Args>(args)...,
+                                      this->current->line);
 }

@@ -95,7 +95,7 @@ class Import : public AST {
     bool is_library = false;
 
   public:
-    Import(std::string import_path, size_t line, bool is_library)
+    Import(std::string import_path, bool is_library, size_t line)
         : AST(ASTType::IMPORT, line), import_path(std::move(import_path)),
           is_library(is_library) {}
 
@@ -252,8 +252,8 @@ class VariableDeclaration : public AST {
 
   public:
     VariableDeclaration(std::vector<TokenType> &modifiers, std::string &name,
-                        std::unique_ptr<AST> &type, size_t line,
-                        std::optional<std::unique_ptr<AST>> &value)
+                        std::unique_ptr<AST> &type,
+                        std::optional<std::unique_ptr<AST>> &value, size_t line)
         : AST(ASTType::VARIABLE_DECLARATION, line), modifiers(modifiers),
           name(name), type(std::move(type)), value(std::move(value)){};
 
