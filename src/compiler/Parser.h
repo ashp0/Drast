@@ -53,6 +53,11 @@ class Parser {
 
     std::unique_ptr<Return> returnStatement();
 
+    std::unique_ptr<If> ifStatements();
+
+    std::pair<std::unique_ptr<AST>, std::unique_ptr<CompoundStatement>>
+    ifOrElseStatement();
+
     std::unique_ptr<ASM> inlineAssembly();
 
     std::unique_ptr<AST> expression();

@@ -1,0 +1,43 @@
+//
+// Drast Programming Language Tests
+//
+
+if (true) {
+    int lmao = 0
+} else if (true) {
+    int lmao = 1
+} else if (true) {
+    int lmao = 2
+} else if (true) {
+    int lmao = 3
+} else if (true) {
+    int lmao = 4
+} else if (true) {
+    int lmao = 5
+} else if (true) {
+    int lmao = 6
+} else if (true) {
+    int lmao = 7
+} else if (true) {
+    int lmao = 8
+} else if (true) {
+    int lmao = 9
+} else if (true) {
+    int lmao = 10
+} else if (true) {
+    int lmao = 11
+} else if (true) {
+    int lmao = 12
+} else if (true) {
+    int lmao = 13
+} else if (true) {
+    int lmao = 14
+} else if (true) {
+    int lmao = 15
+} else if (true) {
+    int lmao = 16
+} else if (true) {
+    int lmao = 17
+} else {
+    int lmao = 18
+}

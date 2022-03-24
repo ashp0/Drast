@@ -28,5 +28,13 @@ extern int[]*? :: hello(int test, ...) {
 
     bool test = true
 
+    if (test) {
+        bool test = 59
+    } else if (test) {
+        bool test = 59
+    } else {
+        bool test = 59
+    }
+
     return 50 + 30
 }

@@ -107,6 +107,19 @@ std::string VariableDeclaration::toString() const {
     }
 }
 
+std::string If::toString() const {
+    std::stringstream ss;
+    ss << "If: (" << if_condition->toString() << ") " << if_body->toString();
+    for (int i = 0; i < elseif_body.size(); i++) {
+        ss << " else if (" << elseif_conditions.at(i)->toString() << ") "
+           << elseif_body.at(i)->toString();
+    }
+    if (else_body) {
+        ss << " else " << else_body->get()->toString();
+    }
+    return ss.str();
+}
+
 std::string ASM::toString() const {
     std::stringstream ss;
     ss << "InlineAssembly: (";

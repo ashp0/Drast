@@ -279,6 +279,32 @@ class Return : public AST {
     std::string toString() const override;
 };
 
+class If : public AST {
+  public:
+    std::unique_ptr<AST> if_condition;
+    std::unique_ptr<CompoundStatement> if_body;
+
+    std::vector<std::unique_ptr<AST>> elseif_conditions;
+    std::vector<std::unique_ptr<CompoundStatement>> elseif_body;
+
+    std::optional<std::unique_ptr<CompoundStatement>> else_body;
+
+  public:
+    If(std::unique_ptr<AST> &if_condition,
+       std::unique_ptr<CompoundStatement> &if_body,
+       std::vector<std::unique_ptr<AST>> &elseif_conditions,
+       std::vector<std::unique_ptr<CompoundStatement>> &elseif_body,
+       std::optional<std::unique_ptr<CompoundStatement>> &else_body,
+       Location location)
+        : AST(ASTType::IF, location), if_condition(std::move(if_condition)),
+          if_body(std::move(if_body)),
+          elseif_conditions(std::move(elseif_conditions)),
+          elseif_body(std::move(elseif_body)),
+          else_body(std::move(else_body)){};
+
+    std::string toString() const override;
+};
+
 class ASM : public AST {
   public:
     std::vector<std::string> instructions;

@@ -43,6 +43,8 @@ std::unique_ptr<AST> Parser::statement() {
         return this->functionOrVariableDeclaration();
     case TokenType::RETURN:
         return this->returnStatement();
+    case TokenType::IF:
+        return this->ifStatements();
     case TokenType::ASM:
         return this->inlineAssembly();
     case TokenType::T_EOF:
@@ -212,6 +214,47 @@ std::unique_ptr<Return> Parser::returnStatement() {
     }
 
     return this->create_declaration<Return>(return_value);
+}
+
+std::unique_ptr<If> Parser::ifStatements() {
+    advance(TokenType::IF);
+
+    auto if_body_and_statement = this->ifOrElseStatement();
+
+    std::vector<std::unique_ptr<AST>> elseif_conditions = {};
+    std::vector<std::unique_ptr<CompoundStatement>> elseif_bodies = {};
+    std::optional<std::unique_ptr<CompoundStatement>> else_body = std::nullopt;
+
+    while (is(TokenType::ELSE)) {
+        if (is(TokenType::IF)) {
+            auto else_body_and_statement = this->ifOrElseStatement();
+
+            elseif_conditions.push_back(
+                std::move(else_body_and_statement.first));
+            elseif_bodies.push_back(std::move(else_body_and_statement.second));
+        } else {
+            advance(TokenType::BRACE_OPEN);
+            else_body = this->compound();
+            advance(TokenType::BRACE_CLOSE);
+        }
+    }
+
+    return this->create_declaration<If>(
+        if_body_and_statement.first, if_body_and_statement.second,
+        elseif_conditions, elseif_bodies, else_body);
+}
+
+std::pair<std::unique_ptr<AST>, std::unique_ptr<CompoundStatement>>
+Parser::ifOrElseStatement() {
+    advance(TokenType::PARENS_OPEN);
+    auto condition = this->expression();
+    advance(TokenType::PARENS_CLOSE);
+
+    advance(TokenType::BRACE_OPEN);
+    auto body = this->compound();
+    advance(TokenType::BRACE_CLOSE);
+
+    return std::make_pair(std::move(condition), std::move(body));
 }
 
 std::unique_ptr<ASM> Parser::inlineAssembly() {
