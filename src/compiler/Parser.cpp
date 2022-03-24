@@ -84,10 +84,18 @@ std::unique_ptr<EnumDeclaration> Parser::enumDeclaration() {
     auto enum_name = this->current->value;
     this->advance(TokenType::IDENTIFIER);
 
+    advance(TokenType::BRACE_OPEN);
+
+    auto enum_cases = enumCases();
+
+    advance(TokenType::BRACE_CLOSE);
+
+    return this->create_declaration<EnumDeclaration>(enum_name, enum_cases);
+}
+
+std::vector<std::unique_ptr<EnumCase>> Parser::enumCases() {
     std::vector<std::unique_ptr<EnumCase>> enum_cases;
     int case_enum_value = 0;
-
-    advance(TokenType::BRACE_OPEN);
 
     while (this->current->type != TokenType::BRACE_CLOSE) {
         auto case_name = this->current->value;
@@ -95,17 +103,13 @@ std::unique_ptr<EnumDeclaration> Parser::enumDeclaration() {
 
         this->advance(TokenType::IDENTIFIER);
 
-        if (this->current->type == TokenType::EQUAL) {
-            this->advance(TokenType::EQUAL);
+        if (is(TokenType::EQUAL)) {
             case_value = this->expression();
         } else {
             auto case_value_string = std::to_string(case_enum_value);
 
-            auto token = std::make_unique<Token>(
-                case_value_string, TokenType::V_NUMBER, this->current->line,
-                this->current->column);
-
-            case_value = this->create_declaration<LiteralExpression>(token);
+            case_value = this->create_declaration<LiteralExpression>(
+                case_value_string, TokenType::V_NUMBER);
         }
 
         auto enum_case =
@@ -114,22 +118,17 @@ std::unique_ptr<EnumDeclaration> Parser::enumDeclaration() {
         enum_cases.push_back(std::move(enum_case));
         case_enum_value++;
 
-        if (this->current->type == TokenType::COMMA) {
-            this->advance(TokenType::COMMA);
-        }
+        is(TokenType::COMMA);
     }
 
-    advance(TokenType::BRACE_CLOSE);
-
-    return this->create_declaration<EnumDeclaration>(enum_name, enum_cases);
+    return enum_cases;
 }
 
 std::unique_ptr<AST>
 Parser::functionOrVariableDeclaration(std::vector<TokenType> modifiers) {
     auto type = this->type();
 
-    if (this->current->type == TokenType::DOUBLE_COLON) {
-        advance(TokenType::DOUBLE_COLON);
+    if (is(TokenType::DOUBLE_COLON)) {
         return this->functionDeclaration(type, std::move(modifiers));
     }
 
@@ -146,8 +145,7 @@ Parser::functionDeclaration(std::unique_ptr<AST> &return_type,
     auto function_arguments = this->functionArguments();
     advance(TokenType::PARENS_CLOSE);
 
-    if (this->current->type == TokenType::BRACE_OPEN) {
-        advance(TokenType::BRACE_OPEN);
+    if (is(TokenType::BRACE_OPEN)) {
         std::unique_ptr<CompoundStatement> function_body = this->compound();
         advance(TokenType::BRACE_CLOSE);
 
@@ -163,9 +161,9 @@ Parser::functionDeclaration(std::unique_ptr<AST> &return_type,
 std::vector<std::unique_ptr<FunctionArgument>> Parser::functionArguments() {
     std::vector<std::unique_ptr<FunctionArgument>> arguments;
     while (this->current->type != TokenType::PARENS_CLOSE) {
-        if (this->current->type == TokenType::PERIOD) {
-            this->index += 3;
-            this->current = std::move(this->tokens[this->index]);
+        if (is(TokenType::PERIOD)) {
+            advance(TokenType::PERIOD);
+            advance(TokenType::PERIOD);
 
             auto argument = this->create_declaration<FunctionArgument>();
 
@@ -198,8 +196,7 @@ Parser::variableDeclaration(std::unique_ptr<AST> &variable_type,
     advance(TokenType::IDENTIFIER);
 
     // Variable Initialization
-    if (this->current->type == TokenType::EQUAL) {
-        advance(TokenType::EQUAL);
+    if (is(TokenType::EQUAL)) {
         variable_value = this->expression();
     }
 
@@ -320,13 +317,12 @@ std::unique_ptr<AST> Parser::primary() {
             this->create_declaration<LiteralExpression>(this->current);
         advance();
 
-        if (this->current->type == TokenType::PARENS_OPEN) {
-            return this->functionCall(literal->token->value);
+        if (is(TokenType::PARENS_OPEN)) {
+            return this->functionCall(literal->value);
         }
 
         return literal;
-    } else if (this->current->type == TokenType::PARENS_OPEN) {
-        advance(TokenType::PARENS_OPEN);
+    } else if (is(TokenType::PARENS_OPEN)) {
         auto expr = this->expression();
         advance(TokenType::PARENS_CLOSE);
 
@@ -337,16 +333,12 @@ std::unique_ptr<AST> Parser::primary() {
 }
 
 std::unique_ptr<AST> Parser::functionCall(std::string &name) {
-    advance(TokenType::PARENS_OPEN);
-
     std::vector<std::unique_ptr<AST>> arguments;
 
     while (this->current->type != TokenType::PARENS_CLOSE) {
         arguments.push_back(this->expression());
 
-        if (this->current->type == TokenType::COMMA) {
-            advance(TokenType::COMMA);
-        }
+        is(TokenType::COMMA);
     }
 
     advance(TokenType::PARENS_CLOSE);
@@ -414,6 +406,15 @@ void Parser::advance() {
     this->index += 1;
 
     this->current = std::move(this->tokens.at(this->index));
+}
+
+bool Parser::is(TokenType type) {
+    if (this->current->type == type) {
+        advance(type);
+        return true;
+    }
+
+    return false;
 }
 
 template <class ast_type, class... Args>

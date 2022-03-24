@@ -311,11 +311,17 @@ class UnaryExpression : public AST {
 
 class LiteralExpression : public AST {
   public:
-    std::unique_ptr<Token> token;
+    std::string value;
+    TokenType type;
 
   public:
     LiteralExpression(std::unique_ptr<Token> &token, size_t line)
-        : AST(ASTType::LITERAL_EXPRESSION, line), token(std::move(token)){};
+        : AST(ASTType::LITERAL_EXPRESSION, line), value(token->value),
+          type(token->type){};
+
+    LiteralExpression(std::string &value, TokenType type, size_t line)
+        : AST(ASTType::LITERAL_EXPRESSION, line), value(std::move(value)),
+          type(type){};
 
     std::string toString() const override;
 };

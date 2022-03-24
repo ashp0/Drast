@@ -144,7 +144,7 @@ std::string UnaryExpression::toString() const {
     return ss.str();
 }
 
-std::string LiteralExpression::toString() const { return this->token->value; }
+std::string LiteralExpression::toString() const { return this->value; }
 
 std::string GroupingExpression::toString() const {
     return "(" + this->expr->toString() + ")";

@@ -35,6 +35,8 @@ class Parser {
 
     std::unique_ptr<EnumDeclaration> enumDeclaration();
 
+    std::vector<std::unique_ptr<EnumCase>> enumCases();
+
     std::unique_ptr<AST>
     functionOrVariableDeclaration(std::vector<TokenType> modifiers = {});
 
@@ -75,6 +77,8 @@ class Parser {
     void advance(TokenType type);
 
     void advance();
+
+    bool is(TokenType type);
 
     template <class ast_type, class... Args>
     std::unique_ptr<ast_type> create_declaration(Args &&...args);
