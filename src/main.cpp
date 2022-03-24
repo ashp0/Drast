@@ -1,6 +1,7 @@
 #include "compiler/Lexer.h"
 #include "compiler/Parser.h"
 #include <iostream>
+#include "compiler/Print.h"
 
 std::string read_file(const char *file_name) {
     FILE *f = fopen(file_name, "rt");

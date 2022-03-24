@@ -5,6 +5,7 @@
 #ifndef DRAST_TOKEN_H
 #define DRAST_TOKEN_H
 
+#include "Types.h"
 #include <iostream>
 #include <unordered_map>
 
@@ -210,20 +211,19 @@ constexpr bool isComparitiveOperator(TokenType type) {
 class Token {
   public:
     std::string value;
-    size_t line;
-    size_t column;
+    Location location;
     TokenType type;
 
   public:
-    Token(std::string &value, TokenType type, size_t line, size_t column)
-        : value(value), type(type), line(line), column(column) {}
+    Token(std::string &value, TokenType type, Location location)
+        : value(value), type(type), location(location) {}
 
     static TokenType is_keyword(const std::string &string, size_t length);
 
     friend std::ostream &operator<<(std::ostream &out, Token const &token) {
         out << "Token: `" << token.value << "` "
-            << tokenTypeAsLiteral(token.type) << " L`" << token.line << "` C`"
-            << token.column << '`';
+            << tokenTypeAsLiteral(token.type) << " L`" << token.location.line
+            << "` C`" << token.location.column << '`';
         return out;
     }
 };

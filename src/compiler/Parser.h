@@ -6,6 +6,7 @@
 #define DRAST_PARSER_H
 
 #include "AST.h"
+#include "Print.h"
 #include "Token.h"
 #include <iostream>
 #include <optional>
@@ -82,6 +83,8 @@ class Parser {
 
     template <class ast_type, class... Args>
     std::unique_ptr<ast_type> create_declaration(Args &&...args);
+
+    int throw_error(std::string message);
 };
 
 #endif // DRAST_PARSER_H

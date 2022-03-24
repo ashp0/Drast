@@ -49,7 +49,7 @@ std::unique_ptr<AST> Parser::statement() {
         return nullptr;
     default:
         std::cout << *this->current << std::endl;
-        throw std::runtime_error("Parser: Cannot Parse Token");
+        throw this->throw_error("Parser: Cannot Parse Token");
     }
 
     return nullptr;
@@ -72,7 +72,7 @@ std::unique_ptr<Import> Parser::import() {
         this->advance(TokenType::IDENTIFIER);
         break;
     default:
-        throw std::runtime_error("Expected string literal\n");
+        throw this->throw_error("Expected string literal\n");
     }
 
     return this->create_declaration<Import>(import_path, is_library);
@@ -95,9 +95,9 @@ std::unique_ptr<EnumDeclaration> Parser::enumDeclaration() {
 
 std::vector<std::unique_ptr<EnumCase>> Parser::enumCases() {
     std::vector<std::unique_ptr<EnumCase>> enum_cases;
-    int case_enum_value = 0;
 
-    while (this->current->type != TokenType::BRACE_CLOSE) {
+    for (int enum_case_value = 0; this->current->type != TokenType::BRACE_CLOSE;
+         enum_case_value++) {
         auto case_name = this->current->value;
         std::unique_ptr<AST> case_value;
 
@@ -106,7 +106,7 @@ std::vector<std::unique_ptr<EnumCase>> Parser::enumCases() {
         if (is(TokenType::EQUAL)) {
             case_value = this->expression();
         } else {
-            auto case_value_string = std::to_string(case_enum_value);
+            auto case_value_string = std::to_string(enum_case_value);
 
             case_value = this->create_declaration<LiteralExpression>(
                 case_value_string, TokenType::V_NUMBER);
@@ -116,8 +116,6 @@ std::vector<std::unique_ptr<EnumCase>> Parser::enumCases() {
             this->create_declaration<EnumCase>(case_name, case_value);
 
         enum_cases.push_back(std::move(enum_case));
-        case_enum_value++;
-
         is(TokenType::COMMA);
     }
 
@@ -328,7 +326,7 @@ std::unique_ptr<AST> Parser::primary() {
 
         return this->create_declaration<GroupingExpression>(expr);
     } else {
-        throw std::runtime_error("Expected Expression");
+        throw this->throw_error("Invalid Expression");
     }
 }
 
@@ -351,7 +349,7 @@ std::unique_ptr<AST> Parser::type() {
         this->create_declaration<Type>(*this->current, false, false, false);
 
     if (!isRegularType(this->current->type)) {
-        throw std::runtime_error("Parser: Expected type\n");
+        throw this->throw_error("Parser: Expected type\n");
     }
 
     advance();
@@ -392,9 +390,9 @@ std::unique_ptr<AST> Parser::modifiers() {
 
 void Parser::advance(TokenType type) {
     if (type != this->current->type) {
-        throw std::runtime_error("Syntax error: expected " +
-                                 tokenTypeAsLiteral(type) + " but got " +
-                                 tokenTypeAsLiteral(this->current->type));
+        throw this->throw_error("Syntax error: expected " +
+                                tokenTypeAsLiteral(type) + " but got " +
+                                tokenTypeAsLiteral(this->current->type));
     }
 
     this->index += 1;
@@ -420,5 +418,9 @@ bool Parser::is(TokenType type) {
 template <class ast_type, class... Args>
 std::unique_ptr<ast_type> Parser::create_declaration(Args &&...args) {
     return std::make_unique<ast_type>(std::forward<Args>(args)...,
-                                      this->current->line);
+                                      this->current->location);
+}
+
+int Parser::throw_error(std::string message) {
+    throw print::error(message, this->current->location);
 }

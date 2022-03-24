@@ -6,6 +6,7 @@
 #define DRAST_AST_H
 
 #include "Token.h"
+#include "Types.h"
 #include <iostream>
 #include <memory>
 #include <optional>
@@ -58,11 +59,11 @@ enum class ASTType {
 class AST {
   public:
     ASTType ast_type;
-    size_t line;
+    Location location;
 
   public:
-    constexpr AST(ASTType ast_type, size_t line)
-        : ast_type(ast_type), line(line) {}
+    constexpr AST(ASTType ast_type, Location location)
+        : ast_type(ast_type), location(location) {}
 
     virtual ~AST() = default;
 
@@ -79,8 +80,8 @@ class CompoundStatement : public AST {
     std::vector<std::unique_ptr<AST>> statements;
 
   public:
-    explicit CompoundStatement(size_t line)
-        : AST(ASTType::COMPOUND_STATEMENT, line) {}
+    explicit CompoundStatement(Location location)
+        : AST(ASTType::COMPOUND_STATEMENT, location) {}
 
     void insertStatement(std::unique_ptr<AST> &statement) {
         statements.push_back(std::move(statement));
@@ -95,8 +96,8 @@ class Import : public AST {
     bool is_library = false;
 
   public:
-    Import(std::string import_path, bool is_library, size_t line)
-        : AST(ASTType::IMPORT, line), import_path(std::move(import_path)),
+    Import(std::string import_path, bool is_library, Location location)
+        : AST(ASTType::IMPORT, location), import_path(std::move(import_path)),
           is_library(is_library) {}
 
     std::string toString() const override;
@@ -119,16 +120,17 @@ class FunctionDeclaration : public AST {
         std::vector<TokenType> &modifiers, std::unique_ptr<AST> &return_type,
         std::string &name,
         std::vector<std::unique_ptr<FunctionArgument>> &arguments,
-        std::unique_ptr<CompoundStatement> &body, size_t line)
-        : AST(ASTType::FUNCTION_DECLARATION, line), modifiers(modifiers),
+        std::unique_ptr<CompoundStatement> &body, Location location)
+        : AST(ASTType::FUNCTION_DECLARATION, location), modifiers(modifiers),
           return_type(std::move(return_type)), name(std::move(name)),
           arguments(std::move(arguments)), body(std::move(body)){};
 
     FunctionDeclaration(
         std::vector<TokenType> &modifiers, std::unique_ptr<AST> &return_type,
         std::string &name,
-        std::vector<std::unique_ptr<FunctionArgument>> &arguments, size_t line)
-        : AST(ASTType::FUNCTION_DECLARATION, line), modifiers(modifiers),
+        std::vector<std::unique_ptr<FunctionArgument>> &arguments,
+        Location location)
+        : AST(ASTType::FUNCTION_DECLARATION, location), modifiers(modifiers),
           return_type(std::move(return_type)), name(std::move(name)),
           arguments(std::move(arguments)){};
 
@@ -142,12 +144,13 @@ class FunctionArgument : public AST {
     bool is_vaarg = false;
 
   public:
-    FunctionArgument(std::string name, std::unique_ptr<AST> &type, size_t line)
-        : AST(ASTType::FUNCTION_ARGUMENT, line), name(name),
+    FunctionArgument(std::string name, std::unique_ptr<AST> &type,
+                     Location location)
+        : AST(ASTType::FUNCTION_ARGUMENT, location), name(name),
           type(std::move(type)){};
 
-    FunctionArgument(size_t line)
-        : AST(ASTType::FUNCTION_ARGUMENT, line), is_vaarg(true),
+    FunctionArgument(Location location)
+        : AST(ASTType::FUNCTION_ARGUMENT, location), is_vaarg(true),
           name(std::nullopt), type(std::nullopt){};
 
     std::string toString() const override;
@@ -160,8 +163,9 @@ class FunctionCall : public AST {
 
   public:
     FunctionCall(std::string &name,
-                 std::vector<std::unique_ptr<AST>> &arguments, size_t line)
-        : AST(ASTType::FUNCTION_CALL, line), name(std::move(name)),
+                 std::vector<std::unique_ptr<AST>> &arguments,
+                 Location location)
+        : AST(ASTType::FUNCTION_CALL, location), name(std::move(name)),
           arguments(std::move(arguments)) {}
 
     std::string toString() const override;
@@ -176,8 +180,8 @@ class Type : public AST {
 
   public:
     Type(Token token, bool is_pointer, bool is_array, bool is_optional,
-         size_t line)
-        : AST(ASTType::TYPE, line), token(std::move(token)),
+         Location location)
+        : AST(ASTType::TYPE, location), token(std::move(token)),
           is_pointer(is_pointer), is_array(is_array),
           is_optional(is_optional){};
 
@@ -192,8 +196,10 @@ class StructDeclaration : public AST {
 
   public:
     StructDeclaration(std::string &name,
-                      std::vector<std::unique_ptr<AST>> &fields, size_t line)
-        : AST(ASTType::STRUCT_DECLARATION, line), name(name), fields(fields) {}
+                      std::vector<std::unique_ptr<AST>> &fields,
+                      Location location)
+        : AST(ASTType::STRUCT_DECLARATION, location), name(name),
+          fields(fields) {}
 
     std::string toString() const override;
 };
@@ -206,8 +212,8 @@ class StructInitializerCall : public AST {
   public:
     StructInitializerCall(std::string &name,
                           std::vector<std::unique_ptr<AST>> &arguments,
-                          size_t line)
-        : AST(ASTType::STRUCT_INITIALIZER_CALL, line), name(name),
+                          Location location)
+        : AST(ASTType::STRUCT_INITIALIZER_CALL, location), name(name),
           arguments(arguments) {}
 
     std::string toString() const override;
@@ -223,8 +229,9 @@ class EnumDeclaration : public AST {
 
   public:
     EnumDeclaration(std::string &name,
-                    std::vector<std::unique_ptr<EnumCase>> &cases, size_t line)
-        : AST(ASTType::ENUM_DECLARATION, line), name(std::move(name)),
+                    std::vector<std::unique_ptr<EnumCase>> &cases,
+                    Location location)
+        : AST(ASTType::ENUM_DECLARATION, location), name(std::move(name)),
           cases(std::move(cases)) {}
 
     std::string toString() const override;
@@ -236,8 +243,8 @@ class EnumCase : public AST {
     std::unique_ptr<AST> value;
 
   public:
-    EnumCase(std::string &name, std::unique_ptr<AST> &value, size_t line)
-        : AST(ASTType::ENUM_CASE, line), name(std::move(name)),
+    EnumCase(std::string &name, std::unique_ptr<AST> &value, Location location)
+        : AST(ASTType::ENUM_CASE, location), name(std::move(name)),
           value(std::move(value)) {}
 
     std::string toString() const override;
@@ -253,8 +260,9 @@ class VariableDeclaration : public AST {
   public:
     VariableDeclaration(std::vector<TokenType> &modifiers, std::string &name,
                         std::unique_ptr<AST> &type,
-                        std::optional<std::unique_ptr<AST>> &value, size_t line)
-        : AST(ASTType::VARIABLE_DECLARATION, line), modifiers(modifiers),
+                        std::optional<std::unique_ptr<AST>> &value,
+                        Location location)
+        : AST(ASTType::VARIABLE_DECLARATION, location), modifiers(modifiers),
           name(name), type(std::move(type)), value(std::move(value)){};
 
     std::string toString() const override;
@@ -265,8 +273,8 @@ class Return : public AST {
     std::optional<std::unique_ptr<AST>> expression;
 
   public:
-    Return(std::optional<std::unique_ptr<AST>> &expression, size_t line)
-        : AST(ASTType::RETURN, line), expression(std::move(expression)){};
+    Return(std::optional<std::unique_ptr<AST>> &expression, Location location)
+        : AST(ASTType::RETURN, location), expression(std::move(expression)){};
 
     std::string toString() const override;
 };
@@ -276,8 +284,8 @@ class ASM : public AST {
     std::vector<std::string> instructions;
 
   public:
-    ASM(std::vector<std::string> &instructions, size_t line)
-        : AST(ASTType::ASM, line), instructions(std::move(instructions)){};
+    ASM(std::vector<std::string> &instructions, Location location)
+        : AST(ASTType::ASM, location), instructions(std::move(instructions)){};
 
     std::string toString() const override;
 };
@@ -290,8 +298,8 @@ class BinaryExpression : public AST {
 
   public:
     BinaryExpression(std::unique_ptr<AST> &left, std::unique_ptr<AST> &right,
-                     TokenType op, size_t line)
-        : AST(ASTType::BINARY_EXPRESSION, line), left(std::move(left)),
+                     TokenType op, Location location)
+        : AST(ASTType::BINARY_EXPRESSION, location), left(std::move(left)),
           right(std::move(right)), op(op){};
 
     std::string toString() const override;
@@ -303,8 +311,9 @@ class UnaryExpression : public AST {
     TokenType op;
 
   public:
-    UnaryExpression(std::unique_ptr<AST> &expr, TokenType op, size_t line)
-        : AST(ASTType::UNARY_EXPRESSION, line), expr(std::move(expr)), op(op){};
+    UnaryExpression(std::unique_ptr<AST> &expr, TokenType op, Location location)
+        : AST(ASTType::UNARY_EXPRESSION, location), expr(std::move(expr)),
+          op(op){};
 
     std::string toString() const override;
 };
@@ -315,12 +324,12 @@ class LiteralExpression : public AST {
     TokenType type;
 
   public:
-    LiteralExpression(std::unique_ptr<Token> &token, size_t line)
-        : AST(ASTType::LITERAL_EXPRESSION, line), value(token->value),
+    LiteralExpression(std::unique_ptr<Token> &token, Location location)
+        : AST(ASTType::LITERAL_EXPRESSION, location), value(token->value),
           type(token->type){};
 
-    LiteralExpression(std::string &value, TokenType type, size_t line)
-        : AST(ASTType::LITERAL_EXPRESSION, line), value(std::move(value)),
+    LiteralExpression(std::string &value, TokenType type, Location location)
+        : AST(ASTType::LITERAL_EXPRESSION, location), value(std::move(value)),
           type(type){};
 
     std::string toString() const override;
@@ -331,8 +340,8 @@ class GroupingExpression : public AST {
     std::unique_ptr<AST> expr;
 
   public:
-    GroupingExpression(std::unique_ptr<AST> &expr, size_t line)
-        : AST(ASTType::GROUPING_EXPRESSION, line), expr(std::move(expr)){};
+    GroupingExpression(std::unique_ptr<AST> &expr, Location location)
+        : AST(ASTType::GROUPING_EXPRESSION, location), expr(std::move(expr)){};
 
     std::string toString() const override;
 };

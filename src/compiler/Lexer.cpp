@@ -30,10 +30,7 @@ std::unique_ptr<Token> Lexer::getToken() {
     case ' ':
     case '\r':
     case '\t':
-        break;
     case '\n':
-        this->line++;
-        this->column = 0;
         break;
     case '?':
         return returnToken(TokenType::QUESTION);
@@ -138,8 +135,8 @@ std::unique_ptr<Token> Lexer::getToken() {
     case '\0':
         break;
     default:
-        throw std::runtime_error("Unexpected Character" +
-                                 std::string({this->current}));
+        throw this->throw_error("Unexpected Character `" +
+                                std::string({this->current}) + "`");
     }
 
     return returnToken(TokenType::T_EOF, true);
@@ -174,10 +171,10 @@ std::unique_ptr<Token> Lexer::returnToken(TokenType type,
 
 std::unique_ptr<Token> Lexer::returnToken(TokenType type, std::string &string,
                                           bool without_advance) {
-    auto return_token =
-        std::make_unique<Token>(string, type, this->line, this->column);
+    auto return_token = std::make_unique<Token>(string, type, this->location);
     if (!without_advance) {
         this->advance();
+        return_token->location.column += 1;
     }
     return return_token;
 }
@@ -190,8 +187,8 @@ std::unique_ptr<Token> Lexer::returnToken(TokenType first_type,
 void Lexer::skipWhitespace() {
     while (isspace(this->current)) {
         if (this->current == '\n') {
-            this->line += 1;
-            this->column = 0;
+            this->location.line += 1;
+            this->location.column = 0;
         }
         if (this->current == '\0') {
             break;
@@ -204,9 +201,6 @@ void Lexer::skipLine() {
     while (this->current != '\n' && this->current != '\0') {
         this->advance();
     }
-
-    this->line += 1;
-    this->column = 0;
 }
 
 void Lexer::skipBlockComment() {
@@ -215,23 +209,28 @@ void Lexer::skipBlockComment() {
 
 while_loop:
     while (this->current != '*') {
+        if (this->current == '\n') {
+            this->location.line += 1;
+            this->location.column = 0;
+        }
         this->advance();
 
         if (this->current == '\0') {
-            throw std::runtime_error("Unterminated block comment");
+            this->throw_error("Unterminated block comment");
         }
     }
 
     this->advance();
     if (this->current == '/') {
         this->advance();
+        return;
     } else {
         goto while_loop;
     }
 }
 
 void Lexer::advance() {
-    this->column += 1;
+    this->location.column += 1;
     this->index += 1;
     this->current = this->source[this->index];
 }
@@ -252,8 +251,8 @@ std::unique_ptr<Token> Lexer::lexWhile(TokenType type, predicate &&pred,
             break;
         }
         if (this->current == '\n') {
-            this->line += 1;
-            this->column = 0;
+            this->location.line += 1;
+            this->location.column = 0;
         }
         if (is_string && this->current == '\\') {
             this->advance();
@@ -275,4 +274,9 @@ std::unique_ptr<Token> Lexer::lexWhile(TokenType type, predicate &&pred,
         return this->returnToken(type1, value, true);
     }
     return this->returnToken(type, value, true);
+}
+
+int Lexer::throw_error(std::string message) {
+    print::error(message, this->location);
+    return 1;
 }

@@ -5,7 +5,9 @@
 #ifndef DRAST_LEXER_H
 #define DRAST_LEXER_H
 
+#include "Print.h"
 #include "Token.h"
+#include "Types.h"
 #include <iostream>
 #include <vector>
 
@@ -13,8 +15,7 @@ class Lexer {
   private:
     std::string source; // Maybe add support for unicode?
 
-    size_t line;
-    size_t column;
+    Location location;
 
     size_t start;
     size_t index;
@@ -25,8 +26,10 @@ class Lexer {
 
   public:
     explicit Lexer(const std::string &source)
-        : source(source), line(1), column(0), start(0), index(0),
-          current(source[0]) {}
+        : source(source), start(0), index(0), current(source[0]) {
+        location.line = 1;
+        location.column = 0;
+    }
 
     void lex();
 
@@ -63,6 +66,8 @@ class Lexer {
     template <typename predicate>
     std::unique_ptr<Token> lexWhile(TokenType type, predicate &&pred,
                                     bool is_string = false);
+
+    int throw_error(std::string message);
 };
 
 #endif // DRAST_LEXER_H

@@ -18,13 +18,11 @@ class Colors:
     reset = '\033[0m'
 
 
-# Headers
 EXECUTABLE = '../build/drast'
 DRAST_FILES = glob.glob('*.drast')
 FILES_AND_TIMES = []
 
-# Start Time ( To calculate total time taken to run all tests )
-program_start_time = time.time()
+START_TIME = time.time()
 
 for file in DRAST_FILES:
     try:
@@ -38,20 +36,18 @@ for file in DRAST_FILES:
 
         # If the program is specified to print output, print it
         if 'verbose' in sys.argv:
-            print(program_output.decode('utf-8'))
+            print(program_output.decode())
 
     except subprocess.CalledProcessError as e:
         # If a file fails, print the error
-        print(e.output.decode('utf-8'))
-        print(Colors.bold + Colors.failed +
-              'Test failed: `' + file + '`' + Colors.reset)
+        print(f"{e.output}")
+        print(f"{Colors.failed}Failed to run {file}{Colors.reset}")
         exit(1)
 
 # Print the time taken to run all tests
-print(Colors.bold + Colors.ok_green + 'Finished running all tests in ' +
-      str(time.time() - program_start_time) + ' seconds.' + Colors.reset)
+print(f"{Colors.header}Total Time Taken: {time.time() - START_TIME} seconds{Colors.reset}")
 
 # Print the results and each file and time taken
 for files_and_times in sorted(FILES_AND_TIMES):
-    print(Colors.ok_cyan + '\t`' + files_and_times[0] + '`, Time:',
-          files_and_times[1].__format__('.2f'), 'seconds' + Colors.reset)
+    print(
+        f"{Colors.ok_green}Test Passed: '{Colors.reset}{Colors.bold}{files_and_times[0]}{Colors.ok_green}' :: '{Colors.ok_cyan}{files_and_times[1]}{Colors.ok_green}' {Colors.reset}")

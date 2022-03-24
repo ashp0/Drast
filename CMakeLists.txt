@@ -12,4 +12,6 @@ add_executable(drast
         src/compiler/Parser.cpp
         src/compiler/Parser.h
         src/compiler/AST.cpp
-        src/compiler/AST.h)
+        src/compiler/AST.h
+        src/compiler/Print.cpp
+        src/compiler/Print.h)
