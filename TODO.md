@@ -1,10 +1,11 @@
 # TODO
 
 - [x] Lexing
+    - [ ] Unicode Support?
 - [x] Parsing
     - [x] Import Statements
     - [x] Function Declaration
-    - [x] Parsing Expression ( 5 + 3 )
+    - [x] Parsing Expression
     - [x] Variables
     - [x] Return Statement
     - [x] ASM

@@ -269,6 +269,27 @@ class VariableDeclaration : public AST {
     std::string toString() const override;
 };
 
+class ForLoop : public AST {
+  public:
+    std::unique_ptr<AST> first_statement;
+    std::unique_ptr<AST> second_expression;
+    std::unique_ptr<AST> third_statement;
+
+    std::unique_ptr<CompoundStatement> body;
+
+  public:
+    ForLoop(std::unique_ptr<AST> &first_statement,
+            std::unique_ptr<AST> &second_expression,
+            std::unique_ptr<AST> &third_statement,
+            std::unique_ptr<CompoundStatement> &body, Location location)
+        : AST(ASTType::FOR, location),
+          first_statement(std::move(first_statement)),
+          second_expression(std::move(second_expression)),
+          third_statement(std::move(third_statement)), body(std::move(body)){};
+
+    std::string toString() const override;
+};
+
 class Return : public AST {
   public:
     std::optional<std::unique_ptr<AST>> expression;

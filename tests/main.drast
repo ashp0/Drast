@@ -38,5 +38,5 @@ extern int[]*? :: hello(int test, ...) {
         bool test = 59
     }
 
-    return 50 + 30
+    return 50 + 30 + 40
 }

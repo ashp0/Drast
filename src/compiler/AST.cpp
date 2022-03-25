@@ -121,6 +121,13 @@ std::string VariableDeclaration::toString() const {
     return ss.str();
 }
 
+std::string ForLoop::toString() const {
+    std::stringstream ss;
+    ss << "ForLoop: (" << *first_statement << ", " << *second_expression << ", "
+       << *third_statement << ") " << *body;
+    return ss.str();
+}
+
 std::string If::toString() const {
     std::stringstream ss;
     ss << "If: (" << if_condition->toString() << ") " << if_body->toString();

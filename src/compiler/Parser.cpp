@@ -44,6 +44,8 @@ std::unique_ptr<AST> Parser::statement() {
     case TokenType::STRING:
     case TokenType::IDENTIFIER:
         return this->functionOrVariableDeclaration();
+    case TokenType::FOR:
+        return this->forLoop();
     case TokenType::RETURN:
         return this->returnStatement();
     case TokenType::IF:
@@ -68,13 +70,11 @@ std::unique_ptr<Import> Parser::import() {
 
     switch (this->current->type) {
     case TokenType::V_STRING:
-        import_path = this->current->value;
-        this->advance(TokenType::V_STRING);
+        import_path = getAndAdvance(TokenType::V_STRING)->value;
         break;
     case TokenType::IDENTIFIER:
-        import_path = this->current->value;
+        import_path = getAndAdvance(TokenType::IDENTIFIER)->value;
         is_library = true;
-        this->advance(TokenType::IDENTIFIER);
         break;
     default:
         throw this->throw_error("Expected string literal\n");
@@ -87,8 +87,7 @@ std::unique_ptr<StructDeclaration>
 Parser::structDeclaration(std::vector<TokenType> modifiers) {
     this->advance(TokenType::STRUCT);
 
-    auto struct_name = this->current->value;
-    this->advance(TokenType::IDENTIFIER);
+    auto struct_name = getAndAdvance(TokenType::IDENTIFIER)->value;
 
     this->advance(TokenType::BRACE_OPEN);
     auto struct_body = this->compound();
@@ -102,8 +101,7 @@ std::unique_ptr<EnumDeclaration>
 Parser::enumDeclaration(std::vector<TokenType> modifiers) {
     this->advance(TokenType::ENUM);
 
-    auto enum_name = this->current->value;
-    this->advance(TokenType::IDENTIFIER);
+    auto enum_name = getAndAdvance(TokenType::IDENTIFIER)->value;
 
     advance(TokenType::BRACE_OPEN);
 
@@ -120,10 +118,8 @@ std::vector<std::unique_ptr<EnumCase>> Parser::enumCases() {
 
     for (int enum_case_value = 0; this->current->type != TokenType::BRACE_CLOSE;
          enum_case_value++) {
-        auto case_name = this->current->value;
+        auto case_name = getAndAdvance(TokenType::IDENTIFIER)->value;
         std::unique_ptr<AST> case_value;
-
-        this->advance(TokenType::IDENTIFIER);
 
         if (matches(TokenType::EQUAL)) {
             case_value = this->expression();
@@ -146,6 +142,10 @@ std::vector<std::unique_ptr<EnumCase>> Parser::enumCases() {
 
 std::unique_ptr<AST>
 Parser::functionOrVariableDeclaration(std::vector<TokenType> modifiers) {
+    // if (isEqualitiveOperator(peek()->type)) {
+    //     return this->expression();
+    // }
+
     auto type = this->type();
 
     if (matches(TokenType::DOUBLE_COLON)) {
@@ -158,8 +158,7 @@ Parser::functionOrVariableDeclaration(std::vector<TokenType> modifiers) {
 std::unique_ptr<AST>
 Parser::functionDeclaration(std::unique_ptr<AST> &return_type,
                             std::vector<TokenType> modifiers) {
-    auto function_name = this->current->value;
-    advance(TokenType::IDENTIFIER);
+    auto function_name = getAndAdvance(TokenType::IDENTIFIER)->value;
 
     advance(TokenType::PARENS_OPEN);
     auto function_arguments = this->functionArguments();
@@ -191,9 +190,7 @@ std::vector<std::unique_ptr<FunctionArgument>> Parser::functionArguments() {
             break;
         }
         auto argument_type = this->type();
-        auto argument_name = this->current->value;
-
-        advance(TokenType::IDENTIFIER);
+        auto argument_name = getAndAdvance(TokenType::IDENTIFIER)->value;
 
         auto argument = this->create_declaration<FunctionArgument>(
             argument_name, argument_type);
@@ -210,10 +207,8 @@ std::unique_ptr<AST>
 Parser::variableDeclaration(std::unique_ptr<AST> &variable_type,
                             std::vector<TokenType> modifiers) {
     // Variable Name
-    std::string variable_name = this->current->value;
+    std::string variable_name = getAndAdvance(TokenType::IDENTIFIER)->value;
     std::optional<std::unique_ptr<AST>> variable_value = std::nullopt;
-
-    advance(TokenType::IDENTIFIER);
 
     // Variable Initialization
     if (matches(TokenType::EQUAL)) {
@@ -222,6 +217,28 @@ Parser::variableDeclaration(std::unique_ptr<AST> &variable_type,
 
     return this->create_declaration<VariableDeclaration>(
         modifiers, variable_name, variable_type, variable_value);
+}
+
+std::unique_ptr<ForLoop> Parser::forLoop() {
+    this->advance(TokenType::FOR);
+
+    this->advance(TokenType::PARENS_OPEN);
+
+    auto for_initialization = this->statement();
+    this->advance(TokenType::COMMA);
+
+    auto for_condition = this->expression();
+    this->advance(TokenType::COMMA);
+
+    auto for_increment = this->statement();
+    this->advance(TokenType::PARENS_CLOSE);
+
+    this->advance(TokenType::BRACE_OPEN);
+    auto for_body = this->compound();
+    this->advance(TokenType::BRACE_CLOSE);
+
+    return this->create_declaration<ForLoop>(for_initialization, for_condition,
+                                             for_increment, for_body);
 }
 
 std::unique_ptr<Return> Parser::returnStatement() {
@@ -296,8 +313,7 @@ std::unique_ptr<ASM> Parser::inlineAssembly() {
 std::unique_ptr<GOTO> Parser::gotoStatement() {
     advance(TokenType::GOTO);
 
-    auto label = this->current->value;
-    advance(TokenType::IDENTIFIER);
+    auto label = getAndAdvance(TokenType::IDENTIFIER)->value;
 
     return this->create_declaration<GOTO>(label);
 }
@@ -305,73 +321,70 @@ std::unique_ptr<GOTO> Parser::gotoStatement() {
 std::unique_ptr<AST> Parser::expression() { return this->equality(); }
 
 std::unique_ptr<AST> Parser::equality() {
-    auto left_ast = this->comparison();
+    auto expr = this->comparison();
+    std::cout << "Equality: " << tokenTypeAsLiteral(this->current->type)
+              << std::endl;
 
     while (isEqualitiveOperator(this->current->type)) {
-        TokenType operator_type = this->current->type;
-        advance(operator_type);
+        TokenType operator_type = getAndAdvance()->type;
 
         auto right_ast = this->comparison();
 
-        return this->create_declaration<BinaryExpression>(left_ast, right_ast,
+        expr = this->create_declaration<BinaryExpression>(expr, right_ast,
                                                           operator_type);
     }
 
-    return left_ast;
+    return expr;
 }
 
 std::unique_ptr<AST> Parser::comparison() {
-    auto left_ast = this->term();
+    auto expr = this->term();
 
     while (isComparitiveOperator(this->current->type)) {
-        TokenType operator_type = this->current->type;
-        advance(operator_type);
+        TokenType operator_type = getAndAdvance()->type;
 
         auto right_ast = this->term();
 
-        return this->create_declaration<BinaryExpression>(left_ast, right_ast,
+        expr = this->create_declaration<BinaryExpression>(expr, right_ast,
                                                           operator_type);
     }
 
-    return left_ast;
+    return expr;
 }
 
 std::unique_ptr<AST> Parser::term() {
-    auto left_ast = this->factor();
+    auto expr = this->factor();
 
     while (isAdditiveOperator(this->current->type)) {
-        TokenType operator_type = this->current->type;
-        advance(operator_type);
+        TokenType operator_type = getAndAdvance()->type;
 
-        auto right_ast = this->expression();
+        auto right_ast = this->factor();
 
-        return this->create_declaration<BinaryExpression>(left_ast, right_ast,
+        expr = this->create_declaration<BinaryExpression>(expr, right_ast,
                                                           operator_type);
     }
 
-    return left_ast;
+    return expr;
 }
 
 std::unique_ptr<AST> Parser::factor() {
-    auto left_ast = this->unary();
+    auto expr = this->unary();
 
     while (isMultiplicativeOperator(this->current->type)) {
-        TokenType operator_type = this->current->type;
-        advance(operator_type);
+        TokenType operator_type = getAndAdvance()->type;
 
-        auto right_ast = this->expression();
+        auto right_ast = this->unary();
 
-        return this->create_declaration<BinaryExpression>(left_ast, right_ast,
+        expr = this->create_declaration<BinaryExpression>(expr, right_ast,
                                                           operator_type);
     }
 
-    return left_ast;
+    return expr;
 }
 
 std::unique_ptr<AST> Parser::unary() {
     if (isAdditiveOperator(this->current->type)) {
-        TokenType operator_type = this->current->type;
-        advance(operator_type);
+        TokenType operator_type = getAndAdvance()->type;
 
         auto expr = this->unary();
 
@@ -483,6 +496,28 @@ void Parser::advance() {
 
     this->current = std::move(this->tokens.at(this->index));
 }
+
+std::unique_ptr<Token> Parser::getAndAdvance() {
+    auto prevToken = std::move(this->current);
+    advance();
+    return prevToken;
+}
+
+std::unique_ptr<Token> Parser::getAndAdvance(TokenType type) {
+    if (type != this->current->type) {
+        throw this->throw_error("Syntax error: expected " +
+                                tokenTypeAsLiteral(type) + " but got " +
+                                tokenTypeAsLiteral(this->current->type));
+    }
+
+    auto prevToken = std::move(this->current);
+    advance();
+    return prevToken;
+}
+
+// std::unique_ptr<Token>& Parser::peek(int offset) {
+//     return this->tokens.at(this->index + offset);
+// }
 
 bool Parser::matches(TokenType type) {
     if (this->current->type == type) {

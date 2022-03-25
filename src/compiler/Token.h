@@ -190,6 +190,16 @@ constexpr bool isEqualitiveOperator(TokenType type) {
     switch (type) {
     case TokenType::EQUAL_EQUAL:
     case TokenType::NOT_EQUAL:
+    case TokenType::OPERATOR_ADD_EQUAL:
+    case TokenType::OPERATOR_SUB_EQUAL:
+    case TokenType::OPERATOR_MUL_EQUAL:
+    case TokenType::OPERATOR_DIV_EQUAL:
+    case TokenType::OPERATOR_MOD_EQUAL:
+    case TokenType::BITWISE_AND_EQUAL:
+    case TokenType::BITWISE_PIPE_EQUAL:
+    case TokenType::BITWISE_SHIFT_LEFT_EQUAL:
+    case TokenType::BITWISE_SHIFT_RIGHT_EQUAL:
+    case TokenType::BITWISE_POWER_EQUAL:
         return true;
     default:
         return false;

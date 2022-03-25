@@ -55,6 +55,8 @@ class Parser {
     variableDeclaration(std::unique_ptr<AST> &variable_type,
                         std::vector<TokenType> modifiers = {});
 
+    std::unique_ptr<ForLoop> forLoop();
+
     std::unique_ptr<Return> returnStatement();
 
     std::unique_ptr<If> ifStatements();
@@ -89,6 +91,12 @@ class Parser {
     void advance(TokenType type);
 
     void advance();
+
+    std::unique_ptr<Token> getAndAdvance();
+
+    std::unique_ptr<Token> getAndAdvance(TokenType type);
+
+    // std::unique_ptr<Token> &peek(int offset = 1);
 
     bool matches(TokenType type);
 
