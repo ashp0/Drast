@@ -1,0 +1,63 @@
+//
+// Drast Programming Language Tests
+//
+
+private extern struct Person {
+    string first_name
+    string last_name
+    int age
+    string city
+    string country
+
+    string :: printInformation() {
+        return "First name: " + first_name + "\nLast name: " + last_name + "\nAge: " + age + "\nCity: " + city + "\nCountry: " + country
+    }
+}
+
+struct Car {
+    string brand
+    string model
+    int year
+    string color
+    int price
+
+    string :: printInformation() {
+        return "Brand: " + brand + "\nModel: " + model + "\nYear: " + year + "\nColor: " + color + "\nPrice: " + price
+    }
+}
+
+struct Colors {
+    string red
+    string blue
+    string green
+    string yellow
+    string white
+    string black
+    string orange
+    string purple
+    string brown
+    string pink
+    string gray
+    string silver
+    string gold
+
+    string :: printInformation() {
+        return "Red: " + red + "\nBlue: " + blue + "\nGreen: " + green + "\nYellow: " + yellow + "\nWhite: " + white + "\nBlack: " + black + "\nOrange: " + orange + "\nPurple: " + purple + "\nBrown: " + brown + "\nPink: " + pink + "\nGray: " + gray + "\nSilver: " + silver + "\nGold: " + gold
+    }
+}
+
+struct JunkFood {
+    string pizza
+    string burger
+    string pasta
+    string salad
+    string soup
+    string ice_cream
+    string cake
+    string cookies
+    string pizza
+
+    string :: printInformation() {
+        return "Pizza: " + pizza + "\nBurger: " + burger + "\nPasta: " + pasta + "\nSalad: " + salad + "\nSoup: " + soup + "\nIce cream: " + ice_cream + "\nCake: " + cake + "\nCookies: " + cookies + "\nPizza: " + pizza
+    }
+}

@@ -1,0 +1,25 @@
+//
+// Drast Programming Language Tests
+//
+
+extern volatile int test = 40
+
+volatile extern int :: testFunction() {
+    return test
+}
+
+extern volatile private int :: testFunction() {
+    return test
+}
+
+private enum Color {
+    RED,
+    GREEN,
+}
+
+private struct TestStruct {
+    int test = 40
+    private string test2 = "Hello World"
+}
+
+private extern volatile string hello_world = "Hello World"

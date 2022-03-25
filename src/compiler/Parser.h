@@ -34,7 +34,11 @@ class Parser {
 
     std::unique_ptr<Import> import();
 
-    std::unique_ptr<EnumDeclaration> enumDeclaration();
+    std::unique_ptr<StructDeclaration>
+    structDeclaration(std::vector<TokenType> modifiers = {});
+
+    std::unique_ptr<EnumDeclaration>
+    enumDeclaration(std::vector<TokenType> modifiers = {});
 
     std::vector<std::unique_ptr<EnumCase>> enumCases();
 
@@ -84,7 +88,7 @@ class Parser {
 
     void advance();
 
-    bool is(TokenType type);
+    bool matches(TokenType type);
 
     template <class ast_type, class... Args>
     std::unique_ptr<ast_type> create_declaration(Args &&...args);

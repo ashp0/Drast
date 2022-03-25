@@ -277,6 +277,6 @@ std::unique_ptr<Token> Lexer::lexWhile(TokenType type, predicate &&pred,
 }
 
 int Lexer::throw_error(std::string message) {
-    print::error(message, this->location);
+    print::error(std::move(message), this->location);
     return 1;
 }

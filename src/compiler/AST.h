@@ -149,7 +149,7 @@ class FunctionArgument : public AST {
         : AST(ASTType::FUNCTION_ARGUMENT, location), name(name),
           type(std::move(type)){};
 
-    FunctionArgument(Location location)
+    explicit FunctionArgument(Location location)
         : AST(ASTType::FUNCTION_ARGUMENT, location), is_vaarg(true),
           name(std::nullopt), type(std::nullopt){};
 
@@ -190,16 +190,16 @@ class Type : public AST {
 
 class StructDeclaration : public AST {
   public:
-    std::string &name;
-    std::vector<std::unique_ptr<AST>>
-        &fields; // Variable Or Function Declarations
+    std::string name;
+    std::unique_ptr<CompoundStatement> body;
+    std::vector<TokenType> modifiers;
 
   public:
     StructDeclaration(std::string &name,
-                      std::vector<std::unique_ptr<AST>> &fields,
-                      Location location)
-        : AST(ASTType::STRUCT_DECLARATION, location), name(name),
-          fields(fields) {}
+                      std::unique_ptr<CompoundStatement> &body,
+                      std::vector<TokenType> modifiers, Location location)
+        : AST(ASTType::STRUCT_DECLARATION, location), name(std::move(name)),
+          body(std::move(body)) {}
 
     std::string toString() const override;
 };
@@ -226,13 +226,14 @@ class EnumDeclaration : public AST {
   public:
     std::string name;
     std::vector<std::unique_ptr<EnumCase>> cases;
+    std::vector<TokenType> modifiers;
 
   public:
     EnumDeclaration(std::string &name,
                     std::vector<std::unique_ptr<EnumCase>> &cases,
-                    Location location)
+                    std::vector<TokenType> modifiers, Location location)
         : AST(ASTType::ENUM_DECLARATION, location), name(std::move(name)),
-          cases(std::move(cases)) {}
+          cases(std::move(cases)), modifiers(modifiers) {}
 
     std::string toString() const override;
 };

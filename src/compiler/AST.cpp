@@ -67,11 +67,11 @@ std::string Type::toString() const {
 
 std::string StructDeclaration::toString() const {
     std::stringstream ss;
-    ss << "StructDeclaration: " << name << " {\n";
-    for (auto &field : fields) {
-        ss << field->toString() << "\n";
+    ss << "StructDeclaration: ";
+    for (auto &modifier : modifiers) {
+        ss << tokenTypeAsLiteral(modifier) << " ";
     }
-    ss << "}";
+    ss << name << " " << body->toString();
     return ss.str();
 }
 
@@ -87,7 +87,14 @@ std::string StructInitializerCall::toString() const {
 
 std::string EnumDeclaration::toString() const {
     std::stringstream ss;
-    ss << "EnumDeclaration: " << name << " {";
+    // modifiers
+    ss << "EnumDeclaration: ";
+
+    for (auto &modifier : modifiers) {
+        ss << tokenTypeAsLiteral(modifier) << " ";
+    }
+
+    ss << name << " {";
     for (auto &case_ : cases) {
         ss << case_->toString() << ", ";
     }
@@ -100,11 +107,18 @@ std::string EnumCase::toString() const {
 }
 
 std::string VariableDeclaration::toString() const {
-    if (value.has_value()) {
-        return type->toString() + " " + name + " = " + value->get()->toString();
-    } else {
-        return type->toString() + " " + name;
+    std::stringstream ss;
+    ss << "VariableDeclaration: ";
+    for (auto &modifier : modifiers) {
+        ss << tokenTypeAsLiteral(modifier) << " ";
     }
+
+    ss << type->toString() << " " << name;
+    if (value.has_value()) {
+        ss << " = " << value->get()->toString();
+    }
+
+    return ss.str();
 }
 
 std::string If::toString() const {

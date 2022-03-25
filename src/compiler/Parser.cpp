@@ -4,6 +4,8 @@
 
 #include "Parser.h"
 
+#include <utility>
+
 std::unique_ptr<AST> Parser::parse() {
     auto ast = this->compound();
 
@@ -30,8 +32,11 @@ std::unique_ptr<AST> Parser::statement() {
         return this->import();
     case TokenType::ENUM:
         return this->enumDeclaration();
+    case TokenType::STRUCT:
+        return this->structDeclaration();
     case TokenType::EXTERN:
     case TokenType::VOLATILE:
+    case TokenType::PRIVATE:
         return this->modifiers();
     case TokenType::INT:
     case TokenType::CHAR:
@@ -53,8 +58,6 @@ std::unique_ptr<AST> Parser::statement() {
         std::cout << *this->current << std::endl;
         throw this->throw_error("Parser: Cannot Parse Token");
     }
-
-    return nullptr;
 }
 
 std::unique_ptr<Import> Parser::import() {
@@ -80,7 +83,23 @@ std::unique_ptr<Import> Parser::import() {
     return this->create_declaration<Import>(import_path, is_library);
 }
 
-std::unique_ptr<EnumDeclaration> Parser::enumDeclaration() {
+std::unique_ptr<StructDeclaration>
+Parser::structDeclaration(std::vector<TokenType> modifiers) {
+    this->advance(TokenType::STRUCT);
+
+    auto struct_name = this->current->value;
+    this->advance(TokenType::IDENTIFIER);
+
+    this->advance(TokenType::BRACE_OPEN);
+    auto struct_body = this->compound();
+    this->advance(TokenType::BRACE_CLOSE);
+
+    return this->create_declaration<StructDeclaration>(struct_name, struct_body,
+                                                       modifiers);
+}
+
+std::unique_ptr<EnumDeclaration>
+Parser::enumDeclaration(std::vector<TokenType> modifiers) {
     this->advance(TokenType::ENUM);
 
     auto enum_name = this->current->value;
@@ -92,7 +111,8 @@ std::unique_ptr<EnumDeclaration> Parser::enumDeclaration() {
 
     advance(TokenType::BRACE_CLOSE);
 
-    return this->create_declaration<EnumDeclaration>(enum_name, enum_cases);
+    return this->create_declaration<EnumDeclaration>(enum_name, enum_cases,
+                                                     modifiers);
 }
 
 std::vector<std::unique_ptr<EnumCase>> Parser::enumCases() {
@@ -105,7 +125,7 @@ std::vector<std::unique_ptr<EnumCase>> Parser::enumCases() {
 
         this->advance(TokenType::IDENTIFIER);
 
-        if (is(TokenType::EQUAL)) {
+        if (matches(TokenType::EQUAL)) {
             case_value = this->expression();
         } else {
             auto case_value_string = std::to_string(enum_case_value);
@@ -118,7 +138,7 @@ std::vector<std::unique_ptr<EnumCase>> Parser::enumCases() {
             this->create_declaration<EnumCase>(case_name, case_value);
 
         enum_cases.push_back(std::move(enum_case));
-        is(TokenType::COMMA);
+        matches(TokenType::COMMA);
     }
 
     return enum_cases;
@@ -128,7 +148,7 @@ std::unique_ptr<AST>
 Parser::functionOrVariableDeclaration(std::vector<TokenType> modifiers) {
     auto type = this->type();
 
-    if (is(TokenType::DOUBLE_COLON)) {
+    if (matches(TokenType::DOUBLE_COLON)) {
         return this->functionDeclaration(type, std::move(modifiers));
     }
 
@@ -145,7 +165,7 @@ Parser::functionDeclaration(std::unique_ptr<AST> &return_type,
     auto function_arguments = this->functionArguments();
     advance(TokenType::PARENS_CLOSE);
 
-    if (is(TokenType::BRACE_OPEN)) {
+    if (matches(TokenType::BRACE_OPEN)) {
         std::unique_ptr<CompoundStatement> function_body = this->compound();
         advance(TokenType::BRACE_CLOSE);
 
@@ -161,7 +181,7 @@ Parser::functionDeclaration(std::unique_ptr<AST> &return_type,
 std::vector<std::unique_ptr<FunctionArgument>> Parser::functionArguments() {
     std::vector<std::unique_ptr<FunctionArgument>> arguments;
     while (this->current->type != TokenType::PARENS_CLOSE) {
-        if (is(TokenType::PERIOD)) {
+        if (matches(TokenType::PERIOD)) {
             advance(TokenType::PERIOD);
             advance(TokenType::PERIOD);
 
@@ -196,7 +216,7 @@ Parser::variableDeclaration(std::unique_ptr<AST> &variable_type,
     advance(TokenType::IDENTIFIER);
 
     // Variable Initialization
-    if (is(TokenType::EQUAL)) {
+    if (matches(TokenType::EQUAL)) {
         variable_value = this->expression();
     }
 
@@ -225,8 +245,8 @@ std::unique_ptr<If> Parser::ifStatements() {
     std::vector<std::unique_ptr<CompoundStatement>> elseif_bodies = {};
     std::optional<std::unique_ptr<CompoundStatement>> else_body = std::nullopt;
 
-    while (is(TokenType::ELSE)) {
-        if (is(TokenType::IF)) {
+    while (matches(TokenType::ELSE)) {
+        if (matches(TokenType::IF)) {
             auto else_body_and_statement = this->ifOrElseStatement();
 
             elseif_conditions.push_back(
@@ -358,12 +378,12 @@ std::unique_ptr<AST> Parser::primary() {
             this->create_declaration<LiteralExpression>(this->current);
         advance();
 
-        if (is(TokenType::PARENS_OPEN)) {
+        if (matches(TokenType::PARENS_OPEN)) {
             return this->functionCall(literal->value);
         }
 
         return literal;
-    } else if (is(TokenType::PARENS_OPEN)) {
+    } else if (matches(TokenType::PARENS_OPEN)) {
         auto expr = this->expression();
         advance(TokenType::PARENS_CLOSE);
 
@@ -379,7 +399,7 @@ std::unique_ptr<AST> Parser::functionCall(std::string &name) {
     while (this->current->type != TokenType::PARENS_CLOSE) {
         arguments.push_back(this->expression());
 
-        is(TokenType::COMMA);
+        matches(TokenType::COMMA);
     }
 
     advance(TokenType::PARENS_CLOSE);
@@ -423,11 +443,17 @@ end:
 std::unique_ptr<AST> Parser::modifiers() {
     std::vector<TokenType> modifiers;
     while (this->current->type == TokenType::EXTERN ||
-           this->current->type == TokenType::VOLATILE) {
+           this->current->type == TokenType::VOLATILE ||
+           this->current->type == TokenType::PRIVATE) {
         modifiers.push_back(this->current->type);
         advance();
     }
 
+    if (this->current->type == TokenType::ENUM) {
+        return this->enumDeclaration(modifiers);
+    } else if (this->current->type == TokenType::STRUCT) {
+        return this->structDeclaration(modifiers);
+    }
     return functionOrVariableDeclaration(modifiers);
 }
 
@@ -449,7 +475,7 @@ void Parser::advance() {
     this->current = std::move(this->tokens.at(this->index));
 }
 
-bool Parser::is(TokenType type) {
+bool Parser::matches(TokenType type) {
     if (this->current->type == type) {
         advance(type);
         return true;
@@ -465,5 +491,5 @@ std::unique_ptr<ast_type> Parser::create_declaration(Args &&...args) {
 }
 
 int Parser::throw_error(std::string message) {
-    throw print::error(message, this->current->location);
+    throw print::error(std::move(message), this->current->location);
 }

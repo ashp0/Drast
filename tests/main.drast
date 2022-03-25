@@ -17,6 +17,8 @@ asm (
         "cli"
         "htl"
         "jmp loop"
+    
+    "mov rax, 0"
 )
 
 
