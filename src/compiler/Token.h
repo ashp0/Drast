@@ -188,8 +188,13 @@ constexpr bool isAdditiveOperator(TokenType type) {
 
 constexpr bool isEqualitiveOperator(TokenType type) {
     switch (type) {
+    case TokenType::EQUAL:
     case TokenType::EQUAL_EQUAL:
     case TokenType::NOT_EQUAL:
+    case TokenType::LESS_THAN:
+    case TokenType::LESS_THAN_EQUAL:
+    case TokenType::GREATER_THAN:
+    case TokenType::GREATER_THAN_EQUAL:
     case TokenType::OPERATOR_ADD_EQUAL:
     case TokenType::OPERATOR_SUB_EQUAL:
     case TokenType::OPERATOR_MUL_EQUAL:

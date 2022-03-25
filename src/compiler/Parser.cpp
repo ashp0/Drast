@@ -77,14 +77,14 @@ std::unique_ptr<Import> Parser::import() {
         is_library = true;
         break;
     default:
-        throw this->throw_error("Expected string literal\n");
+        this->throw_error("Expected string literal\n");
     }
 
     return this->create_declaration<Import>(import_path, is_library);
 }
 
 std::unique_ptr<StructDeclaration>
-Parser::structDeclaration(std::vector<TokenType> modifiers) {
+Parser::structDeclaration(const std::vector<TokenType> &modifiers) {
     this->advance(TokenType::STRUCT);
 
     auto struct_name = getAndAdvance(TokenType::IDENTIFIER)->value;
@@ -98,7 +98,7 @@ Parser::structDeclaration(std::vector<TokenType> modifiers) {
 }
 
 std::unique_ptr<EnumDeclaration>
-Parser::enumDeclaration(std::vector<TokenType> modifiers) {
+Parser::enumDeclaration(const std::vector<TokenType> &modifiers) {
     this->advance(TokenType::ENUM);
 
     auto enum_name = getAndAdvance(TokenType::IDENTIFIER)->value;
@@ -142,9 +142,9 @@ std::vector<std::unique_ptr<EnumCase>> Parser::enumCases() {
 
 std::unique_ptr<AST>
 Parser::functionOrVariableDeclaration(std::vector<TokenType> modifiers) {
-    // if (isEqualitiveOperator(peek()->type)) {
-    //     return this->expression();
-    // }
+    if (isEqualitiveOperator(peek()->type)) {
+        return this->expression();
+    }
 
     auto type = this->type();
 
@@ -322,8 +322,6 @@ std::unique_ptr<AST> Parser::expression() { return this->equality(); }
 
 std::unique_ptr<AST> Parser::equality() {
     auto expr = this->comparison();
-    std::cout << "Equality: " << tokenTypeAsLiteral(this->current->type)
-              << std::endl;
 
     while (isEqualitiveOperator(this->current->type)) {
         TokenType operator_type = getAndAdvance()->type;
@@ -411,7 +409,7 @@ std::unique_ptr<AST> Parser::primary() {
 
         return this->create_declaration<GroupingExpression>(expr);
     } else {
-        throw this->throw_error("Invalid Expression");
+        throw this->throw_error("Invalid Expression" + this->current->value);
     }
 }
 
@@ -434,7 +432,7 @@ std::unique_ptr<AST> Parser::type() {
         this->create_declaration<Type>(*this->current, false, false, false);
 
     if (!isRegularType(this->current->type)) {
-        throw this->throw_error("Parser: Expected type\n");
+        this->throw_error("Parser: Expected type\n");
     }
 
     advance();
@@ -481,9 +479,9 @@ std::unique_ptr<AST> Parser::modifiers() {
 
 void Parser::advance(TokenType type) {
     if (type != this->current->type) {
-        throw this->throw_error("Syntax error: expected " +
-                                tokenTypeAsLiteral(type) + " but got " +
-                                tokenTypeAsLiteral(this->current->type));
+        this->throw_error("Syntax error: expected " + tokenTypeAsLiteral(type) +
+                          " but got " +
+                          tokenTypeAsLiteral(this->current->type));
     }
 
     this->index += 1;
@@ -505,9 +503,9 @@ std::unique_ptr<Token> Parser::getAndAdvance() {
 
 std::unique_ptr<Token> Parser::getAndAdvance(TokenType type) {
     if (type != this->current->type) {
-        throw this->throw_error("Syntax error: expected " +
-                                tokenTypeAsLiteral(type) + " but got " +
-                                tokenTypeAsLiteral(this->current->type));
+        this->throw_error("Syntax error: expected " + tokenTypeAsLiteral(type) +
+                          " but got " +
+                          tokenTypeAsLiteral(this->current->type));
     }
 
     auto prevToken = std::move(this->current);
@@ -515,9 +513,9 @@ std::unique_ptr<Token> Parser::getAndAdvance(TokenType type) {
     return prevToken;
 }
 
-// std::unique_ptr<Token>& Parser::peek(int offset) {
-//     return this->tokens.at(this->index + offset);
-// }
+Token *Parser::peek(int offset) {
+    return this->tokens.at(this->index + offset).get();
+}
 
 bool Parser::matches(TokenType type) {
     if (this->current->type == type) {
@@ -535,5 +533,6 @@ std::unique_ptr<ast_type> Parser::create_declaration(Args &&...args) {
 }
 
 int Parser::throw_error(std::string message) {
-    throw print::error(std::move(message), this->current->location);
+    throw printer.error(message, this->current->location);
+    exit(-1);
 }

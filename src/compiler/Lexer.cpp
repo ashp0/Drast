@@ -135,8 +135,8 @@ std::unique_ptr<Token> Lexer::getToken() {
     case '\0':
         break;
     default:
-        throw this->throw_error("Unexpected Character `" +
-                                std::string({this->current}) + "`");
+        this->throw_error("Unexpected Character `" +
+                          std::string({this->current}) + "`");
     }
 
     return returnToken(TokenType::T_EOF, true);
@@ -181,7 +181,12 @@ std::unique_ptr<Token> Lexer::returnToken(TokenType type, std::string &string,
 
 std::unique_ptr<Token> Lexer::returnToken(TokenType first_type,
                                           TokenType second_type) {
-    return this->returnToken(this->peek() == '=' ? second_type : first_type);
+    if (this->peek() == '=') {
+        this->advance();
+        return this->returnToken(second_type);
+    } else {
+        return this->returnToken(first_type);
+    }
 }
 
 void Lexer::skipWhitespace() {
@@ -277,6 +282,5 @@ std::unique_ptr<Token> Lexer::lexWhile(TokenType type, predicate &&pred,
 }
 
 int Lexer::throw_error(std::string message) {
-    print::error(std::move(message), this->location);
-    return 1;
+    throw printer.error(message, this->location);
 }

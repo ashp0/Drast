@@ -1,7 +1,6 @@
 #include "compiler/Lexer.h"
 #include "compiler/Parser.h"
 #include <iostream>
-#include "compiler/Print.h"
 
 std::string read_file(const char *file_name) {
     FILE *f = fopen(file_name, "rt");
@@ -22,12 +21,12 @@ std::string read_file(const char *file_name) {
 int main(int argc, char *argv[]) {
     std::string source = read_file(argv[1]);
 
-    Lexer lexer(source);
-    lexer.lex();
-
     std::string file_name = argv[1];
 
-    Parser parser(file_name, lexer.tokens);
+    Lexer lexer(source, file_name);
+    lexer.lex();
+
+    Parser parser(file_name, lexer.tokens, source);
     parser.parse();
 
     return 0;

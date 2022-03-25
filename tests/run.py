@@ -2,10 +2,10 @@
 # Created by Ashwin Paudel on 2022-03-23.
 #
 
-import sys
 import glob
-import time
 import subprocess
+import sys
+import time
 
 
 class Colors:

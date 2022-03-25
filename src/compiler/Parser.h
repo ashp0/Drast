@@ -14,16 +14,18 @@
 
 class Parser {
   private:
-    std::string &file_name;
     std::vector<std::unique_ptr<Token>> &tokens;
 
     size_t index;
     std::unique_ptr<Token> current;
 
+    Print printer;
+
   public:
-    Parser(std::string &file_name, std::vector<std::unique_ptr<Token>> &tokens)
-        : file_name(file_name), tokens(tokens), index(0),
-          current(std::move(tokens[index])) {}
+    Parser(std::string &file_name, std::vector<std::unique_ptr<Token>> &tokens,
+           std::string &source)
+        : tokens(tokens), index(0), current(std::move(tokens[index])),
+          printer(source, file_name) {}
 
     std::unique_ptr<AST> parse();
 
@@ -35,10 +37,10 @@ class Parser {
     std::unique_ptr<Import> import();
 
     std::unique_ptr<StructDeclaration>
-    structDeclaration(std::vector<TokenType> modifiers = {});
+    structDeclaration(const std::vector<TokenType> &modifiers = {});
 
     std::unique_ptr<EnumDeclaration>
-    enumDeclaration(std::vector<TokenType> modifiers = {});
+    enumDeclaration(const std::vector<TokenType> &modifiers = {});
 
     std::vector<std::unique_ptr<EnumCase>> enumCases();
 
@@ -96,7 +98,7 @@ class Parser {
 
     std::unique_ptr<Token> getAndAdvance(TokenType type);
 
-    // std::unique_ptr<Token> &peek(int offset = 1);
+    Token *peek(int offset = 1);
 
     bool matches(TokenType type);
 

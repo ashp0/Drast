@@ -4,20 +4,38 @@
 
 #include "Print.h"
 
-static constexpr auto c_error = "\033[1;31m";
-static constexpr auto c_warning = "\033[1;33m";
-static constexpr auto c_reset = "\033[0m";
+static std::string getNthLine(std::string &str, size_t lines) {
+    std::stringstream ss(str);
+    std::string line;
+    for (size_t i = 0; i < lines; i++) {
+        std::getline(ss, line);
+    }
+    return line;
+}
 
-namespace print {
-int error(std::string msg, Location location) {
-    std::cout << c_error << "Error: " << msg << " || L`" << location.line
-              << "`C`" << location.column << c_reset << std::endl;
+static void print_line(std::string &str, Location &location) {
+    std::cout << getNthLine(str, location.line) << std::endl;
+
+    for (int i = 0; i < location.column - 1; i++) {
+        std::cout << "-";
+    }
+    std::cout << "^" << std::endl;
+}
+
+int Print::error(std::string msg, Location location) {
+    // main.drast:1:1: error:
+    std::cout << c_error << file_name << ":" << location.line << ":"
+              << location.column << ": error: " << c_reset << msg << std::endl;
+
+    print_line(source, location);
     exit(-1);
 }
 
-int warning(std::string msg, Location location) {
-    std::cout << c_warning << "Warning: " << msg << " || L`" << location.line
-              << "`C`" << location.column << c_reset << std::endl;
+int Print::warning(std::string msg, Location location) {
+    std::cout << c_error << file_name << ":" << location.line << ":"
+              << location.column << ": warning: " << c_reset << msg
+              << std::endl;
+
+    print_line(source, location);
     return 0;
 }
-} // namespace print

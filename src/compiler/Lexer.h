@@ -13,7 +13,7 @@
 
 class Lexer {
   private:
-    std::string source; // Maybe add support for unicode?
+    const std::string &source; // Maybe add support for unicode?
 
     Location location;
 
@@ -21,12 +21,15 @@ class Lexer {
     size_t index;
     char current;
 
+    Print printer;
+
   public:
     std::vector<std::unique_ptr<Token>> tokens;
 
   public:
-    explicit Lexer(const std::string &source)
-        : source(source), start(0), index(0), current(source[0]) {
+    explicit Lexer(std::string &source, std::string &file_name)
+        : source(source), start(0), index(0), current(source[0]),
+          printer(source, file_name) {
         location.line = 1;
         location.column = 0;
     }
