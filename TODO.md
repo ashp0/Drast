@@ -10,11 +10,11 @@
     - [x] ASM
     - [x] Enums
     - [x] If, Else, Else If
-    - [ ] Struct
+    - [x] Struct
+    - [x] Goto
     - [ ] Switch, break, case, default
     - [ ] For, While, Continue, Break
     - [ ] Do Catch Try
-    - [ ] Goto
 - [ ] Semantic Analyzer
     - [ ] Duplicate Variable and Functions
     - [ ] Duplicate Struct Initializers

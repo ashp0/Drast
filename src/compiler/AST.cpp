@@ -158,6 +158,12 @@ std::string Return::toString() const {
     return ss.str();
 }
 
+std::string GOTO::toString() const {
+    std::stringstream ss;
+    ss << "GOTO: " << label;
+    return ss.str();
+}
+
 std::string BinaryExpression::toString() const {
     std::stringstream ss;
     ss << left->toString() << " " << tokenTypeAsLiteral(this->op) << " "

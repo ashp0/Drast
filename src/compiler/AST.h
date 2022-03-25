@@ -12,7 +12,6 @@
 #include <optional>
 #include <sstream>
 #include <unordered_map>
-#include <utility>
 #include <vector>
 
 enum class ASTType {
@@ -47,6 +46,7 @@ enum class ASTType {
     RETURN,    // return 1
     IF,        // if (a == 1) { ... } else { ... }
     ASM,       // asm("mov rax, 1")
+    GOTO,      // goto label
     TYPEALIAS, // typealias Test = int
 
     BINARY_EXPRESSION,   // 5 + 6;
@@ -313,6 +313,17 @@ class ASM : public AST {
   public:
     ASM(std::vector<std::string> &instructions, Location location)
         : AST(ASTType::ASM, location), instructions(std::move(instructions)){};
+
+    std::string toString() const override;
+};
+
+class GOTO : public AST {
+  public:
+    std::string label;
+
+  public:
+    GOTO(std::string &label, Location location)
+        : AST(ASTType::GOTO, location), label(std::move(label)){};
 
     std::string toString() const override;
 };

@@ -64,6 +64,8 @@ class Parser {
 
     std::unique_ptr<ASM> inlineAssembly();
 
+    std::unique_ptr<GOTO> gotoStatement();
+
     std::unique_ptr<AST> expression();
 
     std::unique_ptr<AST> equality();

@@ -4,8 +4,6 @@
 
 #include "Parser.h"
 
-#include <utility>
-
 std::unique_ptr<AST> Parser::parse() {
     auto ast = this->compound();
 
@@ -52,6 +50,8 @@ std::unique_ptr<AST> Parser::statement() {
         return this->ifStatements();
     case TokenType::ASM:
         return this->inlineAssembly();
+    case TokenType::GOTO:
+        return this->gotoStatement();
     case TokenType::T_EOF:
         return nullptr;
     default:
@@ -291,6 +291,15 @@ std::unique_ptr<ASM> Parser::inlineAssembly() {
     advance(TokenType::PARENS_CLOSE);
 
     return this->create_declaration<ASM>(instructions);
+}
+
+std::unique_ptr<GOTO> Parser::gotoStatement() {
+    advance(TokenType::GOTO);
+
+    auto label = this->current->value;
+    advance(TokenType::IDENTIFIER);
+
+    return this->create_declaration<GOTO>(label);
 }
 
 std::unique_ptr<AST> Parser::expression() { return this->equality(); }
