@@ -4,7 +4,7 @@
 
 #include "Token.h"
 
-static std::unordered_map<std::string, TokenType> keywords = {
+static const std::unordered_map<std::string_view, TokenType> keywords = {
     {"struct", TokenType::STRUCT},
     {"self", TokenType::SELF},
     {"enum", TokenType::ENUM},
@@ -257,7 +257,7 @@ std::string tokenTypeAsLiteral(TokenType type) {
     }
 }
 
-TokenType Token::is_keyword(const std::string &string, size_t length) {
+TokenType Token::is_keyword(std::string_view string) {
     auto it = keywords.find(string);
 
     if (it == keywords.end()) {

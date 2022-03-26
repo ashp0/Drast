@@ -7,9 +7,10 @@
 
 #include "Types.h"
 #include <iostream>
+#include <sstream>
 #include <unordered_map>
 
-enum class TokenType {
+enum class TokenType : uint8_t {
     // Keywords
     STRUCT,
     SELF,
@@ -225,21 +226,28 @@ constexpr bool isComparitiveOperator(TokenType type) {
 
 class Token {
   public:
-    std::string value;
     Location location;
+    uint32_t start;
+    uint32_t length;
     TokenType type;
 
   public:
-    Token(std::string &value, TokenType type, Location location)
-        : value(value), type(type), location(location) {}
+    Token(TokenType type, uint32_t start, uint32_t length, Location location)
+        : type(type), start(start), length(length), location(location) {}
 
-    static TokenType is_keyword(const std::string &string, size_t length);
+    static TokenType is_keyword(std::string_view string);
 
-    friend std::ostream &operator<<(std::ostream &out, Token const &token) {
-        out << "Token: `" << token.value << "` "
-            << tokenTypeAsLiteral(token.type) << " L`" << token.location.line
-            << "` C`" << token.location.column << '`';
-        return out;
+    std::string toString(std::string_view source) {
+        std::stringstream ss;
+        ss << tokenTypeAsLiteral(this->type) << " :: `"
+           << source.substr(this->start, this->length)
+           << "` :: " << location.toString();
+
+        return ss.str();
+    }
+
+    std::string_view value(std::string_view source) const {
+        return source.substr(this->start, this->length);
     }
 };
 

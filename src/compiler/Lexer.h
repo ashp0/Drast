@@ -13,13 +13,12 @@
 
 class Lexer {
   private:
-    std::string_view &source; // Maybe add support for unicode?
+    std::string &source; // Maybe add support for unicode?
 
     Location location;
 
     uint32_t start;
     uint32_t index;
-    char current;
 
     Print printer;
 
@@ -27,9 +26,8 @@ class Lexer {
     std::vector<Token> tokens;
 
   public:
-    explicit Lexer(std::string_view &source, std::string &file_name)
-        : source(source), start(0), index(0), current(source[0]),
-          printer(file_name, source) {
+    explicit Lexer(std::string &source, std::string &file_name)
+        : source(source), start(0), index(0), printer(file_name, source) {
         location.line = 1;
         location.column = 1;
     }
@@ -65,6 +63,8 @@ class Lexer {
     Token lexWhile(TokenType type, predicate &&pred, bool is_string = false);
 
     int throw_error(std::string message);
+
+    char &current() const { return this->source[this->index]; }
 };
 
 #endif // DRAST_LEXER_H

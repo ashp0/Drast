@@ -23,7 +23,7 @@ Token Lexer::getToken() {
 
     this->start = this->index;
 
-    switch (this->current) {
+    switch (this->current()) {
     case 'a' ... 'z':
     case 'A' ... 'Z':
     case '_':
@@ -143,7 +143,7 @@ Token Lexer::getToken() {
         break;
     default:
         this->throw_error("Unexpected Character `" +
-                          std::string({this->current}) + "`");
+                          std::string({this->current()}) + "`");
     }
 
     return returnToken(TokenType::T_EOF, true);
@@ -151,23 +151,25 @@ Token Lexer::getToken() {
 
 Token Lexer::identifier() {
     return this->lexWhile(TokenType::IDENTIFIER, [this]() {
-        return isalnum(this->current) || this->current == '_';
+        return isalnum(this->current()) || this->current() == '_';
     });
 }
 
 Token Lexer::number() {
     return this->lexWhile(TokenType::V_NUMBER,
-                          [this]() { return isnumber(this->current); });
+                          [this]() { return isnumber(this->current()); });
 }
 
 Token Lexer::string() {
     return this->lexWhile(
-        TokenType::V_STRING, [this]() { return (this->current != '"'); }, true);
+        TokenType::V_STRING, [this]() { return (this->current() != '"'); },
+        true);
 }
 
 Token Lexer::character() {
     return this->lexWhile(
-        TokenType::V_CHAR, [this]() { return (this->current != '\''); }, true);
+        TokenType::V_CHAR, [this]() { return (this->current() != '\''); },
+        true);
 }
 
 Token Lexer::returnToken(TokenType type, bool without_advance) {
@@ -191,12 +193,12 @@ Token Lexer::returnToken(TokenType first_type, TokenType second_type) {
 }
 
 void Lexer::skipWhitespace() {
-    while (isspace(this->current)) {
-        if (this->current == '\n') {
+    while (isspace(this->current())) {
+        if (this->current() == '\n') {
             this->location.line += 1;
             this->location.column = 0;
         }
-        if (this->current == '\0') {
+        if (this->current() == '\0') {
             break;
         }
         this->advance();
@@ -204,7 +206,7 @@ void Lexer::skipWhitespace() {
 }
 
 void Lexer::skipLine() {
-    while (this->current != '\n' && this->current != '\0') {
+    while (this->current() != '\n' && this->current() != '\0') {
         this->advance();
     }
 }
@@ -214,20 +216,20 @@ void Lexer::skipBlockComment() {
     this->advance();
 
 while_loop:
-    while (this->current != '*') {
-        if (this->current == '\n') {
+    while (this->current() != '*') {
+        if (this->current() == '\n') {
             this->location.line += 1;
             this->location.column = 0;
         }
         this->advance();
 
-        if (this->current == '\0') {
+        if (this->current() == '\0') {
             this->throw_error("Unterminated block comment");
         }
     }
 
     this->advance();
-    if (this->current == '/') {
+    if (this->current() == '/') {
         this->advance();
         return;
     } else {
@@ -238,7 +240,7 @@ while_loop:
 void Lexer::advance() {
     this->location.column += 1;
     this->index += 1;
-    this->current = this->source[this->index];
+    this->current() = this->source[this->index];
 }
 
 char Lexer::peek(size_t offset) { return this->source[this->index + offset]; }
@@ -252,14 +254,14 @@ Token Lexer::lexWhile(TokenType type, predicate &&pred, bool is_string) {
     }
 
     while (pred()) {
-        if (this->current == '\0') {
+        if (this->current() == '\0') {
             break;
         }
-        if (this->current == '\n') {
+        if (this->current() == '\n') {
             this->location.line += 1;
             this->location.column = 0;
         }
-        if (is_string && this->current == '\\') {
+        if (is_string && this->current() == '\\') {
             this->advance();
         }
 

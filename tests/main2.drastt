@@ -96,7 +96,7 @@ int :: main(int argc, string[] argv) {
 
     int i = 0
     char operator = '+'
-    i = matches(a) {
+    i = advanceIf(a) {
         '+': a + b
         '-': a - b
         '*': a * b

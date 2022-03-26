@@ -1,5 +1,5 @@
 //
-// Created by Ashwin Paudel on 2022-03-20.
+// Created by Ashwin Paudel on 2022-03-26.
 //
 
 #ifndef DRAST_AST_H
@@ -7,17 +7,13 @@
 
 #include "Token.h"
 #include "Types.h"
-#include <iostream>
-#include <memory>
-#include <optional>
-#include <sstream>
-#include <unordered_map>
+#include <string>
 #include <vector>
 
 enum class ASTType {
-    COMPOUND_STATEMENT, // { ... }
+    COMPOUND, // { ... }
 
-    IMPORT, // import io
+    IMPORT_STATEMENT, // import io
 
     FUNCTION_DECLARATION, // int :: test(int a, int b) { ... }
     FUNCTION_ARGUMENT,    // int a, int b
@@ -58,49 +54,40 @@ enum class ASTType {
 
 class AST {
   public:
-    ASTType ast_type;
-    Location location;
+    Location &location;
+    ASTType type;
 
   public:
-    constexpr AST(ASTType ast_type, Location location)
-        : ast_type(ast_type), location(location) {}
-
+    AST(ASTType type, Location &location) : location(location), type(type) {}
     virtual ~AST() = default;
-
-    virtual std::string toString() const = 0;
-
-    friend std::ostream &operator<<(std::ostream &out, AST const &ast) {
-        out << "AST: " << ast.toString();
-        return out;
-    }
+    virtual std::string toString() = 0;
 };
 
 class CompoundStatement : public AST {
   public:
-    std::vector<std::unique_ptr<AST>> statements;
+    std::vector<AST *> statements;
 
   public:
-    explicit CompoundStatement(Location location)
-        : AST(ASTType::COMPOUND_STATEMENT, location) {}
+    CompoundStatement(std::vector<AST *> &statements, Location &location)
+        : AST(ASTType::COMPOUND, location), statements(std::move(statements)) {}
 
-    void insertStatement(std::unique_ptr<AST> &statement) {
-        statements.push_back(std::move(statement));
-    }
+    CompoundStatement(Location &location) : AST(ASTType::COMPOUND, location) {}
 
-    std::string toString() const override;
+    std::string toString() override;
 };
 
-class Import : public AST {
+class ImportStatement : public AST {
   public:
-    std::string import_path;
-    bool is_library = false;
+    std::string_view module_name;
+    bool is_library;
 
   public:
-    Import(std::string import_path, bool is_library, Location location)
-        : AST(ASTType::IMPORT, location), import_path(std::move(import_path)),
+    ImportStatement(std::string_view module_name, bool is_library,
+                    Location location)
+        : AST(ASTType::IMPORT_STATEMENT, location), module_name(module_name),
           is_library(is_library) {}
 
-    std::string toString() const override;
+    std::string toString() override;
 };
 
 class FunctionDeclaration : public AST {
@@ -108,115 +95,95 @@ class FunctionDeclaration : public AST {
     using FunctionArgument = class FunctionArgument;
 
   public:
-    std::vector<TokenType> modifiers;
-    std::unique_ptr<AST> return_type;
-    std::string name;
-    std::vector<std::unique_ptr<FunctionArgument>> arguments;
-    std::optional<std::unique_ptr<CompoundStatement>> body =
-        std::nullopt; // AST CompoundStatement
+    std::vector<TokenType> qualifiers;
+    AST *return_type;
+    std::string_view name;
+    std::vector<FunctionArgument *> arguments;
+    std::optional<CompoundStatement *> body = std::nullopt;
 
   public:
-    FunctionDeclaration(
-        std::vector<TokenType> &modifiers, std::unique_ptr<AST> &return_type,
-        std::string &name,
-        std::vector<std::unique_ptr<FunctionArgument>> &arguments,
-        std::unique_ptr<CompoundStatement> &body, Location location)
-        : AST(ASTType::FUNCTION_DECLARATION, location), modifiers(modifiers),
-          return_type(std::move(return_type)), name(std::move(name)),
-          arguments(std::move(arguments)), body(std::move(body)){};
+    FunctionDeclaration(std::vector<TokenType> qualifiers, AST *return_type,
+                        std::string_view name,
+                        std::vector<FunctionArgument *> arguments,
+                        CompoundStatement *body, Location location)
+        : AST(ASTType::FUNCTION_DECLARATION, location),
+          qualifiers(std::move(qualifiers)), return_type(return_type),
+          name(name), arguments(std::move(arguments)), body(body) {}
 
-    FunctionDeclaration(
-        std::vector<TokenType> &modifiers, std::unique_ptr<AST> &return_type,
-        std::string &name,
-        std::vector<std::unique_ptr<FunctionArgument>> &arguments,
-        Location location)
-        : AST(ASTType::FUNCTION_DECLARATION, location), modifiers(modifiers),
-          return_type(std::move(return_type)), name(std::move(name)),
-          arguments(std::move(arguments)){};
+    FunctionDeclaration(std::vector<TokenType> qualifiers, AST *return_type,
+                        std::string_view name,
+                        std::vector<FunctionArgument *> arguments,
+                        Location location)
+        : AST(ASTType::FUNCTION_DECLARATION, location),
+          qualifiers(std::move(qualifiers)), return_type(return_type),
+          name(name), arguments(std::move(arguments)) {}
 
-    std::string toString() const override;
+    std::string toString() override;
 };
 
 class FunctionArgument : public AST {
   public:
-    std::optional<std::string> name;
-    std::optional<std::unique_ptr<AST>> type;
+    std::optional<std::string_view> name = std::nullopt;
+    std::optional<AST *> type = std::nullopt;
     bool is_vaarg = false;
 
   public:
-    FunctionArgument(std::string name, std::unique_ptr<AST> &type,
+    FunctionArgument(std::string_view name, std::optional<AST *> type,
                      Location location)
         : AST(ASTType::FUNCTION_ARGUMENT, location), name(name),
-          type(std::move(type)){};
+          type(std::move(type)) {}
 
-    explicit FunctionArgument(Location location)
-        : AST(ASTType::FUNCTION_ARGUMENT, location), is_vaarg(true),
-          name(std::nullopt), type(std::nullopt){};
+    FunctionArgument(Location location)
+        : AST(ASTType::FUNCTION_ARGUMENT, location) {}
 
-    std::string toString() const override;
+    std::string toString() override;
 };
 
 class FunctionCall : public AST {
   public:
-    std::string name;
-    std::vector<std::unique_ptr<AST>> arguments;
+    std::string_view name;
+    std::vector<AST *> arguments;
 
   public:
-    FunctionCall(std::string &name,
-                 std::vector<std::unique_ptr<AST>> &arguments,
+    FunctionCall(std::string_view name, std::vector<AST *> arguments,
                  Location location)
-        : AST(ASTType::FUNCTION_CALL, location), name(std::move(name)),
-          arguments(std::move(arguments)) {}
+        : AST(ASTType::FUNCTION_CALL, location), name(name),
+          arguments(arguments) {}
 
-    std::string toString() const override;
+    std::string toString() override;
 };
 
 class Type : public AST {
   public:
-    Token token;
+    std::string_view literal_value;
+    TokenType type;
     bool is_pointer;
     bool is_array;
     bool is_optional;
 
   public:
-    Type(Token token, bool is_pointer, bool is_array, bool is_optional,
-         Location location)
-        : AST(ASTType::TYPE, location), token(std::move(token)),
-          is_pointer(is_pointer), is_array(is_array),
-          is_optional(is_optional){};
+    Type(TokenType type, std::string_view literal_value, bool is_pointer,
+         bool is_array, bool is_optional, Location location)
+        : AST(ASTType::TYPE, location), type(type),
+          literal_value(literal_value), is_pointer(is_pointer),
+          is_array(is_array), is_optional(is_optional) {}
 
-    std::string toString() const override;
+    std::string toString() override;
 };
 
 class StructDeclaration : public AST {
   public:
-    std::string name;
-    std::unique_ptr<CompoundStatement> body;
-    std::vector<TokenType> modifiers;
+    std::string_view name;
+    CompoundStatement *body;
+    std::vector<TokenType> qualifiers;
 
   public:
-    StructDeclaration(std::string &name,
-                      std::unique_ptr<CompoundStatement> &body,
-                      std::vector<TokenType> modifiers, Location location)
-        : AST(ASTType::STRUCT_DECLARATION, location), name(std::move(name)),
-          body(std::move(body)) {}
+    StructDeclaration(std::string_view name, std::vector<TokenType> qualifiers,
+                      CompoundStatement *body, Location location)
+        : AST(ASTType::STRUCT_DECLARATION, location), name(name), body(body),
+          qualifiers(qualifiers) {}
 
-    std::string toString() const override;
-};
-
-class StructInitializerCall : public AST {
-  public:
-    std::string &name;
-    std::vector<std::unique_ptr<AST>> &arguments;
-
-  public:
-    StructInitializerCall(std::string &name,
-                          std::vector<std::unique_ptr<AST>> &arguments,
-                          Location location)
-        : AST(ASTType::STRUCT_INITIALIZER_CALL, location), name(name),
-          arguments(arguments) {}
-
-    std::string toString() const override;
+    std::string toString() override;
 };
 
 class EnumDeclaration : public AST {
@@ -224,185 +191,170 @@ class EnumDeclaration : public AST {
     using EnumCase = class EnumCase;
 
   public:
-    std::string name;
-    std::vector<std::unique_ptr<EnumCase>> cases;
-    std::vector<TokenType> modifiers;
+    std::string_view name;
+    std::vector<EnumCase *> cases;
+    std::vector<TokenType> qualifiers;
 
   public:
-    EnumDeclaration(std::string &name,
-                    std::vector<std::unique_ptr<EnumCase>> &cases,
-                    std::vector<TokenType> modifiers, Location location)
-        : AST(ASTType::ENUM_DECLARATION, location), name(std::move(name)),
-          cases(std::move(cases)), modifiers(modifiers) {}
+    EnumDeclaration(std::string_view name, std::vector<EnumCase *> cases,
+                    std::vector<TokenType> qualifiers, Location location)
+        : AST(ASTType::ENUM_DECLARATION, location), name(name), cases(cases),
+          qualifiers(qualifiers) {}
 
-    std::string toString() const override;
+    std::string toString() override;
 };
 
 class EnumCase : public AST {
   public:
-    std::string name;
-    std::unique_ptr<AST> value;
+    std::string_view name;
+    AST *value;
 
   public:
-    EnumCase(std::string &name, std::unique_ptr<AST> &value, Location location)
-        : AST(ASTType::ENUM_CASE, location), name(std::move(name)),
-          value(std::move(value)) {}
+    EnumCase(std::string_view name, AST *value, Location location)
+        : AST(ASTType::ENUM_CASE, location), name(name), value(value){};
 
-    std::string toString() const override;
+    std::string toString() override;
 };
 
 class VariableDeclaration : public AST {
-  public:
-    std::vector<TokenType> modifiers;
-    std::string name;
-    std::unique_ptr<AST> type;
-    std::optional<std::unique_ptr<AST>> value;
+    std::string_view name;
+    AST *type;
+    std::optional<AST *> value = std::nullopt;
+    std::vector<TokenType> qualifiers;
 
   public:
-    VariableDeclaration(std::vector<TokenType> &modifiers, std::string &name,
-                        std::unique_ptr<AST> &type,
-                        std::optional<std::unique_ptr<AST>> &value,
-                        Location location)
-        : AST(ASTType::VARIABLE_DECLARATION, location), modifiers(modifiers),
-          name(name), type(std::move(type)), value(std::move(value)){};
+    VariableDeclaration(std::string_view name, AST *type,
+                        std::optional<AST *> value,
+                        std::vector<TokenType> qualifiers, Location location)
+        : AST(ASTType::VARIABLE_DECLARATION, location), name(name), type(type),
+          value(value), qualifiers(qualifiers) {}
 
-    std::string toString() const override;
+    std::string toString() override;
 };
 
 class ForLoop : public AST {
   public:
-    std::unique_ptr<AST> first_statement;
-    std::unique_ptr<AST> second_expression;
-    std::unique_ptr<AST> third_statement;
+    AST *first_statement;
+    AST *second_statement;
+    AST *third_statement;
 
-    std::unique_ptr<CompoundStatement> body;
+    CompoundStatement *body;
 
   public:
-    ForLoop(std::unique_ptr<AST> &first_statement,
-            std::unique_ptr<AST> &second_expression,
-            std::unique_ptr<AST> &third_statement,
-            std::unique_ptr<CompoundStatement> &body, Location location)
-        : AST(ASTType::FOR, location),
-          first_statement(std::move(first_statement)),
-          second_expression(std::move(second_expression)),
-          third_statement(std::move(third_statement)), body(std::move(body)){};
+    ForLoop(AST *first_statement, AST *second_statement, AST *third_statement,
+            CompoundStatement *body, Location location)
+        : AST(ASTType::FOR, location), first_statement(first_statement),
+          second_statement(second_statement), third_statement(third_statement),
+          body(body) {}
 
-    std::string toString() const override;
+    std::string toString() override;
 };
 
 class Return : public AST {
   public:
-    std::optional<std::unique_ptr<AST>> expression;
+    std::optional<AST *> expression;
 
   public:
-    Return(std::optional<std::unique_ptr<AST>> &expression, Location location)
+    Return(std::optional<AST *> expression, Location location)
         : AST(ASTType::RETURN, location), expression(std::move(expression)){};
 
-    std::string toString() const override;
+    std::string toString() override;
 };
 
 class If : public AST {
   public:
-    std::unique_ptr<AST> if_condition;
-    std::unique_ptr<CompoundStatement> if_body;
+    AST *if_condition;
+    CompoundStatement *if_body;
 
-    std::vector<std::unique_ptr<AST>> elseif_conditions;
-    std::vector<std::unique_ptr<CompoundStatement>> elseif_body;
+    std::vector<AST *> else_if_conditions = {};
+    std::vector<CompoundStatement *> else_if_bodies = {};
 
-    std::optional<std::unique_ptr<CompoundStatement>> else_body;
+    std::optional<CompoundStatement *> else_body = std::nullopt;
 
   public:
-    If(std::unique_ptr<AST> &if_condition,
-       std::unique_ptr<CompoundStatement> &if_body,
-       std::vector<std::unique_ptr<AST>> &elseif_conditions,
-       std::vector<std::unique_ptr<CompoundStatement>> &elseif_body,
-       std::optional<std::unique_ptr<CompoundStatement>> &else_body,
-       Location location)
+    If(AST *if_condition, CompoundStatement *if_body,
+       std::vector<AST *> else_if_conditions,
+       std::vector<CompoundStatement *> else_if_bodies,
+       std::optional<CompoundStatement *> else_body, Location location)
         : AST(ASTType::IF, location), if_condition(std::move(if_condition)),
           if_body(std::move(if_body)),
-          elseif_conditions(std::move(elseif_conditions)),
-          elseif_body(std::move(elseif_body)),
+          else_if_conditions(std::move(else_if_conditions)),
+          else_if_bodies(std::move(else_if_bodies)),
           else_body(std::move(else_body)){};
 
-    std::string toString() const override;
+    std::string toString() override;
 };
 
 class ASM : public AST {
   public:
-    std::vector<std::string> instructions;
+    std::vector<std::string_view> instructions;
 
   public:
-    ASM(std::vector<std::string> &instructions, Location location)
-        : AST(ASTType::ASM, location), instructions(std::move(instructions)){};
+    ASM(std::vector<std::string_view> instructions, Location location)
+        : AST(ASTType::ASM, location), instructions(instructions){};
 
-    std::string toString() const override;
+    std::string toString() override;
 };
 
 class GOTO : public AST {
   public:
-    std::string label;
+    std::string_view label;
 
   public:
-    GOTO(std::string &label, Location location)
-        : AST(ASTType::GOTO, location), label(std::move(label)){};
+    GOTO(std::string_view label, Location location)
+        : AST(ASTType::GOTO, location), label(label){};
 
-    std::string toString() const override;
+    std::string toString() override;
 };
 
 class BinaryExpression : public AST {
   public:
-    std::unique_ptr<AST> left;
-    std::unique_ptr<AST> right;
+    AST *left;
+    AST *right;
     TokenType op;
 
   public:
-    BinaryExpression(std::unique_ptr<AST> &left, std::unique_ptr<AST> &right,
-                     TokenType op, Location location)
-        : AST(ASTType::BINARY_EXPRESSION, location), left(std::move(left)),
-          right(std::move(right)), op(op){};
+    BinaryExpression(AST *left, AST *right, TokenType op, Location location)
+        : AST(ASTType::BINARY_EXPRESSION, location), left(left), right(right),
+          op(op){};
 
-    std::string toString() const override;
+    std::string toString() override;
 };
 
 class UnaryExpression : public AST {
   public:
-    std::unique_ptr<AST> expr;
+    AST *expr;
     TokenType op;
 
   public:
-    UnaryExpression(std::unique_ptr<AST> &expr, TokenType op, Location location)
-        : AST(ASTType::UNARY_EXPRESSION, location), expr(std::move(expr)),
-          op(op){};
+    UnaryExpression(AST *expr, TokenType op, Location location)
+        : AST(ASTType::UNARY_EXPRESSION, location), expr(expr), op(op){};
 
-    std::string toString() const override;
+    std::string toString() override;
 };
 
 class LiteralExpression : public AST {
   public:
-    std::string value;
+    std::string_view value;
     TokenType type;
 
   public:
-    LiteralExpression(std::unique_ptr<Token> &token, Location location)
-        : AST(ASTType::LITERAL_EXPRESSION, location), value(token->value),
-          type(token->type){};
-
-    LiteralExpression(std::string &value, TokenType type, Location location)
-        : AST(ASTType::LITERAL_EXPRESSION, location), value(std::move(value)),
+    LiteralExpression(std::string_view value, TokenType type, Location location)
+        : AST(ASTType::LITERAL_EXPRESSION, location), value(value),
           type(type){};
 
-    std::string toString() const override;
+    std::string toString() override;
 };
 
 class GroupingExpression : public AST {
   public:
-    std::unique_ptr<AST> expr;
+    AST *expr;
 
   public:
-    GroupingExpression(std::unique_ptr<AST> &expr, Location location)
-        : AST(ASTType::GROUPING_EXPRESSION, location), expr(std::move(expr)){};
+    GroupingExpression(AST *&expr, Location location)
+        : AST(ASTType::GROUPING_EXPRESSION, location), expr(expr){};
 
-    std::string toString() const override;
+    std::string toString() override;
 };
 
 #endif // DRAST_AST_H

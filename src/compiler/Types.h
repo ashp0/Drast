@@ -8,8 +8,13 @@
 #include <iostream>
 
 struct Location {
-    size_t line;
-    size_t column;
+    uint32_t line;
+    uint32_t column;
+
+    std::string toString() {
+        return "L(" + std::to_string(line) + "), C(" + std::to_string(column) +
+               ")";
+    }
 };
 
 #endif // DRAST_TYPES_H

@@ -5,7 +5,8 @@
 #include "Print.h"
 
 static std::string getNthLine(std::string &str, size_t lines) {
-    std::stringstream ss(str);
+    std::stringstream ss;
+    ss << str;
     std::string line;
     for (size_t i = 0; i < lines; i++) {
         std::getline(ss, line);
@@ -22,7 +23,7 @@ static void print_line(std::string &str, Location &location) {
     std::cout << "^" << std::endl;
 }
 
-int Print::error(std::string msg, Location location) {
+int Print::error(const std::string &msg, Location location) {
     // main.drast:1:1: error:
     std::cout << c_error << file_name << ":" << location.line << ":"
               << location.column << ": error: " << c_reset << msg << std::endl;
@@ -31,8 +32,8 @@ int Print::error(std::string msg, Location location) {
     exit(-1);
 }
 
-int Print::warning(std::string msg, Location location) {
-    std::cout << c_error << file_name << ":" << location.line << ":"
+int Print::warning(const std::string &msg, Location location) {
+    std::cout << c_warning << file_name << ":" << location.line << ":"
               << location.column << ": warning: " << c_reset << msg
               << std::endl;
 

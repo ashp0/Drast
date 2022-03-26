@@ -1,5 +1,5 @@
 //
-// Created by Ashwin Paudel on 2022-03-20.
+// Created by Ashwin Paudel on 2022-03-26.
 //
 
 #ifndef DRAST_PARSER_H
@@ -8,104 +8,100 @@
 #include "AST.h"
 #include "Print.h"
 #include "Token.h"
-#include <iostream>
-#include <optional>
 #include <vector>
 
 class Parser {
   private:
-    std::vector<std::unique_ptr<Token>> &tokens;
-
-    size_t index;
-    std::unique_ptr<Token> current;
-
+    std::vector<Token> &tokens;
+    uint32_t index;
     Print printer;
 
   public:
-    Parser(std::string &file_name, std::vector<std::unique_ptr<Token>> &tokens,
+    Parser(std::string &file_name, std::vector<Token> &tokens,
            std::string &source)
-        : tokens(tokens), index(0), current(std::move(tokens[index])),
-          printer(source, file_name) {}
+        : tokens(tokens), printer(file_name, source), index(0){};
 
-    std::unique_ptr<AST> parse();
+    void parse();
 
-  private:
-    std::unique_ptr<CompoundStatement> compound();
+  private: /* Parser functions */
+    CompoundStatement *compound();
 
-    std::unique_ptr<AST> statement();
+    AST *statement();
 
-    std::unique_ptr<Import> import();
+    ImportStatement *import();
 
-    std::unique_ptr<StructDeclaration>
-    structDeclaration(const std::vector<TokenType> &modifiers = {});
+    StructDeclaration *
+    struct_declaration(const std::vector<TokenType> &qualifiers = {});
 
-    std::unique_ptr<EnumDeclaration>
-    enumDeclaration(const std::vector<TokenType> &modifiers = {});
+    EnumDeclaration *
+    enum_declaration(const std::vector<TokenType> &qualifiers = {});
 
-    std::vector<std::unique_ptr<EnumCase>> enumCases();
+    std::vector<EnumCase *> enum_cases();
 
-    std::unique_ptr<AST>
-    functionOrVariableDeclaration(std::vector<TokenType> modifiers = {});
+    AST *function_or_variable_declaration(std::vector<TokenType> qualifiers);
 
-    std::unique_ptr<AST>
-    functionDeclaration(std::unique_ptr<AST> &return_type,
-                        std::vector<TokenType> modifiers = {});
+    FunctionDeclaration *
+    function_declaration(AST *&return_type,
+                         std::vector<TokenType> qualifiers = {});
 
-    std::vector<std::unique_ptr<FunctionArgument>> functionArguments();
+    std::vector<FunctionArgument *> function_arguments();
 
-    std::unique_ptr<AST>
-    variableDeclaration(std::unique_ptr<AST> &variable_type,
-                        std::vector<TokenType> modifiers = {});
+    AST *variable_declaration(AST *&variable_type,
+                              std::vector<TokenType> qualifiers = {});
 
-    std::unique_ptr<ForLoop> forLoop();
+    ForLoop *for_loop();
 
-    std::unique_ptr<Return> returnStatement();
+    Return *return_statement();
 
-    std::unique_ptr<If> ifStatements();
+    If *if_statement();
 
-    std::pair<std::unique_ptr<AST>, std::unique_ptr<CompoundStatement>>
-    ifOrElseStatement();
+    std::pair<AST *, CompoundStatement *> if_else_statements();
 
-    std::unique_ptr<ASM> inlineAssembly();
+    ASM *inline_assembly();
 
-    std::unique_ptr<GOTO> gotoStatement();
+    GOTO *goto_statement();
 
-    std::unique_ptr<AST> expression();
+    AST *expression();
 
-    std::unique_ptr<AST> equality();
+    AST *equality();
 
-    std::unique_ptr<AST> comparison();
+    AST *comparison();
 
-    std::unique_ptr<AST> term();
+    AST *term();
 
-    std::unique_ptr<AST> factor();
+    AST *factor();
 
-    std::unique_ptr<AST> unary();
+    AST *unary();
 
-    std::unique_ptr<AST> primary();
+    AST *primary();
 
-    std::unique_ptr<AST> functionCall(std::string &name);
+    AST *function_call(std::string_view function_name);
 
-    std::unique_ptr<AST> type();
+    AST *type();
 
-    std::unique_ptr<AST> modifiers();
+    AST *qualifiers();
 
-    void advance(TokenType type);
+    std::vector<TokenType> getQualifiers();
+
+  private: /* Utilities */
+    Token &current() const { return this->tokens[this->index]; }
 
     void advance();
 
-    std::unique_ptr<Token> getAndAdvance();
+    void advance(TokenType type);
 
-    std::unique_ptr<Token> getAndAdvance(TokenType type);
+    bool advanceIf(TokenType type);
 
-    Token *peek(int offset = 1);
+    Token *getAndAdvance();
 
-    bool matches(TokenType type);
+    Token *getAndAdvance(TokenType type);
+
+    Token &peek(int offset = 1);
 
     template <class ast_type, class... Args>
-    std::unique_ptr<ast_type> create_declaration(Args &&...args);
+    ast_type *create_declaration(Args &&...args);
 
-    int throw_error(std::string message);
+    int throw_error(const char *message);
 };
 
 #endif // DRAST_PARSER_H

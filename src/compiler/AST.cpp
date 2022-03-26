@@ -1,191 +1,205 @@
 //
-// Created by Ashwin Paudel on 2022-03-20.
+// Created by Ashwin Paudel on 2022-03-26.
 //
 
 #include "AST.h"
 
-std::string CompoundStatement::toString() const {
-    std::stringstream ss;
-    ss << "CompoundStatement: {";
-    for (auto &statement : statements) {
-        ss << (*statement).toString() << "; ";
+#define PRINT_QUALIFIERS(type)                                                 \
+    for (auto &qualifier : this->qualifiers) {                                 \
+        type += tokenTypeAsLiteral(qualifier);                                 \
+        type += " ";                                                           \
     }
-    ss << "}";
-    return ss.str();
+
+uint32_t indent = 0;
+
+#define ADD_INDENTS(type)                                                      \
+    for (int i = 0; i < indent; i++)                                           \
+        type += "\t";
+
+std::string CompoundStatement::toString() {
+    std::string compound = "{\n";
+    indent += 1;
+    for (auto &statement : this->statements) {
+        ADD_INDENTS(compound);
+        //        compound += "\t";
+        compound += statement->toString();
+        compound += "\n";
+    }
+
+    indent -= 1;
+    ADD_INDENTS(compound)
+
+    compound += "}";
+    return compound;
+}
+std::string ImportStatement::toString() {
+    std::string import("import ");
+    import += this->module_name;
+    return import;
 }
 
-std::string Import::toString() const {
-    return "import '" + this->import_path + "'";
-}
+std::string FunctionDeclaration::toString() {
+    std::string function;
+    PRINT_QUALIFIERS(function)
 
-std::string FunctionDeclaration::toString() const {
-    std::stringstream ss;
-    ss << "FunctionDeclaration: ";
-    for (auto &modifier : modifiers) {
-        ss << tokenTypeAsLiteral(modifier) << " ";
-    }
-    ss << return_type->toString() << " :: " << name << "(";
+    function += this->return_type->toString();
+
+    function += " :: ";
+
+    function += this->name;
+
+    function += "(";
+
     for (auto &argument : arguments) {
-        ss << (*argument).toString() << ", ";
-    }
-    if (arguments.size() > 0) {
-        ss.seekp(-2, ss.cur);
-    }
-    ss << ")";
-    if (body) {
-        ss << "{ " << *body->get() << "}";
+        function += argument->toString();
+        function += ", ";
     }
 
-    return ss.str();
+    function.resize(function.size() - 2);
+    function += ") ";
+
+    if (this->body) {
+        function += this->body.value()->toString();
+    }
+
+    return function;
 }
 
-std::string FunctionArgument::toString() const {
+std::string FunctionArgument::toString() {
+    std::string argument;
+
     if (!is_vaarg) {
-        return name.value() + ": " + type->get()->toString();
+        argument += this->type.value()->toString();
+        argument += " ";
+        argument += this->name.value();
+    } else {
+        argument += "...";
     }
 
-    return "...";
+    return argument;
 }
 
-std::string FunctionCall::toString() const {
-    std::stringstream ss;
-    ss << name << "(";
-    for (auto &argument : arguments) {
-        ss << argument->toString() << ", ";
-    }
-    if (arguments.size() > 0) {
-        ss.seekp(-2, ss.cur);
-    }
-    ss << ")";
-    return ss.str();
+std::string FunctionCall::toString() {
+    std::string function_call;
+    function_call += this->name;
+    function_call += "()";
+    return function_call;
 }
 
-std::string Type::toString() const {
-    return this->token.value + (is_array ? "[]" : "") +
-           (is_pointer ? "*" : "") + (is_optional ? "?" : "");
+std::string Type::toString() {
+    std::string type;
+    // type += tokenTypeAsLiteral(this->type);
+    // type += "(";
+    type += this->literal_value;
+    // type += ")";
+
+    return type;
 }
 
-std::string StructDeclaration::toString() const {
-    std::stringstream ss;
-    ss << "StructDeclaration: ";
-    for (auto &modifier : modifiers) {
-        ss << tokenTypeAsLiteral(modifier) << " ";
-    }
-    ss << name << " " << body->toString();
-    return ss.str();
+std::string StructDeclaration::toString() {
+    std::string struct_declaration;
+
+    PRINT_QUALIFIERS(struct_declaration)
+
+    struct_declaration += "struct ";
+    struct_declaration += this->name;
+    struct_declaration += " ";
+    struct_declaration += this->body->toString();
+
+    return struct_declaration;
 }
 
-std::string StructInitializerCall::toString() const {
-    std::stringstream ss;
-    ss << name << "(";
-    for (auto &argument : arguments) {
-        ss << argument->toString() << ", ";
+std::string EnumDeclaration::toString() {
+    std::string enum_declaration;
+
+    PRINT_QUALIFIERS(enum_declaration)
+
+    enum_declaration += "enum ";
+    enum_declaration += this->name;
+    enum_declaration += " {\n";
+
+    indent += 1;
+    for (auto &case_ : this->cases) {
+        ADD_INDENTS(enum_declaration)
+        enum_declaration += case_->toString();
+        enum_declaration += ",\n";
     }
-    ss << ")";
-    return ss.str();
+    indent -= 1;
+    ADD_INDENTS(enum_declaration)
+    enum_declaration += "}";
+
+    return enum_declaration;
 }
 
-std::string EnumDeclaration::toString() const {
-    std::stringstream ss;
-    // modifiers
-    ss << "EnumDeclaration: ";
+std::string EnumCase::toString() {
+    std::string enum_case;
+    enum_case += this->name;
+    enum_case += " = ";
+    enum_case += this->value->toString();
 
-    for (auto &modifier : modifiers) {
-        ss << tokenTypeAsLiteral(modifier) << " ";
-    }
-
-    ss << name << " {";
-    for (auto &case_ : cases) {
-        ss << case_->toString() << ", ";
-    }
-    ss << "}";
-    return ss.str();
+    return enum_case;
 }
 
-std::string EnumCase::toString() const {
-    return name + " = " + value->toString();
-}
+std::string VariableDeclaration::toString() {
+    std::string variable_declaration;
+    variable_declaration += this->type->toString();
+    variable_declaration += " ";
 
-std::string VariableDeclaration::toString() const {
-    std::stringstream ss;
-    ss << "VariableDeclaration: ";
-    for (auto &modifier : modifiers) {
-        ss << tokenTypeAsLiteral(modifier) << " ";
-    }
+    variable_declaration += this->name;
 
-    ss << type->toString() << " " << name;
-    if (value.has_value()) {
-        ss << " = " << value->get()->toString();
-    }
-
-    return ss.str();
-}
-
-std::string ForLoop::toString() const {
-    std::stringstream ss;
-    ss << "ForLoop: (" << *first_statement << ", " << *second_expression << ", "
-       << *third_statement << ") " << *body;
-    return ss.str();
-}
-
-std::string If::toString() const {
-    std::stringstream ss;
-    ss << "If: (" << if_condition->toString() << ") " << if_body->toString();
-    for (int i = 0; i < elseif_body.size(); i++) {
-        ss << " else if (" << elseif_conditions.at(i)->toString() << ") "
-           << elseif_body.at(i)->toString();
-    }
-    if (else_body) {
-        ss << " else " << else_body->get()->toString();
-    }
-    return ss.str();
-}
-
-std::string ASM::toString() const {
-    std::stringstream ss;
-    ss << "InlineAssembly: (";
-    for (auto &instruction : instructions) {
-        ss << "`" << instruction << "`, ";
+    if (this->value) {
+        variable_declaration += " = ";
+        variable_declaration += this->value.value()->toString();
     }
 
-    if (instructions.size() > 0) {
-        ss.seekp(-2, ss.cur);
+    return variable_declaration;
+}
+
+std::string ForLoop::toString() { return "FOR LOOP"; }
+
+std::string Return::toString() { return "RETURN"; }
+
+std::string If::toString() { return "IF"; }
+
+std::string ASM::toString() {
+    std::string asm_;
+
+    asm_ += "ASM (\n";
+
+    indent += 1;
+    for (auto &instruction : this->instructions) {
+        ADD_INDENTS(asm_)
+        asm_ += instruction;
+        asm_ += "\n";
     }
-    ss << ")";
-
-    return ss.str();
+    indent -= 1;
+    ADD_INDENTS(asm_)
+    asm_ += ")";
+    return asm_;
 }
 
-std::string Return::toString() const {
-    std::stringstream ss;
-    ss << "ReturnStatement: ";
-    if (expression.has_value()) {
-        ss << expression->get()->toString();
-    }
-    return ss.str();
+std::string GOTO::toString() { return "GOTO"; }
+
+std::string BinaryExpression::toString() {
+    std::string binary_expression;
+    binary_expression += this->left->toString();
+    binary_expression += " ";
+    binary_expression += this->right->toString();
+
+    return binary_expression;
 }
 
-std::string GOTO::toString() const {
-    std::stringstream ss;
-    ss << "GOTO: " << label;
-    return ss.str();
+std::string UnaryExpression::toString() {
+    std::string unary_expression;
+    unary_expression += tokenTypeAsLiteral(this->op);
+    unary_expression += this->expr->toString();
+    return unary_expression;
 }
 
-std::string BinaryExpression::toString() const {
-    std::stringstream ss;
-    ss << left->toString() << " " << tokenTypeAsLiteral(this->op) << " "
-       << right->toString();
-    return ss.str();
+std::string LiteralExpression::toString() {
+    std::string literal_expression;
+    literal_expression += tokenTypeAsLiteral(this->type);
+    return literal_expression;
 }
 
-std::string UnaryExpression::toString() const {
-    std::stringstream ss;
-    ss << tokenTypeAsLiteral(this->op) << expr->toString();
-    return ss.str();
-}
-
-std::string LiteralExpression::toString() const { return this->value; }
-
-std::string GroupingExpression::toString() const {
-    return "(" + this->expr->toString() + ")";
-}
+std::string GroupingExpression::toString() { return "GroupingExpression"; }

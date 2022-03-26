@@ -1,6 +1,8 @@
 #include "compiler/Lexer.h"
 #include "compiler/Parser.h"
+#include <fstream>
 #include <iostream>
+#include <sstream>
 
 std::string read_file(const char *file_name) {
     FILE *f = fopen(file_name, "rt");
@@ -11,9 +13,9 @@ std::string read_file(const char *file_name) {
     fseek(f, 0, SEEK_END);
     long length = ftell(f);
     rewind(f);
-    char *buffer = (char *)malloc(length + 1);
-    buffer[length] = '\0';
-    fread(buffer, 1, length, f);
+    std::string buffer(length + 1, '\0');
+    buffer[length + 1] = '\0'; // Must add that, otherwise lexer will crash
+    fread(buffer.data(), 1, length, f);
     fclose(f);
     return buffer;
 }

@@ -15,16 +15,17 @@ class Print {
     static constexpr auto c_warning = "\033[1;33m";
     static constexpr auto c_reset = "\033[0m";
 
+  public:
     std::string &source;
     std::string &file_name;
 
   public:
-    Print(std::string &source, std::string &file_name)
+    Print(std::string &file_name, std::string &source)
         : source(source), file_name(file_name) {}
 
-    int error(std::string msg, Location location);
+    int error(const std::string &msg, Location location);
 
-    int warning(std::string msg, Location location);
+    int warning(const std::string &msg, Location location);
 };
 
 #endif // DRAST_PRINT_H
