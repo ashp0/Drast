@@ -3,18 +3,25 @@
 //
 
 #include "Lexer.h"
+#include <format>
 
 void Lexer::lex() {
-    for (auto token = getToken(); token->type != TokenType::T_EOF;
+    for (auto token = getToken(); token.type != TokenType::T_EOF;
          token = getToken()) {
-        tokens.push_back(std::move(token));
+        tokens.push_back(token);
     }
 
-    this->tokens.push_back(returnToken(TokenType::T_EOF, true));
+    //    for (auto &token : tokens) {
+    //         std::cout << token.toString(this->source) << std::endl;
+    //    }
+    //
+    this->tokens.push_back(returnToken(TokenType::T_EOF));
 }
 
-std::unique_ptr<Token> Lexer::getToken() {
+Token Lexer::getToken() {
     this->skipWhitespace();
+
+    this->start = this->index;
 
     switch (this->current) {
     case 'a' ... 'z':
@@ -142,45 +149,39 @@ std::unique_ptr<Token> Lexer::getToken() {
     return returnToken(TokenType::T_EOF, true);
 }
 
-std::unique_ptr<Token> Lexer::identifier() {
+Token Lexer::identifier() {
     return this->lexWhile(TokenType::IDENTIFIER, [this]() {
         return isalnum(this->current) || this->current == '_';
     });
 }
 
-std::unique_ptr<Token> Lexer::number() {
+Token Lexer::number() {
     return this->lexWhile(TokenType::V_NUMBER,
                           [this]() { return isnumber(this->current); });
 }
 
-std::unique_ptr<Token> Lexer::string() {
+Token Lexer::string() {
     return this->lexWhile(
         TokenType::V_STRING, [this]() { return (this->current != '"'); }, true);
 }
 
-std::unique_ptr<Token> Lexer::character() {
+Token Lexer::character() {
     return this->lexWhile(
         TokenType::V_CHAR, [this]() { return (this->current != '\''); }, true);
 }
 
-std::unique_ptr<Token> Lexer::returnToken(TokenType type,
-                                          bool without_advance) {
-    std::string current_string = {this->current};
-    return this->returnToken(type, current_string, without_advance);
-}
-
-std::unique_ptr<Token> Lexer::returnToken(TokenType type, std::string &string,
-                                          bool without_advance) {
-    auto return_token = std::make_unique<Token>(string, type, this->location);
+Token Lexer::returnToken(TokenType type, bool without_advance) {
+    auto return_token =
+        Token(type, this->start, this->index - this->start, this->location);
     if (!without_advance) {
         this->advance();
-        return_token->location.column += 1;
+        return_token.location.column += 1;
+        return_token.length += 1;
     }
     return return_token;
 }
 
-std::unique_ptr<Token> Lexer::returnToken(TokenType first_type,
-                                          TokenType second_type) {
+Token Lexer::returnToken(TokenType first_type, TokenType second_type) {
     if (this->peek() == '=') {
         this->advance();
         return this->returnToken(second_type);
@@ -243,13 +244,12 @@ void Lexer::advance() {
 char Lexer::peek(size_t offset) { return this->source[this->index + offset]; }
 
 template <typename predicate>
-std::unique_ptr<Token> Lexer::lexWhile(TokenType type, predicate &&pred,
-                                       bool is_string) {
+Token Lexer::lexWhile(TokenType type, predicate &&pred, bool is_string) {
+    this->start = this->index;
+
     if (is_string) {
         this->advance();
     }
-
-    this->start = this->index;
 
     while (pred()) {
         if (this->current == '\0') {
@@ -270,15 +270,16 @@ std::unique_ptr<Token> Lexer::lexWhile(TokenType type, predicate &&pred,
         this->advance();
     }
 
-    auto position =
-        is_string ? this->index - this->start - 1 : this->index - this->start;
-    std::string value = this->source.substr(this->start, position);
-
     if (type == TokenType::IDENTIFIER) {
-        TokenType type1 = Token::is_keyword(value, this->index - this->start);
-        return this->returnToken(type1, value, true);
+        uint32_t length = this->index - this->start;
+
+        std::string_view value(this->source.data() + this->start, length);
+
+        TokenType type1 = Token::is_keyword(value);
+        return this->returnToken(type1, true);
     }
-    return this->returnToken(type, value, true);
+
+    return this->returnToken(type, true);
 }
 
 int Lexer::throw_error(std::string message) {

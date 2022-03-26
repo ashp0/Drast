@@ -13,48 +13,43 @@
 
 class Lexer {
   private:
-    const std::string &source; // Maybe add support for unicode?
+    std::string_view &source; // Maybe add support for unicode?
 
     Location location;
 
-    size_t start;
-    size_t index;
+    uint32_t start;
+    uint32_t index;
     char current;
 
     Print printer;
 
   public:
-    std::vector<std::unique_ptr<Token>> tokens;
+    std::vector<Token> tokens;
 
   public:
-    explicit Lexer(std::string &source, std::string &file_name)
+    explicit Lexer(std::string_view &source, std::string &file_name)
         : source(source), start(0), index(0), current(source[0]),
-          printer(source, file_name) {
+          printer(file_name, source) {
         location.line = 1;
-        location.column = 0;
+        location.column = 1;
     }
 
     void lex();
 
   private:
-    std::unique_ptr<Token> getToken();
+    Token getToken();
 
-    std::unique_ptr<Token> identifier();
+    Token identifier();
 
-    std::unique_ptr<Token> number();
+    Token number();
 
-    std::unique_ptr<Token> string();
+    Token string();
 
-    std::unique_ptr<Token> character();
+    Token character();
 
-    std::unique_ptr<Token> returnToken(TokenType type,
-                                       bool without_advance = false);
+    Token returnToken(TokenType type, bool without_advance = false);
 
-    std::unique_ptr<Token> returnToken(TokenType type, std::string &string,
-                                       bool without_advance = false);
-
-    std::unique_ptr<Token> returnToken(TokenType first_type,
-                                       TokenType second_type);
+    Token returnToken(TokenType first_type, TokenType second_type);
 
     void skipWhitespace();
 
@@ -67,8 +62,7 @@ class Lexer {
     char peek(size_t offset = 1);
 
     template <typename predicate>
-    std::unique_ptr<Token> lexWhile(TokenType type, predicate &&pred,
-                                    bool is_string = false);
+    Token lexWhile(TokenType type, predicate &&pred, bool is_string = false);
 
     int throw_error(std::string message);
 };
