@@ -2,7 +2,29 @@
 // Drast Programming Language Tests
 //
 
+tokens.insertAt@(Token, Token)()
+
 import io
+
+struct Pair : @(struct first_type, struct second_type) {
+     first_type :: first(first_type)
+     second_type :: second(second_type)
+}
+
+pair@(Token, Token) tokens
+
+// tokens.insertAt@(Token, Token)()
+
+// tokens.insertAt@Token()
+struct Vector : @(struct type) {
+    void :: insertAt(type, int position)
+
+    void :: insertAt(type, int position) : @(struct first_type) {
+
+    }
+}
+
+// john_doe.insertAt
 
 end:
 
@@ -10,8 +32,14 @@ extern int :: printf(string format, ...)
 
 struct Person {
     int age
+    
     @(int age) {
         self.age = age
+        self.source = source
+        self.line = 1
+        self.column = 1
+        self.index = 0
+        self.start = self.index
     }
 }
 

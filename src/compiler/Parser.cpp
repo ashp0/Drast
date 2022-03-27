@@ -102,12 +102,17 @@ Parser::struct_declaration(const std::vector<TokenType> &qualifiers) {
     auto struct_name =
         getAndAdvance(TokenType::IDENTIFIER)->value(this->printer.source);
 
+    std::optional<TemplateDeclaration *> template_ = std::nullopt;
+    if (advanceIf(TokenType::COLON)) {
+        template_ = this->template_declaration();
+    }
+
     advance(TokenType::BRACE_OPEN);
     auto struct_body = this->compound();
     advance(TokenType::BRACE_CLOSE);
 
     return this->create_declaration<StructDeclaration>(struct_name, qualifiers,
-                                                       struct_body);
+                                                       struct_body, template_);
 }
 
 StructMemberAccess *Parser::struct_member_access() {
@@ -123,6 +128,7 @@ StructMemberAccess *Parser::struct_member_access() {
     }
 
     advance(TokenType::PERIOD);
+
     auto struct_member = expression();
 
     return this->create_declaration<StructMemberAccess>(variable_name,
@@ -235,47 +241,26 @@ Parser::function_declaration(AST *&return_type,
 
     advance(TokenType::PARENS_CLOSE);
 
+    std::optional<TemplateDeclaration *> template_ = std::nullopt;
+    if (advanceIf(TokenType::COLON)) {
+        template_ = this->template_declaration();
+    }
+
     if (advanceIf(TokenType::BRACE_OPEN)) {
         auto function_body = this->compound();
         advance(TokenType::BRACE_CLOSE);
         return this->create_declaration<FunctionDeclaration>(
             qualifiers, return_type, function_name, function_arguments,
-            function_body);
+            function_body, template_);
+    }
+
+    if (template_) {
+        throw Parser::throw_error(
+            "Functions without body can't have template!");
     }
 
     return this->create_declaration<FunctionDeclaration>(
         qualifiers, return_type, function_name, function_arguments);
-}
-
-std::vector<FunctionArgument *> Parser::function_arguments() {
-    std::vector<FunctionArgument *> arguments;
-
-    while (this->current().type != TokenType::PARENS_CLOSE) {
-        if (advanceIf(TokenType::PERIOD)) {
-            advance(TokenType::PERIOD);
-            advance(TokenType::PERIOD);
-
-            auto argument = this->create_declaration<FunctionArgument>();
-            argument->is_vaarg = true;
-
-            arguments.push_back(argument);
-
-            break;
-        }
-        auto argument_type = this->type();
-        auto argument_name =
-            getAndAdvance(TokenType::IDENTIFIER)->value(this->printer.source);
-
-        auto argument = this->create_declaration<FunctionArgument>(
-            argument_name, argument_type);
-        arguments.push_back(argument);
-
-        if (!advanceIf(TokenType::COMMA)) {
-            break;
-        }
-    }
-
-    return arguments;
 }
 
 AST *Parser::variable_declaration(AST *&variable_type,
@@ -552,23 +537,40 @@ AST *Parser::primary(bool parses_goto) {
             }
         }
 
+        if (this->current().type == TokenType::AT) {
+            auto template_arguments = this->template_call_arguments();
+
+            advance(TokenType::PARENS_CLOSE);
+            advance(TokenType::PARENS_OPEN);
+
+            // TODO: Just to function call for now, in the future, when there
+            // will be nested structs, we might have to make this more complex
+            return this->function_call(literal->value, template_arguments);
+        }
+
         return literal;
     } else if (advanceIf(TokenType::PARENS_OPEN)) {
         auto expr = this->expression();
         advance(TokenType::PARENS_CLOSE);
 
         return this->create_declaration<GroupingExpression>(expr);
+    } else if (this->current().type == TokenType::SELF) {
+        return struct_member_access();
     } else {
+        std::cout << tokenTypeAsLiteral(this->current().type);
         throw Parser::throw_error("Invalid Expression");
     }
 }
 
-AST *Parser::function_call(std::string_view function_name) {
+AST *Parser::function_call(
+    std::string_view function_name,
+    std::optional<std::vector<AST *>> template_arguments) {
 
     auto arguments = function_call_arguments();
     advance(TokenType::PARENS_CLOSE);
 
-    return this->create_declaration<FunctionCall>(function_name, arguments);
+    return this->create_declaration<FunctionCall>(function_name, arguments,
+                                                  template_arguments);
 }
 
 std::vector<AST *> Parser::function_call_arguments() {
@@ -599,6 +601,95 @@ AST *Parser::token() {
     return this->create_declaration<ASTToken>(type);
 }
 
+TemplateDeclaration *Parser::template_declaration() {
+    advance(TokenType::AT);
+    advance(TokenType::PARENS_OPEN);
+
+    auto arguments = template_arguments();
+
+    advance(TokenType::PARENS_CLOSE);
+
+    return this->create_declaration<TemplateDeclaration>(arguments);
+}
+
+std::vector<TemplateDeclarationArgument *> Parser::template_arguments() {
+    std::vector<TemplateDeclarationArgument *> arguments;
+
+    while (this->current().type != TokenType::PARENS_CLOSE) {
+        if (!isTemplateKeyword(this->current().type)) {
+            throw Parser::throw_error("Invalid Template Type");
+        }
+
+        auto argument_type = getAndAdvance()->type;
+        auto argument_name =
+            getAndAdvance(TokenType::IDENTIFIER)->value(this->printer.source);
+
+        auto argument = this->create_declaration<TemplateDeclarationArgument>(
+            argument_name, argument_type);
+
+        arguments.push_back(argument);
+
+        if (!advanceIf(TokenType::COMMA)) {
+            break;
+        }
+    }
+
+    return arguments;
+}
+
+std::vector<AST *> Parser::template_call_arguments() {
+    this->advance(TokenType::AT);
+    advance(TokenType::PARENS_OPEN);
+
+    std::vector<AST *> template_values;
+    while (this->current().type != TokenType::PARENS_CLOSE) {
+        template_values.push_back(this->type());
+
+        if (!advanceIf(TokenType::COMMA)) {
+            break;
+        }
+    }
+
+    return template_values;
+}
+
+std::vector<FunctionArgument *> Parser::function_arguments() {
+    std::vector<FunctionArgument *> arguments;
+
+    while (this->current().type != TokenType::PARENS_CLOSE) {
+        if (advanceIf(TokenType::PERIOD)) {
+            advance(TokenType::PERIOD);
+            advance(TokenType::PERIOD);
+
+            auto argument = this->create_declaration<FunctionArgument>();
+            argument->is_vaarg = true;
+
+            arguments.push_back(argument);
+
+            break;
+        }
+
+        std::optional<AST *> argument_type = std::nullopt;
+        if (this->current().type != TokenType::IDENTIFIER) {
+            argument_type = this->type();
+        }
+
+        auto argument_name =
+            getAndAdvance(TokenType::IDENTIFIER)->value(this->printer.source);
+
+        auto argument = this->create_declaration<FunctionArgument>(
+            argument_name, argument_type);
+
+        arguments.push_back(argument);
+
+        if (!advanceIf(TokenType::COMMA)) {
+            break;
+        }
+    }
+
+    return arguments;
+}
+
 AST *Parser::type() {
     auto type = this->create_declaration<Type>(
         current().type, current().value(this->printer.source), false, false,
@@ -623,6 +714,9 @@ AST *Parser::type() {
             this->advance();
             type->is_array = true;
             break;
+        case TokenType::AT:
+            type->template_values = template_call_arguments();
+            advance(TokenType::PARENS_CLOSE);
         default:
             goto end;
         }

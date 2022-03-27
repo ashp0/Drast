@@ -15,10 +15,9 @@ A general-purpose language, that is meant to be a more modernized version of C, 
 
 ## Features
 
-- Super Simple and Easy to learn syntax ( basically the same thing as C, except optional semicolons and functions are
-  defined differently )
-- Semi-Object Oriented, there are no classes, however, structs have initializers and functions. There are also no
-  subclasses
+- **Super Simple and Easy to learn syntax** - Similar to C++
+- **Semi-Object Oriented** - Structs have functions and initializers
+- **Templates** - Different Syntax than C++
 - More are yet to come...
 
 ## Example
@@ -36,6 +35,6 @@ int :: main(int argc, string[] argv) {
 
 ## Building
 
-Drast is written in cpp17
+Drast is written in cpp20
 
 Just run the `CMakeLists.txt`

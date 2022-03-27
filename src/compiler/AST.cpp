@@ -61,6 +61,11 @@ std::string FunctionDeclaration::toString() {
 
     function += ") ";
 
+    if (this->template_declaration) {
+        function += ": ";
+        function += this->template_declaration.value()->toString();
+    }
+
     if (this->body) {
         function += this->body.value()->toString();
     }
@@ -72,8 +77,10 @@ std::string FunctionArgument::toString() {
     std::string argument;
 
     if (!is_vaarg) {
-        argument += this->type.value()->toString();
-        argument += " ";
+        if (type) {
+            argument += this->type.value()->toString();
+            argument += " ";
+        }
         argument += this->name.value();
     } else {
         argument += "...";
@@ -85,6 +92,18 @@ std::string FunctionArgument::toString() {
 std::string FunctionCall::toString() {
     std::string function_call;
     function_call += this->name;
+
+    if (this->template_arguments) {
+        function_call += "@(";
+        for (auto &argument : this->template_arguments.value()) {
+            function_call += argument->toString();
+            function_call += ", ";
+        }
+        function_call.pop_back();
+        function_call.pop_back();
+        function_call += ")";
+    }
+
     function_call += "(";
     for (auto &argument : this->arguments) {
         function_call += argument->toString();
@@ -101,6 +120,19 @@ std::string FunctionCall::toString() {
 std::string Type::toString() {
     std::string type_string;
     type_string += this->literal_value;
+
+    if (this->template_values) {
+        type_string += "@";
+        type_string += "(";
+        for (auto &template_value : template_values.value()) {
+            type_string += template_value->toString();
+            type_string += ", ";
+        }
+        type_string.pop_back();
+        type_string.pop_back();
+        type_string += ")";
+    }
+
     type_string += (this->is_pointer ? "*" : "");
     type_string += (this->is_array ? "[]" : "");
     type_string += (this->is_optional ? "? " : "");
@@ -116,6 +148,12 @@ std::string StructDeclaration::toString() {
     struct_declaration += "struct ";
     struct_declaration += this->name;
     struct_declaration += " ";
+
+    if (this->template_declaration) {
+        struct_declaration += ": ";
+        struct_declaration += this->template_declaration.value()->toString();
+    }
+
     struct_declaration += this->body->toString();
 
     return struct_declaration;
@@ -382,4 +420,22 @@ std::string StructInitializerDeclaration::toString() {
     struct_initializer_declaration += this->body->toString();
 
     return struct_initializer_declaration;
+}
+
+std::string TemplateDeclaration::toString() {
+    std::string template_declaration;
+    template_declaration += "@(";
+
+    for (auto &argument : this->arguments) {
+        template_declaration += tokenTypeAsLiteral(argument->type);
+        template_declaration += " ";
+        template_declaration += argument->name;
+        template_declaration += ", ";
+    }
+
+    template_declaration.pop_back();
+    template_declaration.pop_back();
+    template_declaration += ") ";
+
+    return template_declaration;
 }

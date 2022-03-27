@@ -14,7 +14,7 @@ struct Lexer {
 
     // vector<Token> tokens
 
-    init(string source) {
+    @(string source) {
         self.source = source
         self.line = 1
         self.column = 1
@@ -28,7 +28,7 @@ struct Lexer {
 
         switch (self.current()) {
         case '"':
-            return self.string()
+            return self.string_()
         case '\'':
             return self.character()
         case ' ':

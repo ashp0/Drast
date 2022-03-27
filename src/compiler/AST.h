@@ -96,9 +96,20 @@ class ImportStatement : public AST {
     std::string toString() override;
 };
 
+/*
+ private:
+     using TemplateDeclaration = class TemplateDeclaration;
+   public:
+     std::string_view name;
+     CompoundStatement *body;
+     std::vector<TokenType> qualifiers;
+     std::optional<TemplateDeclaration *> template_declaration;
+ */
+
 class FunctionDeclaration : public AST {
   private:
     using FunctionArgument = class FunctionArgument;
+    using TemplateDeclaration = class TemplateDeclaration;
 
   public:
     std::vector<TokenType> qualifiers;
@@ -106,15 +117,19 @@ class FunctionDeclaration : public AST {
     std::string_view name;
     std::vector<FunctionArgument *> arguments;
     std::optional<CompoundStatement *> body = std::nullopt;
+    std::optional<TemplateDeclaration *> template_declaration = std::nullopt;
 
   public:
-    FunctionDeclaration(std::vector<TokenType> qualifiers, AST *return_type,
-                        std::string_view name,
-                        std::vector<FunctionArgument *> arguments,
-                        CompoundStatement *body, Location location)
+    FunctionDeclaration(
+        std::vector<TokenType> qualifiers, AST *return_type,
+        std::string_view name, std::vector<FunctionArgument *> arguments,
+        CompoundStatement *body,
+        std::optional<TemplateDeclaration *> template_declaration,
+        Location location)
         : AST(ASTType::FUNCTION_DECLARATION, location),
           qualifiers(std::move(qualifiers)), return_type(return_type),
-          name(name), arguments(std::move(arguments)), body(body) {}
+          name(name), arguments(std::move(arguments)), body(body),
+          template_declaration(template_declaration) {}
 
     FunctionDeclaration(std::vector<TokenType> qualifiers, AST *return_type,
                         std::string_view name,
@@ -148,12 +163,15 @@ class FunctionCall : public AST {
   public:
     std::string_view name;
     std::vector<AST *> arguments;
+    std::optional<std::vector<AST *>> template_arguments = std::nullopt;
 
   public:
     FunctionCall(std::string_view name, std::vector<AST *> arguments,
+                 std::optional<std::vector<AST *>> template_arguments,
                  Location location)
         : AST(ASTType::FUNCTION_CALL, location), name(name),
-          arguments(std::move(arguments)) {}
+          arguments(std::move(arguments)),
+          template_arguments(template_arguments) {}
 
     std::string toString() override;
 };
@@ -165,6 +183,7 @@ class Type : public AST {
     bool is_pointer;
     bool is_array;
     bool is_optional;
+    std::optional<std::vector<AST *>> template_values = std::nullopt;
 
   public:
     Type(TokenType type, std::string_view literal_value, bool is_pointer,
@@ -177,16 +196,23 @@ class Type : public AST {
 };
 
 class StructDeclaration : public AST {
+  private:
+    using TemplateDeclaration = class TemplateDeclaration;
+
   public:
     std::string_view name;
     CompoundStatement *body;
     std::vector<TokenType> qualifiers;
+    std::optional<TemplateDeclaration *> template_declaration;
 
   public:
     StructDeclaration(std::string_view name, std::vector<TokenType> qualifiers,
-                      CompoundStatement *body, Location location)
+                      CompoundStatement *body,
+                      std::optional<TemplateDeclaration *> template_declaration,
+                      Location location)
         : AST(ASTType::STRUCT_DECLARATION, location), name(name), body(body),
-          qualifiers(std::move(qualifiers)) {}
+          qualifiers(std::move(qualifiers)),
+          template_declaration(template_declaration) {}
 
     std::string toString() override;
 };
@@ -490,6 +516,34 @@ class ASTToken : public AST {
         : AST(ASTType::TOKEN, location), type(type) {}
 
     std::string toString() override { return tokenTypeAsLiteral(this->type); }
+};
+
+class TemplateDeclaration : public AST {
+  private:
+    using StructDeclarationArgument = class TemplateDeclarationArgument;
+
+  public:
+    std::vector<StructDeclarationArgument *> arguments;
+
+  public:
+    TemplateDeclaration(std::vector<StructDeclarationArgument *> arguments,
+                        Location location)
+        : AST(ASTType::TOKEN, location), arguments(arguments) {}
+
+    std::string toString() override;
+};
+
+class TemplateDeclarationArgument : public AST {
+  public:
+    TokenType type;
+    std::string_view name;
+
+  public:
+    TemplateDeclarationArgument(std::string_view name, TokenType type,
+                                Location location)
+        : AST(ASTType::TOKEN, location), name(name), type(type) {}
+
+    std::string toString() override { return "elkamfalwkefmalkefmalwk"; }
 };
 
 #endif // DRAST_AST_H

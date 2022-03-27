@@ -181,6 +181,23 @@ constexpr bool isOperatorType(TokenType type) {
     }
 }
 
+constexpr bool isTemplateKeyword(TokenType type) {
+    switch (type) {
+    case TokenType::INT:
+    case TokenType::CHAR:
+    case TokenType::VOID:
+    case TokenType::BOOL:
+    case TokenType::FLOAT:
+    case TokenType::STRING:
+    case TokenType::STRUCT:
+    case TokenType::ENUM:
+    case TokenType::UNION:
+        return true;
+    default:
+        return false;
+    }
+}
+
 constexpr bool isKeywordType(TokenType type) {
     switch (type) {
     case TokenType::INT:
@@ -241,6 +258,7 @@ constexpr bool isAdditiveOperator(TokenType type) {
     case TokenType::OPERATOR_ADD:
     case TokenType::OPERATOR_SUB:
     case TokenType::PERIOD:
+    case TokenType::AT:
         return true;
     default:
         return false;

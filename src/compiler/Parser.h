@@ -51,8 +51,6 @@ class Parser {
     function_declaration(AST *&return_type,
                          const std::vector<TokenType> &qualifiers = {});
 
-    std::vector<FunctionArgument *> function_arguments();
-
     AST *variable_declaration(AST *&variable_type,
                               const std::vector<TokenType> &qualifiers = {});
 
@@ -90,13 +88,23 @@ class Parser {
 
     AST *primary(bool parses_goto = true);
 
-    AST *function_call(std::string_view function_name);
+    AST *function_call(
+        std::string_view function_name,
+        std::optional<std::vector<AST *>> template_arguments = std::nullopt);
 
     std::vector<AST *> function_call_arguments();
 
     AST *typealias();
 
     AST *token();
+
+    TemplateDeclaration *template_declaration();
+
+    std::vector<TemplateDeclarationArgument *> template_arguments();
+
+    std::vector<AST *> template_call_arguments();
+
+    std::vector<FunctionArgument *> function_arguments();
 
     AST *type();
 
