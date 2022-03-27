@@ -1,0 +1,9 @@
+//
+// Drast Programming Language Tests
+//
+
+typelias test = 40 + 20
+
+int :: main() {
+    print(test)
+}

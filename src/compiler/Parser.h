@@ -33,6 +33,12 @@ class Parser {
     StructDeclaration *
     struct_declaration(const std::vector<TokenType> &qualifiers = {});
 
+    StructMemberAccess *struct_member_access();
+
+    AST *struct_init_or_enum_case_access();
+
+    StructInitializerDeclaration *struct_initializer_declaration();
+
     EnumDeclaration *
     enum_declaration(const std::vector<TokenType> &qualifiers = {});
 
@@ -85,6 +91,10 @@ class Parser {
     AST *primary(bool parses_goto = true);
 
     AST *function_call(std::string_view function_name);
+
+    std::vector<AST *> function_call_arguments();
+
+    AST *typealias();
 
     AST *token();
 

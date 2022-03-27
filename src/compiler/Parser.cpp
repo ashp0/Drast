@@ -58,7 +58,12 @@ AST *Parser::statement() {
         return this->switch_statement();
     case TokenType::BREAK:
     case TokenType::CONTINUE:
+    case TokenType::SELF:
         return this->token();
+    case TokenType::TYPEALIAS:
+        return this->typealias();
+    case TokenType::AT:
+        return this->struct_initializer_declaration();
     case TokenType::T_EOF:
         return nullptr;
     default:
@@ -101,6 +106,47 @@ Parser::struct_declaration(const std::vector<TokenType> &qualifiers) {
 
     return this->create_declaration<StructDeclaration>(struct_name, qualifiers,
                                                        struct_body);
+}
+
+StructMemberAccess *Parser::struct_member_access() {
+    auto struct_variable_name =
+        getAndAdvance(TokenType::IDENTIFIER)->value(this->printer.source);
+    advance(TokenType::PERIOD);
+    auto struct_member = expression();
+
+    return this->create_declaration<StructMemberAccess>(struct_variable_name,
+                                                        struct_member);
+}
+
+AST *Parser::struct_init_or_enum_case_access() {
+    advance(TokenType::PERIOD);
+
+    auto identifier =
+        getAndAdvance(TokenType::IDENTIFIER)->value(this->printer.source);
+
+    if (identifier == "init") {
+        advance(TokenType::PARENS_OPEN);
+        auto arguments = function_call_arguments();
+        advance(TokenType::PARENS_CLOSE);
+
+        return this->create_declaration<StructInitializerCall>(arguments);
+    } else {
+        return this->create_declaration<EnumCaseAccess>(identifier);
+    }
+}
+
+StructInitializerDeclaration *Parser::struct_initializer_declaration() {
+    advance(TokenType::AT);
+    advance(TokenType::PARENS_OPEN);
+    auto arguments = function_arguments();
+    advance(TokenType::PARENS_CLOSE);
+
+    advance(TokenType::BRACE_OPEN);
+    auto body = compound();
+    advance(TokenType::BRACE_CLOSE);
+
+    return this->create_declaration<StructInitializerDeclaration>(arguments,
+                                                                  body);
 }
 
 EnumDeclaration *
@@ -404,6 +450,12 @@ SwitchCase *Parser::switch_case() {
 AST *Parser::expression() { return this->equality(); }
 
 AST *Parser::equality() {
+    if (this->current().type == TokenType::PERIOD) {
+        return struct_init_or_enum_case_access();
+    } else if (peek().type == TokenType::PERIOD) {
+        return struct_member_access();
+    }
+
     auto expr = this->comparison();
 
     while (isEqualityOperator(this->current().type)) {
@@ -501,6 +553,14 @@ AST *Parser::primary(bool parses_goto) {
 }
 
 AST *Parser::function_call(std::string_view function_name) {
+
+    auto arguments = function_call_arguments();
+    advance(TokenType::PARENS_CLOSE);
+
+    return this->create_declaration<FunctionCall>(function_name, arguments);
+}
+
+std::vector<AST *> Parser::function_call_arguments() {
     std::vector<AST *> arguments;
 
     while (this->current().type != TokenType::PARENS_CLOSE) {
@@ -509,9 +569,17 @@ AST *Parser::function_call(std::string_view function_name) {
         advanceIf(TokenType::COMMA);
     }
 
-    advance(TokenType::PARENS_CLOSE);
+    return arguments;
+}
 
-    return this->create_declaration<FunctionCall>(function_name, arguments);
+AST *Parser::typealias() {
+    advance(TokenType::TYPEALIAS);
+    auto type_name =
+        getAndAdvance(TokenType::IDENTIFIER)->value(this->printer.source);
+    advance(TokenType::EQUAL);
+    auto value = expression();
+
+    return this->create_declaration<Typealias>(type_name, value);
 }
 
 AST *Parser::token() {

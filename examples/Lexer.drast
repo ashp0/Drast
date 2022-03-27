@@ -1,0 +1,61 @@
+//
+// Drast Programming Language Examples
+//
+
+import io
+
+struct Lexer {
+    private string source
+    private int line
+    private int column
+
+    private int start
+    private int index
+
+    // vector<Token> tokens
+
+    init(string source) {
+        self.source = source
+        self.line = 1
+        self.column = 1
+        self.index = 0
+        self.start = self.index
+    }
+
+    Token :: getToken() {
+        self.skipWhitespace()
+        self.start = self.index
+
+        switch (self.current()) {
+        case '"':
+            return self.string()
+        case '\'':
+            return self.character()
+        case ' ':
+        case '\r':
+        case '\t':
+        case '\n':
+            break
+        case '?':
+            return returnToken(.question)
+        case '<':
+            if (self.peek() == '<') {
+                self.advance()
+                return returnEqualToken(.bitwise_shift_left, .bitwise_shift_left_equal)
+            }
+        }
+    }
+
+    void :: advance() {
+        self.column += 1
+        self.index += 1
+    }
+
+    char :: current() {
+        return self.source.at(self.index)
+    }
+
+    char :: peek() {
+        return self.source.at(self.index + 1)
+    }
+}

@@ -173,6 +173,7 @@ constexpr bool isOperatorType(TokenType type) {
     case TokenType::BITWISE_NOT:
     case TokenType::COLON: // goto labels
     case TokenType::PARENS_OPEN:
+    case TokenType::PERIOD:
         return true;
 
     default:
@@ -298,7 +299,7 @@ class Token {
 
     static TokenType is_keyword(std::string_view string);
 
-    std::string toString(std::string_view source) {
+    [[nodiscard]] std::string toString(std::string_view source) const {
         std::stringstream ss;
         ss << tokenTypeAsLiteral(this->type) << " :: `"
            << source.substr(this->start, this->length)

@@ -323,3 +323,63 @@ std::string GroupingExpression::toString() {
     grouping_expression += ")";
     return grouping_expression;
 }
+
+std::string Typealias::toString() {
+    std::string typealias;
+    typealias += this->type_name;
+    typealias += " = ";
+    typealias += this->type_value->toString();
+    return typealias;
+}
+
+std::string StructMemberAccess::toString() {
+    std::string struct_member_access;
+    struct_member_access += this->struct_variable;
+    struct_member_access += ".";
+    struct_member_access += this->struct_member->toString();
+    return struct_member_access;
+}
+
+std::string EnumCaseAccess::toString() {
+    std::string enum_case;
+    enum_case += ".";
+    enum_case += this->case_name;
+
+    return enum_case;
+}
+
+std::string StructInitializerCall::toString() {
+    std::string function_call;
+    function_call += ".init(";
+    for (auto &argument : this->arguments) {
+        function_call += argument->toString();
+        function_call += ",";
+    }
+
+    if (!arguments.empty()) {
+        function_call.pop_back();
+    }
+    function_call += ")";
+    return function_call;
+}
+
+std::string StructInitializerDeclaration::toString() {
+    std::string struct_initializer_declaration;
+    struct_initializer_declaration += "@(";
+
+    for (auto &argument : arguments) {
+        struct_initializer_declaration += argument->toString();
+        struct_initializer_declaration += ", ";
+    }
+
+    if (!arguments.empty()) {
+        struct_initializer_declaration.resize(
+            struct_initializer_declaration.size() - 2);
+    }
+
+    struct_initializer_declaration += ") ";
+
+    struct_initializer_declaration += this->body->toString();
+
+    return struct_initializer_declaration;
+}

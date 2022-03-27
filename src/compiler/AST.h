@@ -22,11 +22,14 @@ enum class ASTType {
 
     TYPE, // int, string, float, bool, etc.
 
-    STRUCT_DECLARATION,      // struct Test { ... }
-    STRUCT_INITIALIZER_CALL, // .init(1, 2)
+    STRUCT_DECLARATION,             // struct Test { ... }
+    STRUCT_MEMBER_ACCESS,           // test.integer
+    STRUCT_INITIALIZER_CALL,        // .init(1, 2)
+    STRUCT_INITIALIZER_DECLARATION, // @(int test, string test1) { ... }
 
     ENUM_DECLARATION, // enum Test { ... }
     ENUM_CASE,        // case A = 50, B = 100 etc.
+    ENUM_CASE_ACCESS, // .red
 
     VARIABLE_DECLARATION, // int a = 1
 
@@ -188,6 +191,47 @@ class StructDeclaration : public AST {
     std::string toString() override;
 };
 
+class StructMemberAccess : public AST {
+  public:
+    // my_struct.my_variable
+    std::string_view struct_variable; // my_struct
+    AST *struct_member;               // my_variable
+
+  public:
+    StructMemberAccess(std::string_view struct_variable, AST *struct_member,
+                       Location location)
+        : AST(ASTType::STRUCT_MEMBER_ACCESS, location),
+          struct_variable(struct_variable), struct_member(struct_member) {}
+
+    std::string toString() override;
+};
+
+class StructInitializerCall : public AST {
+  public:
+    std::vector<AST *> arguments;
+
+  public:
+    StructInitializerCall(std::vector<AST *> arguments, Location location)
+        : AST(ASTType::STRUCT_INITIALIZER_CALL, location),
+          arguments(std::move(arguments)) {}
+
+    std::string toString() override;
+};
+
+class StructInitializerDeclaration : public AST {
+  public:
+    std::vector<FunctionArgument *> arguments;
+    CompoundStatement *body;
+
+  public:
+    StructInitializerDeclaration(std::vector<FunctionArgument *> arguments,
+                                 CompoundStatement *body, Location location)
+        : AST(ASTType::STRUCT_INITIALIZER_DECLARATION, location),
+          arguments(std::move(arguments)), body(body) {}
+
+    std::string toString() override;
+};
+
 class EnumDeclaration : public AST {
   private:
     using EnumCase = class EnumCase;
@@ -214,6 +258,17 @@ class EnumCase : public AST {
   public:
     EnumCase(std::string_view name, AST *value, Location location)
         : AST(ASTType::ENUM_CASE, location), name(name), value(value){};
+
+    std::string toString() override;
+};
+
+class EnumCaseAccess : public AST {
+  public:
+    std::string_view case_name;
+
+  public:
+    EnumCaseAccess(std::string_view case_name, Location location)
+        : AST(ASTType::ENUM_CASE_ACCESS, location), case_name(case_name) {}
 
     std::string toString() override;
 };
@@ -413,7 +468,19 @@ class GroupingExpression : public AST {
     std::string toString() override;
 };
 
-// Stuff like break, continue etc..
+class Typealias : public AST {
+  public:
+    std::string_view type_name;
+    AST *type_value;
+
+  public:
+    Typealias(std::string_view type_name, AST *type_value, Location location)
+        : AST(ASTType::TYPEALIAS, location), type_name(type_name),
+          type_value(type_value) {}
+
+    std::string toString() override;
+};
+
 class ASTToken : public AST {
   public:
     TokenType type;

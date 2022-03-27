@@ -17,6 +17,8 @@ A general-purpose language, that is meant to be a more modernized version of C, 
 
 - Super Simple and Easy to learn syntax ( basically the same thing as C, except optional semicolons and functions are
   defined differently )
+- Semi-Object Oriented, there are no classes, however, structs have initializers and functions. There are also no
+  subclasses
 - More are yet to come...
 
 ## Example
