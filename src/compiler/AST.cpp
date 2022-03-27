@@ -94,6 +94,9 @@ std::string Type::toString() {
     // type += tokenTypeAsLiteral(this->type);
     // type += "(";
     type += this->literal_value;
+    type += (this->is_pointer ? "*" : "");
+    type += (this->is_array ? "[]" : "");
+    type += (this->is_optional ? "? " : "");
     // type += ")";
 
     return type;

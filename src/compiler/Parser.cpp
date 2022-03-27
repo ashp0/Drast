@@ -144,10 +144,14 @@ std::vector<EnumCase *> Parser::enum_cases() {
 
 AST *Parser::function_or_variable_declaration(
     std::vector<TokenType> qualifiers) {
-    if (isEqualitiveOperator(peek().type)) {
+    if (isOperatorType(peek().type)) {
+        if (isKeywordType(this->current().type)) {
+            goto start;
+        }
         return this->expression();
     }
 
+start:
     auto type = this->type();
 
     if (advanceIf(TokenType::DOUBLE_COLON)) {
@@ -446,7 +450,7 @@ AST *Parser::type() {
 
     advance();
 
-    while (!type->is_optional || !type->is_array || !type->is_optional) {
+    for (;;) {
         switch (this->current().type) {
         case TokenType::QUESTION:
             type->is_optional = true;
@@ -501,6 +505,9 @@ void Parser::advance(TokenType type) {
     if (this->current().type == type) {
         this->advance();
     } else {
+        std::cout << tokenTypeAsLiteral(this->current().type)
+                  << " :: " << tokenTypeAsLiteral(type)
+                  << " :: " << this->current().location.toString() << std::endl;
         this->throw_error("Didn't Get Expected Token");
     }
 }
