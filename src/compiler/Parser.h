@@ -51,6 +51,8 @@ class Parser {
 
     ForLoop *for_loop();
 
+    WhileLoop *while_loop();
+
     Return *return_statement();
 
     If *if_statement();
@@ -60,6 +62,12 @@ class Parser {
     ASM *inline_assembly();
 
     GOTO *goto_statement();
+
+    SwitchStatement *switch_statement();
+
+    std::vector<SwitchCase *> switch_cases();
+
+    SwitchCase *switch_case();
 
     AST *expression();
 
@@ -73,9 +81,11 @@ class Parser {
 
     AST *unary();
 
-    AST *primary();
+    AST *primary(bool parses_goto = true);
 
     AST *function_call(std::string_view function_name);
+
+    AST *token();
 
     AST *type();
 

@@ -13,8 +13,8 @@
     - [x] If, Else, Else If
     - [x] Struct
     - [x] Goto
-    - [ ] Switch, break, case, default
-    - [ ] For, While, Continue, Break
+    - [x] Switch, break, case, default
+    - [x] For, While, Continue, Break
     - [ ] Do Catch Try
 - [ ] Semantic Analyzer
     - [ ] Duplicate Variable and Functions

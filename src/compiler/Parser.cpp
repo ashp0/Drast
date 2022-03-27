@@ -44,6 +44,8 @@ AST *Parser::statement() {
         return this->function_or_variable_declaration({});
     case TokenType::FOR:
         return this->for_loop();
+    case TokenType::WHILE:
+        return this->while_loop();
     case TokenType::RETURN:
         return this->return_statement();
     case TokenType::IF:
@@ -52,6 +54,11 @@ AST *Parser::statement() {
         return this->inline_assembly();
     case TokenType::GOTO:
         return this->goto_statement();
+    case TokenType::SWITCH:
+        return this->switch_statement();
+    case TokenType::BREAK:
+    case TokenType::CONTINUE:
+        return this->token();
     case TokenType::T_EOF:
         return nullptr;
     default:
@@ -252,6 +259,20 @@ ForLoop *Parser::for_loop() {
                                              for_increment, for_body);
 }
 
+WhileLoop *Parser::while_loop() {
+    advance(TokenType::WHILE);
+
+    advance(TokenType::PARENS_OPEN);
+    auto expression = this->expression();
+    advance(TokenType::PARENS_CLOSE);
+
+    this->advance(TokenType::BRACE_OPEN);
+    auto body = this->compound();
+    this->advance(TokenType::BRACE_CLOSE);
+
+    return this->create_declaration<WhileLoop>(expression, body);
+}
+
 Return *Parser::return_statement() {
     advance(TokenType::RETURN);
 
@@ -326,7 +347,61 @@ GOTO *Parser::goto_statement() {
     auto label =
         getAndAdvance(TokenType::IDENTIFIER)->value(this->printer.source);
 
-    return this->create_declaration<GOTO>(label);
+    return this->create_declaration<GOTO>(label, true);
+}
+
+SwitchStatement *Parser::switch_statement() {
+    advance(TokenType::SWITCH);
+
+    advance(TokenType::PARENS_OPEN);
+    auto switch_expression = expression();
+    advance(TokenType::PARENS_CLOSE);
+
+    advance(TokenType::BRACE_OPEN);
+    auto cases = switch_cases();
+    advance(TokenType::BRACE_CLOSE);
+
+    return this->create_declaration<SwitchStatement>(switch_expression, cases);
+}
+
+std::vector<SwitchCase *> Parser::switch_cases() {
+    std::vector<SwitchCase *> cases;
+
+    while (this->current().type != TokenType::BRACE_CLOSE) {
+        cases.push_back(switch_case());
+    }
+
+    return cases;
+}
+
+SwitchCase *Parser::switch_case() {
+    bool is_case = advanceIf(TokenType::CASE);
+    if (!is_case) {
+        advance(TokenType::DEFAULT);
+    }
+
+    AST *case_expression;
+    if (is_case) {
+        case_expression = primary(false);
+    }
+
+    advance(TokenType::COLON);
+
+    CompoundStatement *case_body =
+        this->create_declaration<CompoundStatement>();
+
+    while (this->current().type != TokenType::CASE &&
+           this->current().type != TokenType::DEFAULT &&
+           this->current().type != TokenType::BRACE_CLOSE) {
+        case_body->statements.push_back(statement());
+    }
+
+    if (is_case) {
+        return this->create_declaration<SwitchCase>(case_expression, case_body,
+                                                    is_case);
+    } else {
+        return this->create_declaration<SwitchCase>(case_body, is_case);
+    }
 }
 
 AST *Parser::expression() { return this->equality(); }
@@ -403,7 +478,7 @@ AST *Parser::unary() {
     return this->primary();
 }
 
-AST *Parser::primary() {
+AST *Parser::primary(bool parses_goto) {
     if (isRegularValue(this->current().type)) {
         auto literal = this->create_declaration<LiteralExpression>(
             this->current().value(this->printer.source), this->current().type);
@@ -411,6 +486,10 @@ AST *Parser::primary() {
 
         if (advanceIf(TokenType::PARENS_OPEN)) {
             return this->function_call(literal->value);
+        } else if (parses_goto) {
+            if (advanceIf(TokenType::COLON)) {
+                return this->create_declaration<GOTO>(literal->value, false);
+            }
         }
 
         return literal;
@@ -436,6 +515,12 @@ AST *Parser::function_call(std::string_view function_name) {
     advance(TokenType::PARENS_CLOSE);
 
     return this->create_declaration<FunctionCall>(function_name, arguments);
+}
+
+AST *Parser::token() {
+    auto type = this->current().type;
+    advance(type);
+    return this->create_declaration<ASTToken>(type);
 }
 
 AST *Parser::type() {

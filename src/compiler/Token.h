@@ -171,6 +171,8 @@ constexpr bool isOperatorType(TokenType type) {
     case TokenType::BITWISE_POWER:
     case TokenType::BITWISE_POWER_EQUAL:
     case TokenType::BITWISE_NOT:
+    case TokenType::COLON: // goto labels
+    case TokenType::PARENS_OPEN:
         return true;
 
     default:
@@ -263,6 +265,8 @@ constexpr bool isEqualitiveOperator(TokenType type) {
     case TokenType::BITWISE_SHIFT_LEFT_EQUAL:
     case TokenType::BITWISE_SHIFT_RIGHT_EQUAL:
     case TokenType::BITWISE_POWER_EQUAL:
+    case TokenType::BITWISE_AND_AND:
+    case TokenType::BITWISE_PIPE_PIPE:
         return true;
     default:
         return false;

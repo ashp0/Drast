@@ -50,6 +50,7 @@ enum class ASTType {
     GROUPING_EXPRESSION, // (5 + 6)
     LITERAL_EXPRESSION,  // 5;
     CAST,                // cast(5.50, int);
+    TOKEN,               // break, continue etc...
 };
 
 class AST {
@@ -250,6 +251,18 @@ class ForLoop : public AST {
     std::string toString() override;
 };
 
+class WhileLoop : public AST {
+  public:
+    AST *expression;
+    CompoundStatement *body;
+
+  public:
+    WhileLoop(AST *expression, CompoundStatement *body, Location location)
+        : AST(ASTType::WHILE, location), expression(expression), body(body) {}
+
+    std::string toString() override;
+};
+
 class Return : public AST {
   public:
     std::optional<AST *> expression;
@@ -299,10 +312,47 @@ class ASM : public AST {
 class GOTO : public AST {
   public:
     std::string_view label;
+    bool is_goto_token; // if it's a goto token or a label being defined
 
   public:
-    GOTO(std::string_view label, Location location)
-        : AST(ASTType::GOTO, location), label(label){};
+    GOTO(std::string_view label, bool is_goto_token, Location location)
+        : AST(ASTType::GOTO, location), label(label),
+          is_goto_token(is_goto_token){};
+
+    std::string toString() override;
+};
+
+class SwitchStatement : public AST {
+  private:
+    using SwitchCase = class SwitchCase;
+
+  public:
+    AST *expression; // switch (...)
+    std::vector<SwitchCase *> cases;
+
+  public:
+    SwitchStatement(AST *expression, std::vector<SwitchCase *> cases,
+                    Location location)
+        : AST(ASTType::SWITCH, location), expression(expression), cases(cases) {
+    }
+
+    std::string toString() override;
+};
+
+class SwitchCase : public AST {
+  public:
+    std::optional<AST *> expression = std::nullopt; // case 40
+    CompoundStatement *body;
+    bool is_case; // could be default
+
+  public:
+    SwitchCase(AST *expression, CompoundStatement *body, bool is_case,
+               Location location)
+        : AST(ASTType::SWITCH_CASE, location), expression(expression),
+          body(body), is_case(is_case) {}
+
+    SwitchCase(CompoundStatement *body, bool is_case, Location location)
+        : AST(ASTType::SWITCH_CASE, location), body(body), is_case(is_case) {}
 
     std::string toString() override;
 };
@@ -362,6 +412,18 @@ class GroupingExpression : public AST {
         : AST(ASTType::GROUPING_EXPRESSION, location), expr(expr){};
 
     std::string toString() override;
+};
+
+// Stuff like break, continue etc..
+class ASTToken : public AST {
+  public:
+    TokenType type;
+
+  public:
+    ASTToken(TokenType type, Location location)
+        : AST(ASTType::TOKEN, location), type(type) {}
+
+    std::string toString() { return tokenTypeAsLiteral(this->type); }
 };
 
 #endif // DRAST_AST_H

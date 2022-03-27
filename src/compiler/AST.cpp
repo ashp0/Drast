@@ -85,19 +85,25 @@ std::string FunctionArgument::toString() {
 std::string FunctionCall::toString() {
     std::string function_call;
     function_call += this->name;
-    function_call += "()";
+    function_call += "(";
+    for (auto &argument : this->arguments) {
+        function_call += argument->toString();
+        function_call += ",";
+    }
+
+    if (!arguments.empty()) {
+        function_call.pop_back();
+    }
+    function_call += ")";
     return function_call;
 }
 
 std::string Type::toString() {
     std::string type;
-    // type += tokenTypeAsLiteral(this->type);
-    // type += "(";
     type += this->literal_value;
     type += (this->is_pointer ? "*" : "");
     type += (this->is_array ? "[]" : "");
     type += (this->is_optional ? "? " : "");
-    // type += ")";
 
     return type;
 }
@@ -161,7 +167,29 @@ std::string VariableDeclaration::toString() {
     return variable_declaration;
 }
 
-std::string ForLoop::toString() { return "FOR LOOP"; }
+std::string ForLoop::toString() {
+    std::string for_loop;
+    for_loop += "for (";
+    for_loop += this->first_statement->toString();
+    for_loop += ", ";
+    for_loop += this->second_statement->toString();
+    for_loop += ", ";
+    for_loop += this->third_statement->toString();
+    for_loop += ") ";
+    for_loop += this->body->toString();
+    return for_loop;
+}
+
+std::string WhileLoop::toString() {
+    std::string while_loop;
+    while_loop += "while (";
+    while_loop += this->expression->toString();
+    while_loop += ") ";
+
+    while_loop += this->body->toString();
+
+    return while_loop;
+}
 
 std::string Return::toString() {
     if (this->expression) {
@@ -170,7 +198,28 @@ std::string Return::toString() {
     return "return";
 }
 
-std::string If::toString() { return "IF"; }
+std::string If::toString() {
+    std::string if_;
+    if_ += "if (";
+    if_ += this->if_condition->toString();
+    if_ += ") ";
+    if_ += this->if_body->toString();
+
+    for (int i = 0; i < this->else_if_bodies.size(); i++) {
+        if_ += " else if ";
+        if_ += "(";
+        if_ += else_if_conditions[i]->toString();
+        if_ += ") ";
+        if_ += else_if_bodies[i]->toString();
+    }
+
+    if (this->else_body) {
+        if_ += " else ";
+        if_ += this->else_body.value()->toString();
+    }
+
+    return if_;
+}
 
 std::string ASM::toString() {
     std::string asm_;
@@ -191,9 +240,51 @@ std::string ASM::toString() {
 
 std::string GOTO::toString() {
     std::string goto_;
-    goto_ += "goto ";
-    goto_ += this->label;
+    if (is_goto_token) {
+        goto_ += "goto ";
+        goto_ += this->label;
+    } else {
+        goto_ += "\bLABEL :: ";
+        goto_ += this->label;
+        goto_ += ":";
+    }
     return goto_;
+}
+
+std::string SwitchStatement::toString() {
+    std::string switch_statement;
+    switch_statement += "switch (";
+    switch_statement += this->expression->toString();
+    switch_statement += ") {\n";
+
+    indent += 1;
+    for (auto &case_ : this->cases) {
+        ADD_INDENTS(switch_statement)
+        switch_statement += case_->toString();
+        switch_statement += "\n";
+    }
+    indent -= 1;
+    ADD_INDENTS(switch_statement)
+    switch_statement += "}";
+
+    return switch_statement;
+}
+
+std::string SwitchCase::toString() {
+    std::string case_;
+
+    if (is_case) {
+        case_ += "case ";
+        case_ += this->expression.value()->toString();
+    } else {
+        case_ += "default";
+    }
+
+    case_ += ": ";
+
+    case_ += this->body->toString();
+
+    return case_;
 }
 
 std::string BinaryExpression::toString() {

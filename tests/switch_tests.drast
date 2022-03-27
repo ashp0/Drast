@@ -1,0 +1,37 @@
+//
+// Drast Programming Language Tests
+//
+
+char op = '+'
+int first = 30
+int second = 40
+int value
+
+switch (op) {
+    case '+':
+        value = first + second
+    case '-':
+            value = first - second
+    case '*':
+            value = first * second
+    case '/':
+            value = first - second
+}
+
+enum Person {
+    Bob,
+    John,
+}
+
+switch (person) {
+    case Bob:
+        print("bob")
+
+    case John:
+        print("John")
+        continue
+
+    default:
+        print("Nothing??")
+
+}

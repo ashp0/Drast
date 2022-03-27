@@ -5,3 +5,9 @@ int :: main() {
 goto main
 
 goto line
+
+main:
+    goto line
+
+line:
+    goto main

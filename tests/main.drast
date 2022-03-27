@@ -4,6 +4,8 @@
 
 import io
 
+end:
+
 extern int :: printf(string format, ...)
 
 enum Color {
@@ -24,7 +26,7 @@ asm (
 
 extern int[]*? :: hello(int test, ...) {
     for (int i = 0, i < 10, i += 1) {
-
+        i += 30
     }
     int[]*? result = test
     int test = myFunction()
@@ -40,6 +42,34 @@ extern int[]*? :: hello(int test, ...) {
     } else {
         bool test = 59
     }
+    goto end
 
+    myFunction()
+
+    int i = 500
+    while (i > 40) {
+        print("Hello World")
+
+        i -= 1
+        break
+    }
+
+    char op = '+'
+    int first = 30
+    int second = 40
+    int value
+
+    switch (op) {
+        case '+':
+            value = first + second
+        case '-':
+                value = first - second
+        case '*':
+                value = first * second
+        case '/':
+                value = first - second
+    }
+
+end:
     return 50 + 30 + 40
 }
