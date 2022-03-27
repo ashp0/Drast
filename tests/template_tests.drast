@@ -3,11 +3,19 @@
 //
 
 struct Pair : @(struct first_type, struct second_type) {
-    first_type :: get_first()
-    second_type :: get_second()
+    private first_type first
+    private second_type second
 
-    void :: insertAt(type, int position) : @(struct first_type) {
+    first_type :: get_first() {
+        return first
+    }
 
+    second_type :: get_second() {
+        return second
+    }
+
+    void :: test_function(int test, string test) : @(struct first_type) {
+        
     }
 }
 
@@ -24,4 +32,5 @@ enum AgeGroup {
 }
 
 Pair@(Person, AgeGroup) john_doe
-john_doe.insertAt@(Person, AgeGroup)()
+
+john_doe.test_function@(Person)(1, "test")
