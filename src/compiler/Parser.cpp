@@ -41,6 +41,7 @@ AST *Parser::statement() {
     case TokenType::FLOAT:
     case TokenType::STRING:
     case TokenType::IDENTIFIER:
+    case TokenType::SELF:
         return this->function_or_variable_declaration({});
     case TokenType::FOR:
         return this->for_loop();
@@ -58,12 +59,13 @@ AST *Parser::statement() {
         return this->switch_statement();
     case TokenType::BREAK:
     case TokenType::CONTINUE:
-    case TokenType::SELF:
         return this->token();
     case TokenType::TYPEALIAS:
         return this->typealias();
     case TokenType::AT:
         return this->struct_initializer_declaration();
+    case TokenType::PERIOD:
+        return this->expression();
     case TokenType::T_EOF:
         return nullptr;
     default:
@@ -109,12 +111,21 @@ Parser::struct_declaration(const std::vector<TokenType> &qualifiers) {
 }
 
 StructMemberAccess *Parser::struct_member_access() {
-    auto struct_variable_name =
-        getAndAdvance(TokenType::IDENTIFIER)->value(this->printer.source);
+    std::string_view variable_name;
+    if (this->current().type == TokenType::IDENTIFIER) {
+        variable_name =
+            getAndAdvance(TokenType::IDENTIFIER)->value(this->printer.source);
+    } else if (this->current().type == TokenType::SELF) {
+        variable_name = "self";
+        advance(TokenType::SELF);
+    } else {
+        throw Parser::throw_error("Expected Identifier Or Self");
+    }
+
     advance(TokenType::PERIOD);
     auto struct_member = expression();
 
-    return this->create_declaration<StructMemberAccess>(struct_variable_name,
+    return this->create_declaration<StructMemberAccess>(variable_name,
                                                         struct_member);
 }
 

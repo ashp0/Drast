@@ -155,8 +155,9 @@ Token Lexer::identifier() {
 }
 
 Token Lexer::number() {
-    return this->lexWhile(TokenType::V_NUMBER,
-                          [this]() { return isnumber(this->current()); });
+    return this->lexWhile(TokenType::V_NUMBER, [this]() {
+        return isnumber(this->current()) || this->current() == '.';
+    });
 }
 
 Token Lexer::string() {

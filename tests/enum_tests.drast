@@ -30,3 +30,7 @@ enum CarBrands {
     Dodge,
     Jeep,
 }
+
+int :: test() {
+     CarBrands brands = .Jeep
+}
