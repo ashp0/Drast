@@ -794,6 +794,7 @@ Token &Parser::peek(int offset) {
 
 template <class ast_type, class... Args>
 ast_type *Parser::create_declaration(Args &&...args) {
+    advanceIf(TokenType::SEMICOLON);
     return new ast_type(std::forward<Args>(args)..., this->current().location);
 }
 
