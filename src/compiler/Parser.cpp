@@ -120,6 +120,7 @@ std::vector<EnumCase *> Parser::enum_cases() {
          this->current().type != TokenType::BRACE_CLOSE; enum_case_value++) {
         auto case_name =
             getAndAdvance(TokenType::IDENTIFIER)->value(this->printer.source);
+
         AST *case_value;
 
         if (advanceIf(TokenType::EQUAL)) {
@@ -203,7 +204,9 @@ std::vector<FunctionArgument *> Parser::function_arguments() {
             argument_name, argument_type);
         arguments.push_back(argument);
 
-        advanceIf(TokenType::COMMA);
+        if (!advanceIf(TokenType::COMMA)) {
+            break;
+        }
     }
 
     return arguments;
@@ -469,6 +472,11 @@ end:
 AST *Parser::qualifiers() {
     auto qualifiers = getQualifiers();
 
+    if (this->current().type == TokenType::ENUM) {
+        return this->enum_declaration(qualifiers);
+    } else if (this->current().type == TokenType::STRUCT) {
+        return this->struct_declaration(qualifiers);
+    }
     return function_or_variable_declaration(qualifiers);
 }
 

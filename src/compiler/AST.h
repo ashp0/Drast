@@ -336,12 +336,19 @@ class UnaryExpression : public AST {
 class LiteralExpression : public AST {
   public:
     std::string_view value;
-    TokenType type;
+    std::optional<std::string> string_value = std::nullopt;
+    TokenType literal_type;
 
   public:
-    LiteralExpression(std::string_view value, TokenType type, Location location)
+    LiteralExpression(std::string_view value, TokenType literal_type,
+                      Location location)
         : AST(ASTType::LITERAL_EXPRESSION, location), value(value),
-          type(type){};
+          literal_type(literal_type){};
+
+    LiteralExpression(std::string string_value, TokenType literal_type,
+                      Location location)
+        : AST(ASTType::LITERAL_EXPRESSION, location),
+          string_value(string_value), literal_type(literal_type){};
 
     std::string toString() override;
 };

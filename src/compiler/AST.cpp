@@ -55,7 +55,10 @@ std::string FunctionDeclaration::toString() {
         function += ", ";
     }
 
-    function.resize(function.size() - 2);
+    if (!arguments.empty()) {
+        function.resize(function.size() - 2);
+    }
+
     function += ") ";
 
     if (this->body) {
@@ -157,7 +160,12 @@ std::string VariableDeclaration::toString() {
 
 std::string ForLoop::toString() { return "FOR LOOP"; }
 
-std::string Return::toString() { return "RETURN"; }
+std::string Return::toString() {
+    if (this->expression) {
+        return "return " + this->expression.value()->toString();
+    }
+    return "return";
+}
 
 std::string If::toString() { return "IF"; }
 
@@ -178,11 +186,18 @@ std::string ASM::toString() {
     return asm_;
 }
 
-std::string GOTO::toString() { return "GOTO"; }
+std::string GOTO::toString() {
+    std::string goto_;
+    goto_ += "goto ";
+    goto_ += this->label;
+    return goto_;
+}
 
 std::string BinaryExpression::toString() {
     std::string binary_expression;
     binary_expression += this->left->toString();
+    binary_expression += " ";
+    binary_expression += tokenTypeAsLiteral(this->op);
     binary_expression += " ";
     binary_expression += this->right->toString();
 
@@ -198,8 +213,19 @@ std::string UnaryExpression::toString() {
 
 std::string LiteralExpression::toString() {
     std::string literal_expression;
-    literal_expression += tokenTypeAsLiteral(this->type);
+    if (string_value) {
+        literal_expression += string_value.value();
+    } else {
+        literal_expression += this->value;
+    }
+
     return literal_expression;
 }
 
-std::string GroupingExpression::toString() { return "GroupingExpression"; }
+std::string GroupingExpression::toString() {
+    std::string grouping_expression;
+    grouping_expression += "(";
+    grouping_expression += this->expr->toString();
+    grouping_expression += ")";
+    return grouping_expression;
+}

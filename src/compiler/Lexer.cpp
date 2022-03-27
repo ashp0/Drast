@@ -3,7 +3,6 @@
 //
 
 #include "Lexer.h"
-#include <format>
 
 void Lexer::lex() {
     for (auto token = getToken(); token.type != TokenType::T_EOF;

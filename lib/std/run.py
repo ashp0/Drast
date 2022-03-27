@@ -18,7 +18,7 @@ class Colors:
     reset = '\033[0m'
 
 
-EXECUTABLE = '../cmake-build-debug/drast'
+EXECUTABLE = '../../build/drast'
 DRAST_FILES = glob.glob('*.drast')
 FILES_AND_TIMES = []
 
@@ -28,7 +28,6 @@ for file in DRAST_FILES:
     try:
         # Run the program and also get the time token
         start = time.time()
-        print([EXECUTABLE, file])
         program_output = subprocess.check_output([EXECUTABLE, file])
         end = time.time()
 

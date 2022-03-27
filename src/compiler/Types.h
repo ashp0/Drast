@@ -5,7 +5,7 @@
 #ifndef DRAST_TYPES_H
 #define DRAST_TYPES_H
 
-#include <iostream>
+#include <string>
 
 struct Location {
     uint32_t line;
