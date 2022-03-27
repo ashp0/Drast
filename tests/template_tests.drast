@@ -1,0 +1,27 @@
+//
+// Drast Programming Language Tests
+//
+
+struct Pair : @(struct first_type, struct second_type) {
+    first_type :: get_first()
+    second_type :: get_second()
+
+    void :: insertAt(type, int position) : @(struct first_type) {
+
+    }
+}
+
+struct Person {
+    string name
+    int age
+}
+
+enum AgeGroup {
+    Child,
+    Teenager,
+    Adult,
+    Senior
+}
+
+Pair@(Person, AgeGroup) john_doe
+john_doe.insertAt@(Person, AgeGroup)()
