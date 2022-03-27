@@ -283,6 +283,7 @@ Token Lexer::lexWhile(TokenType type, predicate &&pred, bool is_string) {
     return this->returnToken(type, true);
 }
 
-int Lexer::throw_error(std::string message) {
-    throw printer.error(message, this->location);
+int Lexer::throw_error(const std::string &message) {
+    printer.error(message, this->location);
+    return -1;
 }

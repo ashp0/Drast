@@ -38,16 +38,17 @@ class Parser {
 
     std::vector<EnumCase *> enum_cases();
 
-    AST *function_or_variable_declaration(std::vector<TokenType> qualifiers);
+    AST *
+    function_or_variable_declaration(const std::vector<TokenType> &qualifiers);
 
     FunctionDeclaration *
     function_declaration(AST *&return_type,
-                         std::vector<TokenType> qualifiers = {});
+                         const std::vector<TokenType> &qualifiers = {});
 
     std::vector<FunctionArgument *> function_arguments();
 
     AST *variable_declaration(AST *&variable_type,
-                              std::vector<TokenType> qualifiers = {});
+                              const std::vector<TokenType> &qualifiers = {});
 
     ForLoop *for_loop();
 
@@ -94,7 +95,7 @@ class Parser {
     std::vector<TokenType> getQualifiers();
 
   private: /* Utilities */
-    Token &current() const { return this->tokens[this->index]; }
+    [[nodiscard]] Token &current() const { return this->tokens[this->index]; }
 
     void advance();
 
@@ -111,7 +112,7 @@ class Parser {
     template <class ast_type, class... Args>
     ast_type *create_declaration(Args &&...args);
 
-    int throw_error(const char *message);
+    static int throw_error(const char *message);
 };
 
 #endif // DRAST_PARSER_H

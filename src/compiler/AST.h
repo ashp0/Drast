@@ -8,6 +8,7 @@
 #include "Token.h"
 #include "Types.h"
 #include <string>
+#include <utility>
 #include <vector>
 
 enum class ASTType {
@@ -72,7 +73,8 @@ class CompoundStatement : public AST {
     CompoundStatement(std::vector<AST *> &statements, Location &location)
         : AST(ASTType::COMPOUND, location), statements(std::move(statements)) {}
 
-    CompoundStatement(Location &location) : AST(ASTType::COMPOUND, location) {}
+    explicit CompoundStatement(Location &location)
+        : AST(ASTType::COMPOUND, location) {}
 
     std::string toString() override;
 };
@@ -131,10 +133,9 @@ class FunctionArgument : public AST {
   public:
     FunctionArgument(std::string_view name, std::optional<AST *> type,
                      Location location)
-        : AST(ASTType::FUNCTION_ARGUMENT, location), name(name),
-          type(std::move(type)) {}
+        : AST(ASTType::FUNCTION_ARGUMENT, location), name(name), type(type) {}
 
-    FunctionArgument(Location location)
+    explicit FunctionArgument(Location location)
         : AST(ASTType::FUNCTION_ARGUMENT, location) {}
 
     std::string toString() override;
@@ -149,7 +150,7 @@ class FunctionCall : public AST {
     FunctionCall(std::string_view name, std::vector<AST *> arguments,
                  Location location)
         : AST(ASTType::FUNCTION_CALL, location), name(name),
-          arguments(arguments) {}
+          arguments(std::move(arguments)) {}
 
     std::string toString() override;
 };
@@ -182,7 +183,7 @@ class StructDeclaration : public AST {
     StructDeclaration(std::string_view name, std::vector<TokenType> qualifiers,
                       CompoundStatement *body, Location location)
         : AST(ASTType::STRUCT_DECLARATION, location), name(name), body(body),
-          qualifiers(qualifiers) {}
+          qualifiers(std::move(qualifiers)) {}
 
     std::string toString() override;
 };
@@ -199,8 +200,8 @@ class EnumDeclaration : public AST {
   public:
     EnumDeclaration(std::string_view name, std::vector<EnumCase *> cases,
                     std::vector<TokenType> qualifiers, Location location)
-        : AST(ASTType::ENUM_DECLARATION, location), name(name), cases(cases),
-          qualifiers(qualifiers) {}
+        : AST(ASTType::ENUM_DECLARATION, location), name(name),
+          cases(std::move(cases)), qualifiers(std::move(qualifiers)) {}
 
     std::string toString() override;
 };
@@ -228,7 +229,7 @@ class VariableDeclaration : public AST {
                         std::optional<AST *> value,
                         std::vector<TokenType> qualifiers, Location location)
         : AST(ASTType::VARIABLE_DECLARATION, location), name(name), type(type),
-          value(value), qualifiers(qualifiers) {}
+          value(value), qualifiers(std::move(qualifiers)) {}
 
     std::string toString() override;
 };
@@ -269,7 +270,7 @@ class Return : public AST {
 
   public:
     Return(std::optional<AST *> expression, Location location)
-        : AST(ASTType::RETURN, location), expression(std::move(expression)){};
+        : AST(ASTType::RETURN, location), expression(expression){};
 
     std::string toString() override;
 };
@@ -289,11 +290,9 @@ class If : public AST {
        std::vector<AST *> else_if_conditions,
        std::vector<CompoundStatement *> else_if_bodies,
        std::optional<CompoundStatement *> else_body, Location location)
-        : AST(ASTType::IF, location), if_condition(std::move(if_condition)),
-          if_body(std::move(if_body)),
-          else_if_conditions(std::move(else_if_conditions)),
-          else_if_bodies(std::move(else_if_bodies)),
-          else_body(std::move(else_body)){};
+        : AST(ASTType::IF, location), if_condition(if_condition),
+          if_body(if_body), else_if_conditions(std::move(else_if_conditions)),
+          else_if_bodies(std::move(else_if_bodies)), else_body(else_body){};
 
     std::string toString() override;
 };
@@ -304,7 +303,7 @@ class ASM : public AST {
 
   public:
     ASM(std::vector<std::string_view> instructions, Location location)
-        : AST(ASTType::ASM, location), instructions(instructions){};
+        : AST(ASTType::ASM, location), instructions(std::move(instructions)){};
 
     std::string toString() override;
 };
@@ -333,8 +332,8 @@ class SwitchStatement : public AST {
   public:
     SwitchStatement(AST *expression, std::vector<SwitchCase *> cases,
                     Location location)
-        : AST(ASTType::SWITCH, location), expression(expression), cases(cases) {
-    }
+        : AST(ASTType::SWITCH, location), expression(expression),
+          cases(std::move(cases)) {}
 
     std::string toString() override;
 };
@@ -423,7 +422,7 @@ class ASTToken : public AST {
     ASTToken(TokenType type, Location location)
         : AST(ASTType::TOKEN, location), type(type) {}
 
-    std::string toString() { return tokenTypeAsLiteral(this->type); }
+    std::string toString() override { return tokenTypeAsLiteral(this->type); }
 };
 
 #endif // DRAST_AST_H

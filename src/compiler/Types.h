@@ -11,7 +11,9 @@ struct Location {
     uint32_t line;
     uint32_t column;
 
-    std::string toString() {
+    Location(uint32_t line, uint32_t column) : line(line), column(column) {}
+
+    [[nodiscard]] std::string toString() const {
         return "L(" + std::to_string(line) + "), C(" + std::to_string(column) +
                ")";
     }

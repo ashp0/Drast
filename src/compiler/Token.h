@@ -246,7 +246,7 @@ constexpr bool isAdditiveOperator(TokenType type) {
     }
 }
 
-constexpr bool isEqualitiveOperator(TokenType type) {
+constexpr bool isEqualityOperator(TokenType type) {
     switch (type) {
     case TokenType::EQUAL:
     case TokenType::EQUAL_EQUAL:
@@ -273,7 +273,7 @@ constexpr bool isEqualitiveOperator(TokenType type) {
     }
 }
 
-constexpr bool isComparitiveOperator(TokenType type) {
+constexpr bool isComparativeOperator(TokenType type) {
     switch (type) {
     case TokenType::LESS_THAN:
     case TokenType::LESS_THAN_EQUAL:
@@ -307,7 +307,7 @@ class Token {
         return ss.str();
     }
 
-    std::string_view value(std::string_view source) const {
+    [[nodiscard]] std::string_view value(std::string_view source) const {
         return source.substr(this->start, this->length);
     }
 };

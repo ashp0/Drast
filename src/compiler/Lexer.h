@@ -27,10 +27,8 @@ class Lexer {
 
   public:
     explicit Lexer(std::string &source, std::string &file_name)
-        : source(source), start(0), index(0), printer(file_name, source) {
-        location.line = 1;
-        location.column = 1;
-    }
+        : source(source), start(0), index(0), printer(file_name, source),
+          location(1, 1) {}
 
     void lex();
 
@@ -62,9 +60,9 @@ class Lexer {
     template <typename predicate>
     Token lexWhile(TokenType type, predicate &&pred, bool is_string = false);
 
-    int throw_error(std::string message);
+    int throw_error(const std::string &message);
 
-    char &current() const { return this->source[this->index]; }
+    [[nodiscard]] char &current() const { return this->source[this->index]; }
 };
 
 #endif // DRAST_LEXER_H

@@ -14,13 +14,13 @@ uint32_t indent = 0;
 
 #define ADD_INDENTS(type)                                                      \
     for (int i = 0; i < indent; i++)                                           \
-        type += "\t";
+        (type) += "\t";
 
 std::string CompoundStatement::toString() {
     std::string compound = "{\n";
     indent += 1;
     for (auto &statement : this->statements) {
-        ADD_INDENTS(compound);
+        ADD_INDENTS(compound)
         //        compound += "\t";
         compound += statement->toString();
         compound += "\n";
@@ -99,13 +99,13 @@ std::string FunctionCall::toString() {
 }
 
 std::string Type::toString() {
-    std::string type;
-    type += this->literal_value;
-    type += (this->is_pointer ? "*" : "");
-    type += (this->is_array ? "[]" : "");
-    type += (this->is_optional ? "? " : "");
+    std::string type_string;
+    type_string += this->literal_value;
+    type_string += (this->is_pointer ? "*" : "");
+    type_string += (this->is_array ? "[]" : "");
+    type_string += (this->is_optional ? "? " : "");
 
-    return type;
+    return type_string;
 }
 
 std::string StructDeclaration::toString() {

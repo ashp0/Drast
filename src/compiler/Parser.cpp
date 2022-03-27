@@ -64,8 +64,6 @@ AST *Parser::statement() {
     default:
         throw this->throw_error("Parser: Cannot Parse Token");
     }
-
-    return nullptr;
 }
 
 ImportStatement *Parser::import() {
@@ -84,7 +82,7 @@ ImportStatement *Parser::import() {
         is_library = true;
         break;
     default:
-        this->throw_error("Expected string literal\n");
+        Parser::throw_error("Expected string literal\n");
     }
 
     return this->create_declaration<ImportStatement>(import_path, is_library);
@@ -150,7 +148,7 @@ std::vector<EnumCase *> Parser::enum_cases() {
 }
 
 AST *Parser::function_or_variable_declaration(
-    std::vector<TokenType> qualifiers) {
+    const std::vector<TokenType> &qualifiers) {
     if (isOperatorType(peek().type)) {
         if (isKeywordType(this->current().type)) {
             goto start;
@@ -170,7 +168,7 @@ start:
 
 FunctionDeclaration *
 Parser::function_declaration(AST *&return_type,
-                             std::vector<TokenType> qualifiers) {
+                             const std::vector<TokenType> &qualifiers) {
     auto function_name =
         getAndAdvance(TokenType::IDENTIFIER)->value(this->printer.source);
 
@@ -224,7 +222,7 @@ std::vector<FunctionArgument *> Parser::function_arguments() {
 }
 
 AST *Parser::variable_declaration(AST *&variable_type,
-                                  std::vector<TokenType> qualifiers) {
+                                  const std::vector<TokenType> &qualifiers) {
     auto variable_name =
         getAndAdvance(TokenType::IDENTIFIER)->value(this->printer.source);
 
@@ -387,8 +385,7 @@ SwitchCase *Parser::switch_case() {
 
     advance(TokenType::COLON);
 
-    CompoundStatement *case_body =
-        this->create_declaration<CompoundStatement>();
+    auto *case_body = this->create_declaration<CompoundStatement>();
 
     while (this->current().type != TokenType::CASE &&
            this->current().type != TokenType::DEFAULT &&
@@ -409,7 +406,7 @@ AST *Parser::expression() { return this->equality(); }
 AST *Parser::equality() {
     auto expr = this->comparison();
 
-    while (isEqualitiveOperator(this->current().type)) {
+    while (isEqualityOperator(this->current().type)) {
         TokenType operator_type = getAndAdvance()->type;
 
         auto right_ast = this->comparison();
@@ -424,7 +421,7 @@ AST *Parser::equality() {
 AST *Parser::comparison() {
     auto expr = this->term();
 
-    while (isComparitiveOperator(this->current().type)) {
+    while (isComparativeOperator(this->current().type)) {
         TokenType operator_type = getAndAdvance()->type;
 
         auto right_ast = this->term();
@@ -499,7 +496,7 @@ AST *Parser::primary(bool parses_goto) {
 
         return this->create_declaration<GroupingExpression>(expr);
     } else {
-        throw this->throw_error("Invalid Expression");
+        throw Parser::throw_error("Invalid Expression");
     }
 }
 
@@ -530,7 +527,7 @@ AST *Parser::type() {
 
     if (!isRegularType(this->current().type)) {
         std::cout << tokenTypeAsLiteral(this->current().type) << std::endl;
-        this->throw_error("Parser: Expected type\n");
+        Parser::throw_error("Parser: Expected type\n");
     }
 
     advance();
@@ -593,7 +590,7 @@ void Parser::advance(TokenType type) {
         std::cout << tokenTypeAsLiteral(this->current().type)
                   << " :: " << tokenTypeAsLiteral(type)
                   << " :: " << this->current().location.toString() << std::endl;
-        this->throw_error("Didn't Get Expected Token");
+        Parser::throw_error("Didn't Get Expected Token");
     }
 }
 
