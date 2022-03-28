@@ -33,7 +33,7 @@ class Parser {
     StructDeclaration *
     struct_declaration(const std::vector<TokenType> &qualifiers = {});
 
-    StructMemberAccess *struct_member_access();
+    AST *struct_member_access();
 
     AST *struct_init_or_enum_case_access();
 

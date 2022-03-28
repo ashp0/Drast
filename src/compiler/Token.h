@@ -236,6 +236,7 @@ constexpr bool isRegularValue(TokenType type) {
     case TokenType::FALSE:
     case TokenType::NIL:
     case TokenType::IDENTIFIER:
+    case TokenType::SELF:
         return true;
     default:
         return false;
@@ -257,7 +258,6 @@ constexpr bool isAdditiveOperator(TokenType type) {
     switch (type) {
     case TokenType::OPERATOR_ADD:
     case TokenType::OPERATOR_SUB:
-    case TokenType::PERIOD:
     case TokenType::AT:
         return true;
     default:

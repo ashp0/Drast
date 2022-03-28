@@ -6,6 +6,14 @@ tokens.insertAt@(Token, Token)()
 
 import io
 
+struct Test {
+    @() {
+        self.test =  40
+        self.test(.test)
+        return self.returnEqualToken(.greater, .greater_equal)
+    }
+}
+
 struct Pair : @(struct first_type, struct second_type) {
      first_type :: first(first_type)
      second_type :: second(second_type)
@@ -32,7 +40,7 @@ extern int :: printf(string format, ...)
 
 struct Person {
     int age
-    
+
     @(int age) {
         self.age = age
         self.source = source
@@ -54,7 +62,7 @@ asm (
         "cli"
         "htl"
         "jmp loop"
-    
+
     "mov rax, 0"
 )
 

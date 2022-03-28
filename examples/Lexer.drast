@@ -12,7 +12,7 @@ struct Lexer {
     private int start
     private int index
 
-    // vector<Token> tokens
+    vector@(Token) tokens
 
     @(string source) {
         self.source = source
@@ -20,6 +20,14 @@ struct Lexer {
         self.column = 1
         self.index = 0
         self.start = self.index
+    }
+
+    void :: lex() {
+        for (Token token = getToken(), token.type != .eof, token = getToken()) {
+            self.tokens.push_back(token)
+        }
+
+        self.tokens.push_back(returnToken(.eof))
     }
 
     Token :: getToken() {
@@ -32,8 +40,11 @@ struct Lexer {
         case '\'':
             return self.character()
         case ' ':
+            break
         case '\r':
+            break
         case '\t':
+            break
         case '\n':
             break
         case '?':
@@ -43,7 +54,105 @@ struct Lexer {
                 self.advance()
                 return returnEqualToken(.bitwise_shift_left, .bitwise_shift_left_equal)
             }
+
+            return self.returnEqualToken(.less, .less_equal)
+        case '>':
+            if (self.peek() == '>') {
+                self.advance()
+                return returnEqualToken(.bitwise_shift_right, .bitwise_shift_right_equal)
+            }
+
+            return self.returnEqualToken(.greater, .greater_equal)
+        case '=':
+            return self.returnEqualToken(.equal, .equal_equal)
+        case '!':
+            return self.returnEqualToken(.not, .not_equal)
+        case '+':
+            return self.returnEqualToken(.plus, .plus_equal)
+        case '-':
+            return self.returnEqualToken(.minus, .minus_equal)
+        case '*':
+            return self.returnEqualToken(.asterisk, .asterisk_equal)
+        case '/':
+            if (peek_next() == '/') {
+                self.skipLine()
+                return self.getToken()
+            } else if (peek_next() == '*') {
+                self.skipBlockComment()
+                return self.getToken()
+            }
+            return self.returnEqualToken(.slash, .slash_equal)
+
+        case '%':
+            return self.returnEqualToken(.percent, .percent_equal)
+
+        case '&':
+            if (self.peek_next() == '&') {
+                self.advance()
+                return self.returnEqualToken(.and_and, .and_and_equal)
+            }
+
+            return self.returnEqualToken(.and, .and_equal)
+
+         case '|':
+            if (self.peek_next() == '|') {
+                self.advance()
+                return self.returnEqualToken(.pipe_pipe, .pipe_pipe_equal)
+            }
+
+            return self.returnEqualToken(.pipe, .pipe_equal)
+
+        case '^':
+            return self.returnEqualToken(.power, .power_equal)
+
+        case '~':
+            return self.returnToken(.not)
+
+        case ':':
+            if (peek_next() == ':') {
+                self.advance()
+                return self.returnToken(.double_colon)
+            }
+            return self.returnToken(.colon)
+
+        case ';':
+            return self.returnToken(.semicolon)
+
+        case '(':
+            return self.returnToken(.open_paren)
+        case ')':
+            return self.returnToken(.close_paren)
+        case '[':
+            return self.returnToken(.open_square)
+        case ']':
+            return self.returnToken(.close_square)
+        case '{':
+            return self.returnToken(.open_curly)
+        case '}':
+            return self.returnToken(.close_curly)
+        case ',':
+            return self.returnToken(.comma)
+        case '.':
+            return self.returnToken(.dot)
+        case '$':
+            return self.returnToken(.dollar)
+        case '#':
+            return self.returnToken(.hashtag)
+        case '@':
+            return self.returnToken(.at)
+        case '\\':
+            return self.returnToken(.backslash)
+        case '\0':
+            break
+        default:
+            throw("Unexpected Character")
         }
+
+        return self.returnWithoutAdvance(.eof)
+    }
+
+    Token :: returnWithoutAdvance(TokenType type) {
+        return Token.init(type, .init(self.current()), self.location)
     }
 
     void :: advance() {

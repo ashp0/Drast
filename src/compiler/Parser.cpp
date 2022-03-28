@@ -69,6 +69,7 @@ AST *Parser::statement() {
     case TokenType::T_EOF:
         return nullptr;
     default:
+        std::cout << tokenTypeAsLiteral(this->current().type);
         throw this->throw_error("Parser: Cannot Parse Token");
     }
 }
@@ -115,7 +116,7 @@ Parser::struct_declaration(const std::vector<TokenType> &qualifiers) {
                                                        struct_body, template_);
 }
 
-StructMemberAccess *Parser::struct_member_access() {
+AST *Parser::struct_member_access() {
     std::string_view variable_name;
     if (this->current().type == TokenType::IDENTIFIER) {
         variable_name =
@@ -129,6 +130,24 @@ StructMemberAccess *Parser::struct_member_access() {
 
     advance(TokenType::PERIOD);
 
+    if (this->current().type == TokenType::IDENTIFIER) {
+        auto identifier =
+            getAndAdvance(TokenType::IDENTIFIER)->value(this->printer.source);
+
+        if (identifier == "init") {
+            advance(TokenType::PARENS_OPEN);
+            auto arguments = function_call_arguments();
+            advance(TokenType::PARENS_CLOSE);
+
+            return this->create_declaration<StructInitializerCall>(
+                variable_name, arguments);
+        } else {
+            this->index -= 1;
+            goto expression;
+        }
+    }
+
+expression:
     auto struct_member = expression();
 
     return this->create_declaration<StructMemberAccess>(variable_name,
@@ -446,12 +465,6 @@ SwitchCase *Parser::switch_case() {
 AST *Parser::expression() { return this->equality(); }
 
 AST *Parser::equality() {
-    if (this->current().type == TokenType::PERIOD) {
-        return struct_init_or_enum_case_access();
-    } else if (peek().type == TokenType::PERIOD) {
-        return struct_member_access();
-    }
-
     auto expr = this->comparison();
 
     while (isEqualityOperator(this->current().type)) {
@@ -524,6 +537,13 @@ AST *Parser::unary() {
 }
 
 AST *Parser::primary(bool parses_goto) {
+    if (peek().type == TokenType::PERIOD) {
+        std::cout << "Parsing primary with period" << std::endl;
+        return struct_member_access();
+    }
+    if (this->current().type == TokenType::PERIOD) {
+        return struct_init_or_enum_case_access();
+    }
     if (isRegularValue(this->current().type)) {
         auto literal = this->create_declaration<LiteralExpression>(
             this->current().value(this->printer.source), this->current().type);
@@ -669,13 +689,13 @@ std::vector<FunctionArgument *> Parser::function_arguments() {
             break;
         }
 
-        std::optional<AST *> argument_type = std::nullopt;
-        if (this->current().type != TokenType::IDENTIFIER) {
-            argument_type = this->type();
-        }
+        AST *argument_type = this->type();
+        std::optional<std::string_view> argument_name;
 
-        auto argument_name =
-            getAndAdvance(TokenType::IDENTIFIER)->value(this->printer.source);
+        if (this->current().type == TokenType::IDENTIFIER) {
+            argument_name = getAndAdvance(TokenType::IDENTIFIER)
+                                ->value(this->printer.source);
+        }
 
         auto argument = this->create_declaration<FunctionArgument>(
             argument_name, argument_type);

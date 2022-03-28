@@ -145,11 +145,11 @@ class FunctionDeclaration : public AST {
 class FunctionArgument : public AST {
   public:
     std::optional<std::string_view> name = std::nullopt;
-    std::optional<AST *> type = std::nullopt;
+    std::optional<AST *> type;
     bool is_vaarg = false;
 
   public:
-    FunctionArgument(std::string_view name, std::optional<AST *> type,
+    FunctionArgument(std::optional<std::string_view> name, AST *type,
                      Location location)
         : AST(ASTType::FUNCTION_ARGUMENT, location), name(name), type(type) {}
 
@@ -235,11 +235,17 @@ class StructMemberAccess : public AST {
 class StructInitializerCall : public AST {
   public:
     std::vector<AST *> arguments;
+    std::optional<std::string_view> variable_name = std::nullopt;
 
   public:
     StructInitializerCall(std::vector<AST *> arguments, Location location)
         : AST(ASTType::STRUCT_INITIALIZER_CALL, location),
           arguments(std::move(arguments)) {}
+
+    StructInitializerCall(std::string_view variable_name,
+                          std::vector<AST *> arguments, Location location)
+        : AST(ASTType::STRUCT_INITIALIZER_CALL, location),
+          variable_name(variable_name), arguments(std::move(arguments)) {}
 
     std::string toString() override;
 };

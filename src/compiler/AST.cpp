@@ -77,11 +77,11 @@ std::string FunctionArgument::toString() {
     std::string argument;
 
     if (!is_vaarg) {
-        if (type) {
-            argument += this->type.value()->toString();
+        argument += this->type.value()->toString();
+        if (name) {
             argument += " ";
+            argument += this->name.value();
         }
-        argument += this->name.value();
     } else {
         argument += "...";
     }
@@ -192,6 +192,9 @@ std::string EnumCase::toString() {
 
 std::string VariableDeclaration::toString() {
     std::string variable_declaration;
+
+    PRINT_QUALIFIERS(variable_declaration)
+
     variable_declaration += this->type->toString();
     variable_declaration += " ";
 
@@ -388,6 +391,9 @@ std::string EnumCaseAccess::toString() {
 
 std::string StructInitializerCall::toString() {
     std::string function_call;
+    if (this->variable_name) {
+        function_call += this->variable_name.value();
+    }
     function_call += ".init(";
     for (auto &argument : this->arguments) {
         function_call += argument->toString();
