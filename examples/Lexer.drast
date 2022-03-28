@@ -22,6 +22,11 @@ struct Lexer {
         self.start = self.index
     }
 
+    ~() {
+        free(self.source)
+        Lexer.deinit()
+    }
+
     void :: lex() {
         for (Token token = getToken(), token.type != .eof, token = getToken()) {
             self.tokens.push_back(token)
@@ -151,8 +156,49 @@ struct Lexer {
         return self.returnWithoutAdvance(.eof)
     }
 
-    Token :: returnWithoutAdvance(TokenType type) {
-        return Token.init(type, .init(self.current()), self.location)
+    void :: skipWhitespace() {
+        while (self.current() == ' ' || self.current() == '\r' || self.current() == '\t' || self.current() == '\n') {
+            if (self.current() == '\n') {
+                self.line += 1
+                self.column = 1
+            } else {
+                self.column += 1
+            }
+
+            self.advance()
+        }
+    }
+
+    void :: skipLine() {
+        while (self.current() != '\n') {
+            self.advance()
+        }
+    }
+
+    void :: skipBlockComment() {
+        self.advance()
+        self.advance()
+
+    while_loop:
+        while (self.current() != '*') {
+            if (self.current() == '\n') {
+                self.location.line += 1
+                self.location.column = 1
+            }
+            self.advance()
+
+            if (self.current() == '\0') {
+                throw("Unterminated Block Comment")
+            }
+        }
+
+        self.advance()
+        if (self.current == '/') {
+            self.advance()
+            return
+        } else {
+            goto while_loop
+        }
     }
 
     void :: advance() {
@@ -167,4 +213,38 @@ struct Lexer {
     char :: peek() {
         return self.source.at(self.index + 1)
     }
+
+
+    Token :: returnToken(TokenType type) {
+        Token token = Token.init(type, .init(self.current()), self.location)
+        self.advance()
+        return token
+    }
+
+    Token :: returnEqualToken(TokenType type1, TokenType type2) {
+        if (peek_next() == '=') {
+            self.advance()
+            return returnToken(type2)
+        }
+
+        return returnToken(type1)
+    }
+
+    Token :: returnWithoutAdvance(TokenType type) {
+        return Token.init(type, .init(self.current()), self.location)
+    }
+
+    // Token :: lexWhile(TokenType type, $bool() predicate, bool is_string) {
+        
+    // }
+
+    // Token :: testFunction($bool(int, bool) predicate) {
+
+    // }
+
+    // void :: myOtherFunction() {
+    //     testFunction(!{ $(int a, bool b)
+    //         return true
+    //     })
+    // }
 }

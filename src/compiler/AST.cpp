@@ -394,14 +394,19 @@ std::string StructInitializerCall::toString() {
     if (this->variable_name) {
         function_call += this->variable_name.value();
     }
-    function_call += ".init(";
-    for (auto &argument : this->arguments) {
-        function_call += argument->toString();
-        function_call += ",";
-    }
 
-    if (!arguments.empty()) {
-        function_call.pop_back();
+    if (this->is_deinit) {
+        function_call += ".deinit(";
+    } else {
+        function_call += ".init(";
+        for (auto &argument : this->arguments.value()) {
+            function_call += argument->toString();
+            function_call += ",";
+        }
+
+        if (!arguments.value().empty()) {
+            function_call.pop_back();
+        }
     }
     function_call += ")";
     return function_call;
@@ -409,16 +414,21 @@ std::string StructInitializerCall::toString() {
 
 std::string StructInitializerDeclaration::toString() {
     std::string struct_initializer_declaration;
-    struct_initializer_declaration += "@(";
 
-    for (auto &argument : arguments) {
-        struct_initializer_declaration += argument->toString();
-        struct_initializer_declaration += ", ";
-    }
+    if (arguments) {
+        struct_initializer_declaration += "@(";
 
-    if (!arguments.empty()) {
-        struct_initializer_declaration.resize(
-            struct_initializer_declaration.size() - 2);
+        for (auto &argument : arguments.value()) {
+            struct_initializer_declaration += argument->toString();
+            struct_initializer_declaration += ", ";
+        }
+
+        if (!arguments.value().empty()) {
+            struct_initializer_declaration.resize(
+                struct_initializer_declaration.size() - 2);
+        }
+    } else {
+        struct_initializer_declaration += "~(";
     }
 
     struct_initializer_declaration += ") ";

@@ -64,6 +64,8 @@ AST *Parser::statement() {
         return this->typealias();
     case TokenType::AT:
         return this->struct_initializer_declaration();
+    case TokenType::BITWISE_NOT:
+        return this->struct_deinitializer_declaration();
     case TokenType::PERIOD:
         return this->expression();
     case TokenType::T_EOF:
@@ -141,6 +143,12 @@ AST *Parser::struct_member_access() {
 
             return this->create_declaration<StructInitializerCall>(
                 variable_name, arguments);
+        } else if (identifier == "deinit") {
+            advance(TokenType::PARENS_OPEN);
+            advance(TokenType::PARENS_CLOSE);
+
+            return this->create_declaration<StructInitializerCall>(
+                variable_name, true);
         } else {
             this->index -= 1;
             goto expression;
@@ -183,6 +191,20 @@ StructInitializerDeclaration *Parser::struct_initializer_declaration() {
 
     return this->create_declaration<StructInitializerDeclaration>(arguments,
                                                                   body);
+}
+
+StructInitializerDeclaration *Parser::struct_deinitializer_declaration() {
+    // TODO: Check if the next token is a open_paran and after that the next is
+    // a close paran
+    advance(TokenType::BITWISE_NOT);
+    advance(TokenType::PARENS_OPEN);
+    advance(TokenType::PARENS_CLOSE);
+
+    advance(TokenType::BRACE_OPEN);
+    auto body = compound();
+    advance(TokenType::BRACE_CLOSE);
+
+    return this->create_declaration<StructInitializerDeclaration>(body);
 }
 
 EnumDeclaration *
@@ -538,7 +560,6 @@ AST *Parser::unary() {
 
 AST *Parser::primary(bool parses_goto) {
     if (peek().type == TokenType::PERIOD) {
-        std::cout << "Parsing primary with period" << std::endl;
         return struct_member_access();
     }
     if (this->current().type == TokenType::PERIOD) {

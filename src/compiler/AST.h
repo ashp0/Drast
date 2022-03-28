@@ -234,13 +234,19 @@ class StructMemberAccess : public AST {
 
 class StructInitializerCall : public AST {
   public:
-    std::vector<AST *> arguments;
+    std::optional<std::vector<AST *>> arguments;
+    bool is_deinit = false;
     std::optional<std::string_view> variable_name = std::nullopt;
 
   public:
     StructInitializerCall(std::vector<AST *> arguments, Location location)
         : AST(ASTType::STRUCT_INITIALIZER_CALL, location),
           arguments(std::move(arguments)) {}
+
+    StructInitializerCall(std::string_view variable_name, bool is_deinit,
+                          Location location)
+        : AST(ASTType::STRUCT_INITIALIZER_CALL, location),
+          variable_name(variable_name), is_deinit(is_deinit) {}
 
     StructInitializerCall(std::string_view variable_name,
                           std::vector<AST *> arguments, Location location)
@@ -252,7 +258,7 @@ class StructInitializerCall : public AST {
 
 class StructInitializerDeclaration : public AST {
   public:
-    std::vector<FunctionArgument *> arguments;
+    std::optional<std::vector<FunctionArgument *>> arguments = std::nullopt;
     CompoundStatement *body;
 
   public:
@@ -260,6 +266,9 @@ class StructInitializerDeclaration : public AST {
                                  CompoundStatement *body, Location location)
         : AST(ASTType::STRUCT_INITIALIZER_DECLARATION, location),
           arguments(std::move(arguments)), body(body) {}
+
+    StructInitializerDeclaration(CompoundStatement *body, Location location)
+        : AST(ASTType::STRUCT_INITIALIZER_DECLARATION, location), body(body) {}
 
     std::string toString() override;
 };

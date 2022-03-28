@@ -39,6 +39,8 @@ class Parser {
 
     StructInitializerDeclaration *struct_initializer_declaration();
 
+    StructInitializerDeclaration *struct_deinitializer_declaration();
+
     EnumDeclaration *
     enum_declaration(const std::vector<TokenType> &qualifiers = {});
 
