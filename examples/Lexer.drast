@@ -18,6 +18,8 @@ struct Lexer {
         self.source = source
         self.line = 1
         self.column = 1
+        //test = ~test
+        ~test = 40
         self.index = 0
         self.start = self.index
     }

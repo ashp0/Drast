@@ -193,11 +193,12 @@ StructInitializerDeclaration *Parser::struct_initializer_declaration() {
                                                                   body);
 }
 
-StructInitializerDeclaration *Parser::struct_deinitializer_declaration() {
-    // TODO: Check if the next token is a open_paran and after that the next is
-    // a close paran
+AST *Parser::struct_deinitializer_declaration() {
     advance(TokenType::BITWISE_NOT);
-    advance(TokenType::PARENS_OPEN);
+    if (!advanceIf(TokenType::PARENS_OPEN)) {
+        this->index -= 1;
+        return this->expression();
+    }
     advance(TokenType::PARENS_CLOSE);
 
     advance(TokenType::BRACE_OPEN);
@@ -547,7 +548,7 @@ AST *Parser::factor() {
 }
 
 AST *Parser::unary() {
-    if (isAdditiveOperator(this->current().type)) {
+    if (isUnaryOperator(this->current().type)) {
         TokenType operator_type = getAndAdvance()->type;
 
         auto expr = this->unary();

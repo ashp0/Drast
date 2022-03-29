@@ -170,7 +170,6 @@ constexpr bool isOperatorType(TokenType type) {
     case TokenType::BITWISE_SHIFT_RIGHT_EQUAL:
     case TokenType::BITWISE_POWER:
     case TokenType::BITWISE_POWER_EQUAL:
-    case TokenType::BITWISE_NOT:
     case TokenType::COLON: // goto labels
     case TokenType::PARENS_OPEN:
     case TokenType::PERIOD:
@@ -259,6 +258,18 @@ constexpr bool isAdditiveOperator(TokenType type) {
     case TokenType::OPERATOR_ADD:
     case TokenType::OPERATOR_SUB:
     case TokenType::AT:
+        return true;
+    default:
+        return false;
+    }
+}
+
+constexpr bool isUnaryOperator(TokenType type) {
+    switch (type) {
+    case TokenType::OPERATOR_ADD:
+    case TokenType::OPERATOR_SUB:
+    case TokenType::AT:
+    case TokenType::BITWISE_NOT:
         return true;
     default:
         return false;
