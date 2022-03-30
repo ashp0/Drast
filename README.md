@@ -41,4 +41,4 @@ Just run the `CMakeLists.txt`
 
 ## Social
 
-- [Discord Server](https://discord.gg/sUbswXFeB4)
+- [Discord Server](https://discord.gg/ZbmHzNmzPH)
