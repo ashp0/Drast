@@ -38,3 +38,7 @@ int :: main(int argc, string[] argv) {
 Drast is written in cpp20
 
 Just run the `CMakeLists.txt`
+
+## Social
+
+- [Discord Server](https://discord.gg/sUbswXFeB4)
