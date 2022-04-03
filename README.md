@@ -53,7 +53,7 @@ In the cmake-gui:
     
     - Set the where the binaries will be built to the build directory you made
 
-Then press configure and then generate. If all goes well, this should create a Visual Studio solution file inside the build, and all you need to do is double click the solution file, then build and run the project within Visual Studio.
+Then press configure and then generate. If all goes well, this should create a Visual Studio solution file inside the build directory, and all you need to do is double click the solution file, then build and run the project within Visual Studio.
 </details>
 
 ## Social
