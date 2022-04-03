@@ -18,7 +18,7 @@ struct Lexer {
         self.source = source
         self.line = 1
         self.column = 1
-        //test = ~test
+        test = ~test
         ~test = 40
         self.index = 0
         self.start = self.index
@@ -240,13 +240,13 @@ struct Lexer {
         
     // }
 
-    // Token :: testFunction($bool(int, bool) predicate) {
+    Token :: testFunction($bool(int, bool) predicate) { $(int a, bool b)
 
-    // }
+    }
 
-    // void :: myOtherFunction() {
-    //     testFunction(!{ $(int a, bool b)
-    //         return true
-    //     })
-    // }
+    void :: myOtherFunction() {
+        testFunction(!{ $(int a, bool b)
+            return true
+        }, 5+30)
+    }
 }

@@ -13,6 +13,11 @@ void Parser::parse() {
 CompoundStatement *Parser::compound() {
     auto compoundStatement = this->create_declaration<CompoundStatement>();
 
+    // $(int a, bool b)
+    if (this->current().type == TokenType::DOLLAR) {
+        compoundStatement->first_class_function = this->first_class_function();
+    }
+
     while (this->current().type != TokenType::BRACE_CLOSE &&
            this->current().type != TokenType::T_EOF) {
         auto statement = this->statement();
@@ -619,8 +624,16 @@ std::vector<AST *> Parser::function_call_arguments() {
     std::vector<AST *> arguments;
 
     while (this->current().type != TokenType::PARENS_CLOSE) {
-        arguments.push_back(this->expression());
+        if (advanceIf(TokenType::NOT)) {
+            advance(TokenType::BRACE_OPEN);
+            auto body = this->compound();
+            arguments.push_back(body);
+            advance(TokenType::BRACE_CLOSE);
+            advanceIf(TokenType::COMMA);
+            continue;
+        }
 
+        arguments.push_back(this->expression());
         advanceIf(TokenType::COMMA);
     }
 
@@ -732,6 +745,25 @@ std::vector<FunctionArgument *> Parser::function_arguments() {
     return arguments;
 }
 
+FirstClassFunction *Parser::first_class_function() {
+    // $bool(int, string)
+    advance(TokenType::DOLLAR);
+
+    bool is_type = true;
+    std::optional<AST *> return_type = std::nullopt;
+    if (this->current().type == TokenType::PARENS_OPEN) {
+        is_type = false;
+    } else {
+        return_type = this->type();
+    }
+    advance(TokenType::PARENS_OPEN);
+    auto arguments = this->function_arguments();
+    advance(TokenType::PARENS_CLOSE);
+
+    return this->create_declaration<FirstClassFunction>(return_type, arguments,
+                                                        is_type);
+}
+
 AST *Parser::type() {
     auto type = this->create_declaration<Type>(
         current().type, current().value(this->printer.source), false, false,
@@ -740,6 +772,10 @@ AST *Parser::type() {
     if (!isRegularType(this->current().type)) {
         std::cout << tokenTypeAsLiteral(this->current().type) << std::endl;
         Parser::throw_error("Parser: Expected type\n");
+    }
+
+    if (this->current().type == TokenType::DOLLAR) {
+        return this->first_class_function();
     }
 
     advance();

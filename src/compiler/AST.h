@@ -19,8 +19,10 @@ enum class ASTType {
     FUNCTION_DECLARATION, // int :: test(int a, int b) { ... }
     FUNCTION_ARGUMENT,    // int a, int b
     FUNCTION_CALL,        // test(1, 2)
+    FIRST_CLASS_FUNCTION, // $(void)(int, int)
 
-    TYPE, // int, string, float, bool, etc.
+    TYPE,                      // int, string, float, bool, etc.
+    FIRST_CLASS_FUNCTION_TYPE, // $bool(int, int)
 
     STRUCT_DECLARATION,             // struct Test { ... }
     STRUCT_MEMBER_ACCESS,           // test.integer
@@ -69,8 +71,12 @@ class AST {
 };
 
 class CompoundStatement : public AST {
+  private:
+    using FirstClassFunction = class FirstClassFunction;
+
   public:
     std::vector<AST *> statements;
+    std::optional<FirstClassFunction *> first_class_function;
 
   public:
     CompoundStatement(std::vector<AST *> &statements, Location &location)
@@ -145,7 +151,7 @@ class FunctionDeclaration : public AST {
 class FunctionArgument : public AST {
   public:
     std::optional<std::string_view> name = std::nullopt;
-    std::optional<AST *> type;
+    std::optional<AST *> type = std::nullopt;
     bool is_vaarg = false;
 
   public:
@@ -559,6 +565,23 @@ class TemplateDeclarationArgument : public AST {
         : AST(ASTType::TOKEN, location), name(name), type(type) {}
 
     std::string toString() override { return "elkamfalwkefmalkefmalwk"; }
+};
+
+class FirstClassFunction : public AST {
+  public:
+    std::optional<AST *> return_type;
+    std::vector<FunctionArgument *> function_arguments;
+    bool is_type = false;
+
+  public:
+    FirstClassFunction(std::optional<AST *> return_type,
+                       std::vector<FunctionArgument *> function_arguments,
+                       bool is_type, Location location)
+        : AST(ASTType::FIRST_CLASS_FUNCTION_TYPE, location),
+          return_type(return_type),
+          function_arguments(std::move(function_arguments)) {}
+
+    std::string toString() override;
 };
 
 #endif // DRAST_AST_H

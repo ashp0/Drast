@@ -108,6 +108,8 @@ class Parser {
 
     std::vector<FunctionArgument *> function_arguments();
 
+    FirstClassFunction *first_class_function();
+
     AST *type();
 
     AST *qualifiers();

@@ -17,7 +17,15 @@ uint32_t indent = 0;
         (type) += "\t";
 
 std::string CompoundStatement::toString() {
-    std::string compound = "{\n";
+    std::string compound;
+    if (this->first_class_function) {
+        compound += "!";
+    }
+    compound += "{ ";
+    if (this->first_class_function) {
+        compound += this->first_class_function.value()->toString();
+    }
+    compound += "\n";
     indent += 1;
     for (auto &statement : this->statements) {
         ADD_INDENTS(compound)
@@ -454,4 +462,27 @@ std::string TemplateDeclaration::toString() {
     template_declaration += ") ";
 
     return template_declaration;
+}
+
+std::string FirstClassFunction::toString() {
+    std::string function_type;
+    function_type += "$";
+    if (this->return_type) {
+        function_type += this->return_type.value()->toString();
+    }
+    function_type += "(";
+
+    for (auto &argument : this->function_arguments) {
+        function_type += argument->toString();
+        function_type += ", ";
+    }
+
+    if (!function_arguments.empty()) {
+        function_type.pop_back();
+        function_type.pop_back();
+    }
+
+    function_type += ")";
+
+    return function_type;
 }

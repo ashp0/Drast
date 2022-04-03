@@ -220,6 +220,7 @@ constexpr bool isRegularType(TokenType type) {
     case TokenType::FLOAT:
     case TokenType::STRING:
     case TokenType::IDENTIFIER:
+    case TokenType::DOLLAR:
         return true;
     default:
         return false;
