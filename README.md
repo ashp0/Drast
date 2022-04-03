@@ -43,9 +43,10 @@ In order to build drast, you must first download and install git. Then you can c
 ```batch
 git clone --recursive https://github.com/Malvion/drast
 cd drast
+mkdir build
 ```
     
-After downloading drast, you must then download and install CMake. After downloading and installing CMake, inside the drast directory, create a folder named build. After this, then open the cmake-gui
+After downloading drast, you must then download and install CMake and Visual Studio. After downloading and installing CMake and Visual Studio, open up the cmake-gui
     
 In the cmake-gui:
     
@@ -54,6 +55,27 @@ In the cmake-gui:
     - Set the where the binaries will be built to the build directory you made
 
 Then press configure and then generate. If all goes well, this should create a Visual Studio solution file inside the build directory, and all you need to do is double click the solution file, then build and run the project within Visual Studio.
+</details>
+
+<details>
+<summary>Linux and MacOS</summary>
+
+ In order to build drast, you first download a few dependencies:
+ 
+    For MacOS, do `brew install cmake`
+    For Linux, do `sudo apt install git cmake`
+    
+After installing the required dependencies, do:
+```batch
+git clone --recursive https://github.com/Malvion/drast
+cd drast
+mkdir build
+cd build
+cmake ..
+```
+    
+If all goes well, drast should be built and ready to run!
+    
 </details>
 
 ## Social
