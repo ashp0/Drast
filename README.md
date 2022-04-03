@@ -64,11 +64,10 @@ Then press configure and then generate. If all goes well, this should create a V
  
     For MacOS, do `brew install cmake`
     For Linux, do `sudo apt install git cmake`
- 
-After installing the dependencies, do `git clone --recursive https://github.com/Malvion/drast`
     
-After downloading Drast, do
+After installing the required dependencies, do:
 ```batch
+git clone --recursive https://github.com/Malvion/drast
 cd drast
 mkdir build
 cd build
