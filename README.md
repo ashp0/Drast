@@ -75,6 +75,8 @@ cd build
 cmake ..
 ```
     
+If all goes well, drast should be built and ready to run!
+    
 </details>
 
 ## Social
