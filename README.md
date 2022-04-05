@@ -36,6 +36,7 @@ int :: main(int argc, string[] argv) {
 ## Building
 
 When building drast, it is really similar for Windows, MacOS, and Linux
+
 In order to build drast, you first download and install a few dependencies/apps:
     
     For Windows, download and install CMake and Visual Studio Code
