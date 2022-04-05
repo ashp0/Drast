@@ -39,7 +39,7 @@ When building drast, it is really similar for Windows, MacOS, and Linux
 
 In order to build drast, you first download and install a few dependencies/apps:
     
-    For Windows, download and install CMake and Visual Studio Code
+    For Windows, download and install CMake and Visual Studio
     For MacOS, do `brew install cmake`
     For Linux, do `sudo apt install git cmake`
     
