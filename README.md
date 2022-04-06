@@ -34,16 +34,15 @@ int :: main(int argc, string[] argv) {
 ```
 
 ## Building
+Drast is built in a similar manner to Windows, macOS, and Linux.
 
-When trying to build drast, the process to build drast is similar across Windows, MacOS and Linux.
+Before you start building Drast, you must install these dependencies listed below:
+    
+- Windows: Install CMake and Visual Studio
+- macOS: `brew install cmake`
+- Linux: `sudo apt install git cmake`
 
-In order to build drast, you first download and install a few dependencies/apps either from your terminal or offline:
-    
-    For Windows, download and install CMake and Visual Studio
-    For MacOS, do `brew install cmake`
-    For Linux, do `sudo apt install git cmake`
-    
-After downloading and installing the required dependencies/apps, in your terminal, do:
+Run the following command after the required dependencies are install:
 ```batch
 git clone --recursive https://github.com/Malvion/drast
 cd drast
@@ -52,10 +51,9 @@ cd build
 cmake ..
 ```
     
-If all goes well, drast should be built and ready to run! If there is any error, please report them in the 'Issues' tab!
+If all goes well, Drast should be built and ready to run! If you have encountered any errors, please report them in the 'Issues' tab!
 
-NOTE: For Windows, inside the build directory you will find a Visual Studio Code file. Double click this file, then build and run.
-
+*NOTE:* For Windows, the build directory will have a Visual Studio Solution file. Double click this file, then build and run.
 ## Social
 
-- [Our Discord Server](https://discord.gg/ZbmHzNmzPH)
+- [Discord Server](https://discord.gg/ZbmHzNmzPH)
