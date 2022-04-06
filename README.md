@@ -35,7 +35,7 @@ int :: main(int argc, string[] argv) {
 
 ## Building
 
-When trying to build drast, the process to build to build drast is similar across Windows, MacOS and Linux
+When trying to build drast, the process to build drast is similar across Windows, MacOS and Linux.
 
 In order to build drast, you first download and install a few dependencies/apps either from your terminal or offline:
     
