@@ -34,7 +34,7 @@ int :: main(int argc, string[] argv) {
 ```
 
 ## Building
-Drast is built in a similar manner to Windows, macOS, and Linux.
+Drast is built in a similar manner for Windows, macOS, and Linux.
 
 Before you start building Drast, you must install these dependencies listed below:
     
