@@ -25,9 +25,12 @@ CompoundStatement *Parser::compound() {
         auto statement = this->statement();
         compoundStatement->statements.push_back(statement);
 
-        if (this->current().type != TokenType::T_EOF) {
+        if (this->current().type != TokenType::NEW_LINE) {
+            advance(TokenType::SEMICOLON);
+        } else if (this->current().type != TokenType::T_EOF) {
             advance(TokenType::NEW_LINE);
         }
+
         advanceLines();
     }
 
@@ -976,7 +979,6 @@ Token &Parser::peek(int offset) {
 
 template <class ast_type, class... Args>
 ast_type *Parser::create_declaration(Args &&...args) {
-    advanceIf(TokenType::SEMICOLON);
     return new ast_type(std::forward<Args>(args)..., this->current().location);
 }
 

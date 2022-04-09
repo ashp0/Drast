@@ -2,7 +2,7 @@
 // Drast Programming Language Tests
 //
 
-//tokens.insertAt@(Token, Token)()
+tokens.insertAt@(Token, Token)()
 
 import io
 
@@ -39,7 +39,7 @@ end:
 extern int :: printf(string format, ...)
 
 struct Person {
-    int age
+    int age; int test
 
     @(int age) {
         self.age = age
