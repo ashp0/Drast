@@ -2,7 +2,7 @@
 // Drast Programming Language Tests
 //
 
-tokens.insertAt@(Token, Token)()
+//tokens.insertAt@(Token, Token)()
 
 import io
 

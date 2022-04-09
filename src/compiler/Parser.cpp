@@ -18,10 +18,16 @@ CompoundStatement *Parser::compound() {
         compoundStatement->first_class_function = this->first_class_function();
     }
 
+    advanceLines();
+
     while (this->current().type != TokenType::BRACE_CLOSE &&
            this->current().type != TokenType::T_EOF) {
         auto statement = this->statement();
         compoundStatement->statements.push_back(statement);
+
+        if (this->current().type != TokenType::T_EOF) {
+            advance(TokenType::NEW_LINE);
+        }
         advanceLines();
     }
 
@@ -80,7 +86,8 @@ AST *Parser::statement() {
     case TokenType::OPERATOR_SUB:
         return this->expression();
     case TokenType::NEW_LINE:
-        this->advanceLines();
+        throw this->throw_error(
+            "Parser: Error with '\\n' parsing, create github issue");
         return nullptr;
     case TokenType::T_EOF:
         return nullptr;
@@ -496,10 +503,12 @@ SwitchCase *Parser::switch_case() {
 
     auto *case_body = this->create_declaration<CompoundStatement>();
 
+    advanceLines();
     while (this->current().type != TokenType::CASE &&
            this->current().type != TokenType::DEFAULT &&
            this->current().type != TokenType::BRACE_CLOSE) {
         case_body->statements.push_back(statement());
+        advanceLines();
     }
 
     if (is_case) {
