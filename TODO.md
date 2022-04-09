@@ -17,7 +17,8 @@
     - [x] For, While, Continue, Break
     - [x] Do Catch Try
     - [x] Casting
-    - [ ] New lines as semicolons instead of just parsing
+    - [x] New lines as semicolons instead of just parsing
+    - [ ] Support for array's, array index referencing, array operator overloading
 - [ ] Semantic Analyzer
     - [ ] Duplicate Variable and Functions
     - [ ] Duplicate Struct Initializers
