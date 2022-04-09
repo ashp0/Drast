@@ -242,6 +242,9 @@ std::string WhileLoop::toString() {
 
 std::string Return::toString() {
     if (this->expression) {
+        if (this->is_throw_statement) {
+            return "throw " + this->expression.value()->toString();
+        }
         return "return " + this->expression.value()->toString();
     }
     return "return";
@@ -345,6 +348,20 @@ std::string BinaryExpression::toString() {
     binary_expression += this->right->toString();
 
     return binary_expression;
+}
+
+std::string TryExpression::toString() {
+    std::string try_expression;
+    try_expression += "try";
+    if (this->is_optional_cast) {
+        try_expression += "?";
+    } else if (this->is_force_cast) {
+        try_expression += "!";
+    }
+
+    try_expression += " ";
+    try_expression += this->expr->toString();
+    return try_expression;
 }
 
 std::string UnaryExpression::toString() {
@@ -485,4 +502,19 @@ std::string FirstClassFunction::toString() {
     function_type += ")";
 
     return function_type;
+}
+
+std::string DoCatchStatement::toString() {
+    std::string do_catch_statement;
+    do_catch_statement += "do ";
+    do_catch_statement += this->do_body->toString();
+    do_catch_statement += " catch ";
+    if (catch_expression) {
+        do_catch_statement += "(";
+        do_catch_statement += this->catch_expression.value()->toString();
+        do_catch_statement += ") ";
+    }
+    do_catch_statement += this->catch_body->toString();
+
+    return do_catch_statement;
 }

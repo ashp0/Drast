@@ -118,6 +118,15 @@ extern int[]*? :: hello(int test, ...) {
                 value = first - second
     }
 
+    int? test = try? myTestFunction()
+
+
+    do {
+        int wer = try myTestFunction()
+    } catch {
+        print("Error")
+    }
+
 end:
     return 50 + 30 + 40
 }

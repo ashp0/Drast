@@ -43,6 +43,7 @@ static const std::unordered_map<std::string_view, TokenType> keywords = {
     {"do", TokenType::DO},
     {"try", TokenType::TRY},
     {"catch", TokenType::CATCH},
+    {"throw", TokenType::THROW},
 };
 
 std::string tokenTypeAsLiteral(TokenType type) {
@@ -134,6 +135,8 @@ std::string tokenTypeAsLiteral(TokenType type) {
         return "TRY";
     case TokenType::CATCH:
         return "CATCH";
+    case TokenType::THROW:
+        return "THROW";
 
     case TokenType::QUESTION:
         return "QUESTION";

@@ -60,7 +60,7 @@ class Parser {
 
     WhileLoop *while_loop();
 
-    Return *return_statement();
+    Return *return_statement(bool is_throw_statement);
 
     If *if_statement();
 
@@ -76,7 +76,11 @@ class Parser {
 
     SwitchCase *switch_case();
 
+    DoCatchStatement *do_catch_statement();
+
     AST *expression();
+
+    AST *try_expression();
 
     AST *equality();
 

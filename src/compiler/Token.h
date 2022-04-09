@@ -59,6 +59,7 @@ enum class TokenType : uint8_t {
     DO,
     TRY,
     CATCH,
+    THROW,
 
     // Operators
     QUESTION, // ?
@@ -237,6 +238,7 @@ constexpr bool isRegularValue(TokenType type) {
     case TokenType::NIL:
     case TokenType::IDENTIFIER:
     case TokenType::SELF:
+    case TokenType::OPERATOR_SUB:
         return true;
     default:
         return false;

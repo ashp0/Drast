@@ -53,7 +53,9 @@ AST *Parser::statement() {
     case TokenType::WHILE:
         return this->while_loop();
     case TokenType::RETURN:
-        return this->return_statement();
+        return this->return_statement(false);
+    case TokenType::THROW:
+        return this->return_statement(true);
     case TokenType::IF:
         return this->if_statement();
     case TokenType::ASM:
@@ -62,6 +64,8 @@ AST *Parser::statement() {
         return this->goto_statement();
     case TokenType::SWITCH:
         return this->switch_statement();
+    case TokenType::DO:
+        return this->do_catch_statement();
     case TokenType::BREAK:
     case TokenType::CONTINUE:
         return this->token();
@@ -72,6 +76,7 @@ AST *Parser::statement() {
     case TokenType::BITWISE_NOT:
         return this->struct_deinitializer_declaration();
     case TokenType::PERIOD:
+    case TokenType::OPERATOR_SUB:
         return this->expression();
     case TokenType::T_EOF:
         return nullptr;
@@ -360,8 +365,12 @@ WhileLoop *Parser::while_loop() {
     return this->create_declaration<WhileLoop>(expression, body);
 }
 
-Return *Parser::return_statement() {
-    advance(TokenType::RETURN);
+Return *Parser::return_statement(bool is_throw_statement) {
+    if (is_throw_statement) {
+        advance(TokenType::THROW);
+    } else {
+        advance(TokenType::RETURN);
+    }
 
     std::optional<AST *> return_value = std::nullopt;
 
@@ -369,7 +378,7 @@ Return *Parser::return_statement() {
         return_value = this->expression();
     }
 
-    return this->create_declaration<Return>(return_value);
+    return this->create_declaration<Return>(return_value, is_throw_statement);
 }
 
 If *Parser::if_statement() {
@@ -490,9 +499,51 @@ SwitchCase *Parser::switch_case() {
     }
 }
 
+DoCatchStatement *Parser::do_catch_statement() {
+    advance(TokenType::DO);
+
+    advance(TokenType::BRACE_OPEN);
+    auto do_body = this->compound();
+    advance(TokenType::BRACE_CLOSE);
+
+    advance(TokenType::CATCH);
+    std::optional<AST *> catch_expression = std::nullopt;
+    if (advanceIf(TokenType::PARENS_OPEN)) {
+        catch_expression = this->statement();
+        advance(TokenType::PARENS_CLOSE);
+    }
+
+    advance(TokenType::BRACE_OPEN);
+    auto catch_body = this->compound();
+    advance(TokenType::BRACE_CLOSE);
+
+    return this->create_declaration<DoCatchStatement>(do_body, catch_body,
+                                                      catch_expression);
+}
+
 AST *Parser::expression() { return this->equality(); }
 
+AST *Parser::try_expression() {
+    advance(TokenType::TRY);
+    bool is_force_cast = false;    // try!
+    bool is_optional_cast = false; // try?
+
+    if (advanceIf(TokenType::QUESTION)) {
+        is_optional_cast = true;
+    } else if (advanceIf(TokenType::NOT)) {
+        is_force_cast = true;
+    }
+
+    auto expression = this->expression();
+
+    return this->create_declaration<TryExpression>(expression, is_force_cast,
+                                                   is_optional_cast);
+}
+
 AST *Parser::equality() {
+    if (this->current().type == TokenType::TRY) {
+        return try_expression();
+    }
     auto expr = this->comparison();
 
     while (isEqualityOperator(this->current().type)) {
@@ -588,6 +639,7 @@ AST *Parser::primary(bool parses_goto) {
             auto template_arguments = this->template_call_arguments();
 
             advance(TokenType::PARENS_CLOSE);
+            // TODO: Optional Templates
             advance(TokenType::PARENS_OPEN);
 
             // TODO: Just to function call for now, in the future, when there

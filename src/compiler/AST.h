@@ -41,9 +41,8 @@ enum class ASTType {
     SWITCH,      // switch (a) { case 1: ... }
     SWITCH_CASE, // case 1: ...
 
-    DO,    // do { ... }
-    CATCH, // catch (...) { ... }
-    TRY,   // try myVariable = myFunction()
+    DO_CATCH, // do { ... } catch (...) { ... }
+    TRY,      // try myVariable = myFunction()
 
     RETURN,    // return 1
     IF,        // if (a == 1) { ... } else { ... }
@@ -64,9 +63,11 @@ class AST {
     Location &location;
     ASTType type;
 
-  public:
+  protected:
     AST(ASTType type, Location &location) : location(location), type(type) {}
     virtual ~AST() = default;
+
+  public:
     virtual std::string toString() = 0;
 };
 
@@ -369,10 +370,13 @@ class WhileLoop : public AST {
 class Return : public AST {
   public:
     std::optional<AST *> expression;
+    bool is_throw_statement;
 
   public:
-    Return(std::optional<AST *> expression, Location location)
-        : AST(ASTType::RETURN, location), expression(expression){};
+    Return(std::optional<AST *> expression, bool is_throw_statement,
+           Location location)
+        : AST(ASTType::RETURN, location), expression(expression),
+          is_throw_statement(is_throw_statement){};
 
     std::string toString() override;
 };
@@ -468,6 +472,21 @@ class BinaryExpression : public AST {
     BinaryExpression(AST *left, AST *right, TokenType op, Location location)
         : AST(ASTType::BINARY_EXPRESSION, location), left(left), right(right),
           op(op){};
+
+    std::string toString() override;
+};
+
+class TryExpression : public AST {
+  public:
+    AST *expr;
+    bool is_force_cast;    // try!
+    bool is_optional_cast; // try?
+
+  public:
+    TryExpression(AST *expr, bool is_force_cast, bool is_optional_cast,
+                  Location location)
+        : AST(ASTType::TRY, location), expr(expr), is_force_cast(is_force_cast),
+          is_optional_cast(is_optional_cast){};
 
     std::string toString() override;
 };
@@ -580,6 +599,21 @@ class FirstClassFunction : public AST {
         : AST(ASTType::FIRST_CLASS_FUNCTION_TYPE, location),
           return_type(return_type),
           function_arguments(std::move(function_arguments)) {}
+
+    std::string toString() override;
+};
+
+class DoCatchStatement : public AST {
+  public:
+    CompoundStatement *do_body;
+    CompoundStatement *catch_body;
+    std::optional<AST *> catch_expression;
+
+  public:
+    DoCatchStatement(CompoundStatement *do_body, CompoundStatement *catch_body,
+                     std::optional<AST *> catch_expression, Location location)
+        : AST(ASTType::DO_CATCH, location), do_body(do_body),
+          catch_body(catch_body), catch_expression(catch_expression){};
 
     std::string toString() override;
 };
