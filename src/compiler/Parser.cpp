@@ -541,10 +541,34 @@ AST *Parser::try_expression() {
                                                    is_optional_cast);
 }
 
+AST *Parser::cast_expression() {
+    // cast?(50.3, int) || cast!(50.3, int)
+    advance(TokenType::CAST);
+
+    bool is_force_cast = false;
+    bool is_optional_cast = false;
+
+    if (advanceIf(TokenType::QUESTION)) {
+        is_optional_cast = true;
+    } else if (advanceIf(TokenType::NOT)) {
+        is_force_cast = true;
+    }
+
+    advance(TokenType::PARENS_OPEN);
+    auto cast_value = expression();
+    advance(TokenType::COMMA);
+    auto type = this->type();
+    advance(TokenType::PARENS_CLOSE);
+
+    return this->create_declaration<CastExpression>(
+        cast_value, type, is_force_cast, is_optional_cast);
+}
+
 AST *Parser::equality() {
     if (this->current().type == TokenType::TRY) {
         return try_expression();
     }
+
     auto expr = this->comparison();
 
     while (isEqualityOperator(this->current().type)) {
@@ -656,6 +680,8 @@ AST *Parser::primary(bool parses_goto) {
         return this->create_declaration<GroupingExpression>(expr);
     } else if (this->current().type == TokenType::SELF) {
         return struct_member_access();
+    } else if (this->current().type == TokenType::CAST) {
+        return cast_expression();
     } else {
         std::cout << tokenTypeAsLiteral(this->current().type);
         throw Parser::throw_error("Invalid Expression");

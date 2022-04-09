@@ -518,3 +518,22 @@ std::string DoCatchStatement::toString() {
 
     return do_catch_statement;
 }
+
+std::string CastExpression::toString() {
+    std::string cast_expression;
+    cast_expression += "cast";
+
+    if (this->is_optional_cast) {
+        cast_expression += "?";
+    } else if (this->is_force_cast) {
+        cast_expression += "!";
+    }
+
+    cast_expression += "(";
+    cast_expression += this->cast_value->toString();
+    cast_expression += ", ";
+    cast_expression += this->cast_type->toString();
+    cast_expression += ")";
+
+    return cast_expression;
+}

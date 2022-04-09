@@ -16,6 +16,7 @@
     - [x] Switch, break, case, default
     - [x] For, While, Continue, Break
     - [x] Do Catch Try
+    - [ ] Casting
 - [ ] Semantic Analyzer
     - [ ] Duplicate Variable and Functions
     - [ ] Duplicate Struct Initializers

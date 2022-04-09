@@ -618,4 +618,21 @@ class DoCatchStatement : public AST {
     std::string toString() override;
 };
 
+class CastExpression : public AST {
+  public:
+    AST *cast_value;
+    AST *cast_type;
+    bool is_force_cast = false;
+    bool is_optional_cast = false;
+
+  public:
+    CastExpression(AST *cast_value, AST *cast_type, bool is_force_cast,
+                   bool is_optional_cast, Location location)
+        : AST(ASTType::CAST, location), cast_value(cast_value),
+          cast_type(cast_type), is_force_cast(is_force_cast),
+          is_optional_cast(is_optional_cast) {}
+
+    std::string toString() override;
+};
+
 #endif // DRAST_AST_H

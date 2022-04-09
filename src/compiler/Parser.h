@@ -82,6 +82,8 @@ class Parser {
 
     AST *try_expression();
 
+    AST *cast_expression();
+
     AST *equality();
 
     AST *comparison();

@@ -111,6 +111,8 @@ extern int[]*? :: hello(int test, ...) {
     int second = 40
     int value
 
+    int test = cast!(53.4, int)
+
     switch (op) {
         case '+':
             value = first + second

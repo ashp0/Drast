@@ -128,10 +128,10 @@ enum class TokenType : uint8_t {
     DOLLAR,       // $
     HASHTAG,      // #
     AT,           // @
-    BACKSLASH,
+    BACKSLASH,    // \
 
     // Other
-    T_EOF,
+    T_EOF, // \0
 };
 
 std::string tokenTypeAsLiteral(TokenType type);
