@@ -1,0 +1,19 @@
+Vector@(int) :: myErrorFunction(bool true_error) {
+    if (true_error) {
+        throw 50 + 430
+    } else {
+        return 40
+    }
+}
+
+int :: main() {
+    do {
+         int x = try myErrorFunction(true)
+         return x
+    } catch (int e) {
+        print("ERROR IN FUNCTION")
+         return -1
+    }
+
+    int y = try! myErrorFunction(false)
+}
