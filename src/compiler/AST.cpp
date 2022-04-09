@@ -30,7 +30,9 @@ std::string CompoundStatement::toString() {
     for (auto &statement : this->statements) {
         ADD_INDENTS(compound)
         //        compound += "\t";
-        compound += statement->toString();
+        if (statement) {
+            compound += statement->toString();
+        }
         compound += "\n";
     }
 

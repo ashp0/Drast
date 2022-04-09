@@ -131,7 +131,8 @@ enum class TokenType : uint8_t {
     BACKSLASH,    // \
 
     // Other
-    T_EOF, // \0
+    NEW_LINE, // \n
+    T_EOF,    // \0
 };
 
 std::string tokenTypeAsLiteral(TokenType type);

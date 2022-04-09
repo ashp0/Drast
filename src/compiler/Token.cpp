@@ -252,6 +252,8 @@ std::string tokenTypeAsLiteral(TokenType type) {
     case TokenType::BACKSLASH:
         return "BACKSLASH";
 
+    case TokenType::NEW_LINE:
+        return "NEW_LINE";
     case TokenType::T_EOF:
         return "T_EOF";
 

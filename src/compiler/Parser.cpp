@@ -22,6 +22,7 @@ CompoundStatement *Parser::compound() {
            this->current().type != TokenType::T_EOF) {
         auto statement = this->statement();
         compoundStatement->statements.push_back(statement);
+        advanceLines();
     }
 
     return compoundStatement;
@@ -78,6 +79,9 @@ AST *Parser::statement() {
     case TokenType::PERIOD:
     case TokenType::OPERATOR_SUB:
         return this->expression();
+    case TokenType::NEW_LINE:
+        this->advanceLines();
+        return nullptr;
     case TokenType::T_EOF:
         return nullptr;
     default:
@@ -227,6 +231,7 @@ Parser::enum_declaration(const std::vector<TokenType> &qualifiers) {
         getAndAdvance(TokenType::IDENTIFIER)->value(this->printer.source);
 
     advance(TokenType::BRACE_OPEN);
+    advanceLines();
     auto cases = enum_cases();
     advance(TokenType::BRACE_CLOSE);
 
@@ -258,6 +263,7 @@ std::vector<EnumCase *> Parser::enum_cases() {
 
         enum_cases.push_back(enum_case);
         advanceIf(TokenType::COMMA);
+        advanceLines();
     }
 
     return enum_cases;
@@ -375,7 +381,7 @@ Return *Parser::return_statement(bool is_throw_statement) {
 
     std::optional<AST *> return_value = std::nullopt;
 
-    if (isRegularValue(this->current().type)) {
+    if (this->current().type != TokenType::NEW_LINE) {
         return_value = this->expression();
     }
 
@@ -425,12 +431,14 @@ std::pair<AST *, CompoundStatement *> Parser::if_else_statements() {
 ASM *Parser::inline_assembly() {
     advance(TokenType::ASM);
     advance(TokenType::PARENS_OPEN);
+    advanceLines();
 
     std::vector<std::string_view> instructions;
 
     while (this->current().type != TokenType::PARENS_CLOSE) {
         instructions.push_back(
             getAndAdvance(TokenType::V_STRING)->value(this->printer.source));
+        advanceLines();
     }
 
     advance(TokenType::PARENS_CLOSE);
@@ -455,6 +463,7 @@ SwitchStatement *Parser::switch_statement() {
     advance(TokenType::PARENS_CLOSE);
 
     advance(TokenType::BRACE_OPEN);
+    advanceLines();
     auto cases = switch_cases();
     advance(TokenType::BRACE_CLOSE);
 
@@ -466,6 +475,7 @@ std::vector<SwitchCase *> Parser::switch_cases() {
 
     while (this->current().type != TokenType::BRACE_CLOSE) {
         cases.push_back(switch_case());
+        advanceLines();
     }
 
     return cases;
@@ -931,6 +941,12 @@ bool Parser::advanceIf(TokenType type) {
     }
 
     return false;
+}
+
+void Parser::advanceLines() {
+    while (this->current().type == TokenType::NEW_LINE) {
+        advance();
+    }
 }
 
 Token *Parser::getAndAdvance() {

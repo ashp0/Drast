@@ -131,6 +131,8 @@ class Parser {
 
     bool advanceIf(TokenType type);
 
+    void advanceLines();
+
     Token *getAndAdvance();
 
     Token *getAndAdvance(TokenType type);

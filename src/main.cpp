@@ -19,7 +19,13 @@ std::string read_file(const char *file_name) {
 }
 
 int main(int argc, char *argv[]) {
-    std::string source = read_file(argv[1]);
+    std::string source;
+    if (strcmp(argv[1], "-s") == 0) {
+        source = argv[2];
+        source.push_back('\0');
+    } else {
+        source = read_file(argv[1]);
+    }
 
     std::string file_name = argv[1];
 

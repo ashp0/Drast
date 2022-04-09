@@ -33,11 +33,6 @@ Token Lexer::getToken() {
         return this->string();
     case '\'':
         return this->character();
-    case ' ':
-    case '\r':
-    case '\t':
-    case '\n':
-        break;
     case '?':
         return returnToken(TokenType::QUESTION);
     case '<':
@@ -173,7 +168,7 @@ Token Lexer::octal() {
 
 Token Lexer::number() {
     this->start = this->index;
-    bool is_float;
+    bool is_float = false;
 
     for (;;) {
         if (this->current() == '.' && !is_float) {
@@ -183,12 +178,9 @@ Token Lexer::number() {
                 this->throw_error("Expected Literal after decimal");
             }
         }
-        if (this->current() == '\0' || !isnumber(this->current())) {
+        if (this->current() == '\0' || !isnumber(this->current()) ||
+            this->current() == '\n') {
             break;
-        }
-        if (this->current() == '\n') {
-            this->location.line += 1;
-            this->location.column = 0;
         }
         advance();
         if (this->current() == 'x' || this->current() == 'X') {
@@ -242,6 +234,7 @@ Token Lexer::returnToken(TokenType first_type, TokenType second_type) {
 void Lexer::skipWhitespace() {
     while (isspace(this->current())) {
         if (this->current() == '\n') {
+            this->tokens.push_back(returnToken(TokenType::NEW_LINE, true));
             this->location.line += 1;
             this->location.column = 0;
         }

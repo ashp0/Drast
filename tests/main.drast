@@ -62,7 +62,6 @@ asm (
         "cli"
         "htl"
         "jmp loop"
-
     "mov rax, 0"
 )
 
@@ -75,7 +74,6 @@ extern int[]*? :: hello(int test, ...) {
     print(.test)
     Person john = .init(50, 40)
     john.name.at(40) = "John"
-
     int[]*? result = test
     int test = myFunction()
     int test = 50 + 30 + 40 + (30 * 40)
