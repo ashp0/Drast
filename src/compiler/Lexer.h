@@ -8,6 +8,7 @@
 #include "Print.h"
 #include "Token.h"
 #include "Types.h"
+#include "Utils.h"
 #include <iostream>
 #include <vector>
 
@@ -36,6 +37,10 @@ class Lexer {
     Token getToken();
 
     Token identifier();
+
+    Token hexadecimal();
+
+    Token octal();
 
     Token number();
 

@@ -5,7 +5,8 @@
 ![issues](https://img.shields.io/github/issues/Malvion/drast?style=flat-square)
 ![license](https://img.shields.io/github/license/Malvion/drast?style=flat-square)
 
-A general-purpose language written in cpp20, that is meant to be a more modernized version of C, while still maintaining its simplicity.
+A general-purpose language written in cpp20, that is meant to be a more modernized version of C, while still maintaining
+its simplicity.
 
 [Docs](docs/docs.md) | [TODO](TODO.md)
 
@@ -34,15 +35,17 @@ int :: main(int argc, string[] argv) {
 ```
 
 ## Building
+
 Drast is built in a similar manner for Windows, macOS, and Linux.
 
 Before you start building Drast, you must install these dependencies listed below:
-    
+
 - Windows: Install CMake and Visual Studio
 - macOS: `brew install cmake`
 - Linux: `sudo apt install git cmake`
 
 Run the following command after the required dependencies are install:
+
 ```batch
 git clone --recursive https://github.com/Malvion/drast
 cd drast
@@ -50,10 +53,13 @@ mkdir build
 cd build
 cmake ..
 ```
-    
-If all goes well, Drast should be built and ready to run! If you have encountered any errors, please report them in the 'Issues' tab!
 
-*NOTE:* For Windows, the build directory will have a Visual Studio Solution file. Double click this file, then build and run.
+If all goes well, Drast should be built and ready to run! If you have encountered any errors, please report them in
+the 'Issues' tab!
+
+*NOTE:* For Windows, the build directory will have a Visual Studio Solution file. Double click this file, then build and
+run.
+
 ## Social
 
 - [Discord Server](https://discord.gg/ZbmHzNmzPH)

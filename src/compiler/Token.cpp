@@ -111,8 +111,8 @@ std::string tokenTypeAsLiteral(TokenType type) {
     case TokenType::IDENTIFIER:
         return "IDENTIFIER";
 
-    case TokenType::V_NUMBER:
-        return "V_NUMBER";
+    case TokenType::V_INT:
+        return "V_INT";
     case TokenType::V_FLOAT:
         return "V_FLOAT";
     case TokenType::V_CHAR:

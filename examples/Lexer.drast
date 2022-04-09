@@ -18,8 +18,6 @@ struct Lexer {
         self.source = source
         self.line = 1
         self.column = 1
-        test = ~test
-        ~test = 40
         self.index = 0
         self.start = self.index
     }
@@ -152,10 +150,53 @@ struct Lexer {
         case '\0':
             break
         default:
-            throw("Unexpected Character")
+            throw "Unexpected Character"
         }
 
         return self.returnWithoutAdvance(.eof)
+    }
+
+    Token :: identifier() {
+        return self.lexWhile(.identifier, !{
+            return isalnum(self.current) || self.current == '_'
+        }, false)
+    }
+
+    Token :: number() {
+        return self.lexWhile(.number, !{
+            return isnumber(self.current) || self.current == '.'
+        }, false)
+    }
+
+    Token :: string_() {
+        return self.lexWhile(.string_, !{
+            return self.current != '"'
+        }, true)
+    }
+
+    Token :: character() {
+        return self.lexWhile(.character, !{
+            return self.current != '\''
+        }, true)
+    }
+
+    Token :: returnToken(TokenType type) {
+        Token token = Token.init(type, .init(self.current()), self.location)
+        self.advance()
+        return token
+    }
+
+    Token :: returnEqualToken(TokenType type1, TokenType type2) {
+        if (peek_next() == '=') {
+            self.advance()
+            return returnToken(type2)
+        }
+
+        return returnToken(type1)
+    }
+
+    Token :: returnWithoutAdvance(TokenType type) {
+        return Token.init(type, .init(self.current()), self.location)
     }
 
     void :: skipWhitespace() {
@@ -190,7 +231,7 @@ struct Lexer {
             self.advance()
 
             if (self.current() == '\0') {
-                throw("Unterminated Block Comment")
+                throw "Unterminated Block Comment"
             }
         }
 
@@ -216,37 +257,49 @@ struct Lexer {
         return self.source.at(self.index + 1)
     }
 
+    Token :: lexWhile(TokenType type, $bool() predicate, bool is_string) {
+        self.start = self.index
 
-    Token :: returnToken(TokenType type) {
-        Token token = Token.init(type, .init(self.current()), self.location)
-        self.advance()
-        return token
-    }
-
-    Token :: returnEqualToken(TokenType type1, TokenType type2) {
-        if (peek_next() == '=') {
+        if (is_string) {
             self.advance()
-            return returnToken(type2)
         }
 
-        return returnToken(type1)
+        while (predicate()) {
+            if (self.current == '\0') {
+                break
+            }
+            if (self.current == '\n') {
+                self.line += 1
+                self.column = 1
+            }
+            if (is_string && self.current == '\\') {
+                self.advance()
+            }
+
+            self.advance()
+        }
+
+        if (is_string) {
+            self.advance()
+        }
+
+        if (type == .identifier) {
+            int length = self.index - self.start
+
+            string value = self.source.substr(self.start, length)
+
+            TokenType token_type = Token.is_keyword(value)
+
+            return self.returnType(token_type)
+        }
+
+        return self.returnType(type)
     }
 
-    Token :: returnWithoutAdvance(TokenType type) {
-        return Token.init(type, .init(self.current()), self.location)
-    }
-
-    // Token :: lexWhile(TokenType type, $bool() predicate, bool is_string) {
-        
+    // NOTE: Used for documentation purposes
+    // void :: myOtherFunction() {
+    //     testFunction(!{ $(int a, bool b)
+    //         return true
+    //     }, 5+30)
     // }
-
-    Token :: testFunction($bool(int, bool) predicate) { $(int a, bool b)
-
-    }
-
-    void :: myOtherFunction() {
-        testFunction(!{ $(int a, bool b)
-            return true
-        }, 5+30)
-    }
 }

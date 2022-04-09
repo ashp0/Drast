@@ -102,6 +102,10 @@ extern int[]*? :: hello(int test, ...) {
         break
     }
 
+    float floatnum = 40.3
+    int hexnum = 0xFFFFFFFFFFFF
+    int octnum = 0o43
+
     char op = '+'
     int first = 30
     int second = 40

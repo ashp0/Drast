@@ -45,7 +45,7 @@ enum class TokenType : uint8_t {
     UNION,
 
     // Values
-    V_NUMBER,
+    V_INT,
     V_FLOAT,
     V_STRING,
     V_CHAR,
@@ -230,8 +230,11 @@ constexpr bool isRegularType(TokenType type) {
 
 constexpr bool isRegularValue(TokenType type) {
     switch (type) {
-    case TokenType::V_NUMBER:
+    case TokenType::V_INT:
+    case TokenType::V_FLOAT:
     case TokenType::V_CHAR:
+    case TokenType::V_HEX:
+    case TokenType::V_OCTAL:
     case TokenType::V_STRING:
     case TokenType::TRUE:
     case TokenType::FALSE:

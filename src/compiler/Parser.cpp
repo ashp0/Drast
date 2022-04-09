@@ -81,7 +81,8 @@ AST *Parser::statement() {
     case TokenType::T_EOF:
         return nullptr;
     default:
-        std::cout << tokenTypeAsLiteral(this->current().type);
+        std::cout << tokenTypeAsLiteral(this->current().type) << " "
+                  << this->current().location.toString();
         throw this->throw_error("Parser: Cannot Parse Token");
     }
 }
@@ -249,7 +250,7 @@ std::vector<EnumCase *> Parser::enum_cases() {
             auto case_value_string = std::to_string(enum_case_value);
 
             case_value = this->create_declaration<LiteralExpression>(
-                case_value_string, TokenType::V_NUMBER);
+                case_value_string, TokenType::V_INT);
         }
 
         auto enum_case =

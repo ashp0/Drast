@@ -154,10 +154,57 @@ Token Lexer::identifier() {
     });
 }
 
+Token Lexer::hexadecimal() {
+    // 0xFFF -> this function will come from the `number` function, so the start
+    // will be 'x' instead of 0
+    advance();
+
+    return lexWhile(TokenType::V_HEX,
+                    [this]() { return ishexnumber(this->current()); });
+}
+
+Token Lexer::octal() {
+    // 0o305
+    advance();
+
+    return lexWhile(TokenType::V_OCTAL,
+                    [this]() { return isoctalnum(this->current()); });
+}
+
 Token Lexer::number() {
-    return this->lexWhile(TokenType::V_NUMBER, [this]() {
-        return isnumber(this->current()) || this->current() == '.';
-    });
+    this->start = this->index;
+    bool is_float;
+
+    for (;;) {
+        if (this->current() == '.' && !is_float) {
+            is_float = true;
+            advance();
+            if (!isnumber(this->current())) {
+                this->throw_error("Expected Literal after decimal");
+            }
+        }
+        if (this->current() == '\0' || !isnumber(this->current())) {
+            break;
+        }
+        if (this->current() == '\n') {
+            this->location.line += 1;
+            this->location.column = 0;
+        }
+        advance();
+        if (this->current() == 'x' || this->current() == 'X') {
+            return hexadecimal();
+        }
+
+        if (this->current() == 'o' || this->current() == 'O') {
+            return octal();
+        }
+    }
+
+    if (is_float) {
+        return this->returnToken(TokenType::V_FLOAT, true);
+    } else {
+        return this->returnToken(TokenType::V_INT, true);
+    }
 }
 
 Token Lexer::string() {

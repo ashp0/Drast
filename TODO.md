@@ -15,7 +15,7 @@
     - [x] Goto
     - [x] Switch, break, case, default
     - [x] For, While, Continue, Break
-    - [ ] Do Catch Try
+    - [x] Do Catch Try
 - [ ] Semantic Analyzer
     - [ ] Duplicate Variable and Functions
     - [ ] Duplicate Struct Initializers
