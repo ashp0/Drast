@@ -58,11 +58,7 @@ enum Color {
 }
 
 int :: operator[](float offset) {
-    return self.items//[offset]
-}
-
-int :: operator[](float offset) {
-    return self.items//[offset]
+    return self.items[offset]
 }
 
 asm (
@@ -139,7 +135,7 @@ extern int[]*? :: hello(int test, ...) {
         print("Error")
     }
 
-    hello.i.am.testing.my.programming.languages.ability.to.parse.things().like.these().with.function.calls().and.variables
+    hello.i.am.testing.my.programming.languages.ability.to.parse.things@(Token, Token)().like.these().with.function.calls().and.variables
 
 end:
     return 50 + 30 + 40

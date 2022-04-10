@@ -573,3 +573,18 @@ std::string OperatorOverload::toString() {
 
     return operator_overload;
 }
+
+std::string ArrayAccess::toString() {
+    std::string array_access;
+
+    if (function_call) {
+        array_access += this->function_call.value()->toString();
+    } else {
+        array_access += this->variable_name;
+    }
+
+    array_access += "[";
+    array_access += this->index->toString();
+    array_access += "]";
+    return array_access;
+}

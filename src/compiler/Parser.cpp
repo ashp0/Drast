@@ -708,6 +708,8 @@ AST *Parser::unary() {
 AST *Parser::primary(bool parses_goto) {
     if (peek().type == TokenType::PERIOD) {
         return struct_member_access();
+    } else if (peek().type == TokenType::SQUARE_OPEN) {
+        return array_access();
     }
 
     if (this->current().type == TokenType::PERIOD) {
@@ -766,9 +768,31 @@ AST *Parser::function_call(
 
     if (this->current().type == TokenType::PERIOD) {
         return this->struct_member_access(decl);
+    } else if (this->current().type == TokenType::SQUARE_OPEN) {
+        return array_access(decl);
     }
 
     return decl;
+}
+
+AST *Parser::array_access() {
+    // myVariable[40]
+    auto variable_name =
+        getAndAdvance(TokenType::IDENTIFIER)->value(this->printer.source);
+    advance(TokenType::SQUARE_OPEN);
+    auto inside = this->expression();
+    advance(TokenType::SQUARE_CLOSE);
+
+    return this->create_declaration<ArrayAccess>(variable_name, inside);
+}
+
+AST *Parser::array_access(FunctionCall *function_call) {
+    // myFunction()[30]
+    advance(TokenType::SQUARE_OPEN);
+    auto inside = this->expression();
+    advance(TokenType::SQUARE_CLOSE);
+
+    return this->create_declaration<ArrayAccess>(function_call, inside);
 }
 
 std::vector<AST *> Parser::function_call_arguments() {

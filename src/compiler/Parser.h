@@ -104,6 +104,10 @@ class Parser {
         std::string_view function_name,
         std::optional<std::vector<AST *>> template_arguments = std::nullopt);
 
+    AST *array_access();
+
+    AST *array_access(FunctionCall *function_call);
+
     std::vector<AST *> function_call_arguments();
 
     AST *typealias();

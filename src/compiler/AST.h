@@ -55,6 +55,7 @@ enum class ASTType {
     UNARY_EXPRESSION,    // -5;
     GROUPING_EXPRESSION, // (5 + 6)
     LITERAL_EXPRESSION,  // 5;
+    ARRAY_ACCESS,        // myVariable[]
     CAST,                // cast(5.50, int);
     TOKEN,               // break, continue etc...
 };
@@ -655,6 +656,24 @@ class OperatorOverload : public AST {
                      CompoundStatement *body, Location location)
         : AST(ASTType::OPERATOR_OVERLOAD, location), return_type(return_type),
           operators(operators), arguments(arguments), body(body) {}
+
+    std::string toString() override;
+};
+
+class ArrayAccess : public AST {
+  public:
+    AST *index;
+    std::optional<FunctionCall *> function_call;
+    std::string_view variable_name;
+
+  public:
+    ArrayAccess(std::string_view variable_name, AST *index, Location location)
+        : AST(ASTType::ARRAY_ACCESS, location), variable_name(variable_name),
+          index(index) {}
+
+    ArrayAccess(FunctionCall *function_call, AST *index, Location location)
+        : AST(ASTType::ARRAY_ACCESS, location), function_call(function_call),
+          index(index) {}
 
     std::string toString() override;
 };
