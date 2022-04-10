@@ -108,6 +108,8 @@ class Parser {
 
     AST *array_access(FunctionCall *function_call);
 
+    AST *array_creation();
+
     std::vector<AST *> function_call_arguments();
 
     AST *typealias();

@@ -24,7 +24,7 @@ int :: main(int argc, string[] argv) {
         '-': result = firstNumber - secondNumber
         '*': result = firstNumber * secondNumber
         '/': result = firstNumber / secondNumber
-        default: throw("Invalid operator")
+        default: throw "Invalid operator"
     }
 
     print(result)

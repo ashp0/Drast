@@ -140,3 +140,14 @@ extern int[]*? :: hello(int test, ...) {
 end:
     return 50 + 30 + 40
 }
+
+int :: main(int argc, string[] argv) {
+    int variable = 40
+    print("Hello World!", variable, "\n")
+
+    int[] myArray = [30, 20, 40]
+
+    print(myArray[0])
+
+    return 0
+}

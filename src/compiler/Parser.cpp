@@ -712,6 +712,10 @@ AST *Parser::primary(bool parses_goto) {
         return array_access();
     }
 
+    if (this->current().type == TokenType::SQUARE_OPEN) {
+        return array_creation();
+    }
+
     if (this->current().type == TokenType::PERIOD) {
         return struct_init_or_enum_case_access();
     }
@@ -793,6 +797,22 @@ AST *Parser::array_access(FunctionCall *function_call) {
     advance(TokenType::SQUARE_CLOSE);
 
     return this->create_declaration<ArrayAccess>(function_call, inside);
+}
+
+AST *Parser::array_creation() {
+    // [50, 30, 20]
+    advance(TokenType::SQUARE_OPEN);
+
+    std::vector<AST *> items;
+    while (this->current().type != TokenType::SQUARE_CLOSE) {
+        items.push_back(this->expression());
+
+        advanceIf(TokenType::COMMA);
+    }
+
+    advance(TokenType::SQUARE_CLOSE);
+
+    return this->create_declaration<ArrayCreation>(items);
 }
 
 std::vector<AST *> Parser::function_call_arguments() {

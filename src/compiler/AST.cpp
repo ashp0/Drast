@@ -588,3 +588,19 @@ std::string ArrayAccess::toString() {
     array_access += "]";
     return array_access;
 }
+
+std::string ArrayCreation::toString() {
+    std::string array_creation;
+    array_creation += "[";
+    for (auto &item : items) {
+        array_creation += item->toString();
+        array_creation += ", ";
+    }
+
+    if (!items.empty()) {
+        array_creation.resize(array_creation.size() - 2);
+    }
+
+    array_creation += "]";
+    return array_creation;
+}

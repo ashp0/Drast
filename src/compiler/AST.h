@@ -56,6 +56,7 @@ enum class ASTType {
     GROUPING_EXPRESSION, // (5 + 6)
     LITERAL_EXPRESSION,  // 5;
     ARRAY_ACCESS,        // myVariable[]
+    ARRAY_CREATION,      // [50, 30+20]
     CAST,                // cast(5.50, int);
     TOKEN,               // break, continue etc...
 };
@@ -674,6 +675,17 @@ class ArrayAccess : public AST {
     ArrayAccess(FunctionCall *function_call, AST *index, Location location)
         : AST(ASTType::ARRAY_ACCESS, location), function_call(function_call),
           index(index) {}
+
+    std::string toString() override;
+};
+
+class ArrayCreation : public AST {
+  public:
+    std::vector<AST *> items;
+
+  public:
+    ArrayCreation(std::vector<AST *> &items, Location location)
+        : AST(ASTType::ARRAY_CREATION, location), items(std::move(items)) {}
 
     std::string toString() override;
 };

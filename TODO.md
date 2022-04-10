@@ -18,7 +18,7 @@
     - [x] Do Catch Try
     - [x] Casting
     - [x] New lines as semicolons instead of just parsing
-    - [ ] Support for array's, array index referencing, array operator overloading
+    - [x] Support for array's, array index referencing, array operator overloading
 - [ ] Semantic Analyzer
     - [ ] Duplicate Variable and Functions
     - [ ] Duplicate Struct Initializers
