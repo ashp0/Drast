@@ -402,7 +402,13 @@ std::string Typealias::toString() {
 
 std::string StructMemberAccess::toString() {
     std::string struct_member_access;
-    struct_member_access += this->struct_variable;
+
+    if (function_call) {
+        struct_member_access += this->function_call.value()->toString();
+    } else {
+        struct_member_access += this->struct_variable;
+    }
+
     struct_member_access += ".";
     struct_member_access += this->struct_member->toString();
     return struct_member_access;

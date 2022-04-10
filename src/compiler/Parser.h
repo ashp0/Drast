@@ -37,6 +37,8 @@ class Parser {
 
     AST *struct_init_or_enum_case_access();
 
+    AST *struct_member_access(FunctionCall *function_call);
+
     StructInitializerDeclaration *struct_initializer_declaration();
 
     AST *struct_deinitializer_declaration();

@@ -230,12 +230,18 @@ class StructMemberAccess : public AST {
     // my_struct.my_variable
     std::string_view struct_variable; // my_struct
     AST *struct_member;               // my_variable
+    std::optional<FunctionCall *> function_call;
 
   public:
     StructMemberAccess(std::string_view struct_variable, AST *struct_member,
                        Location location)
         : AST(ASTType::STRUCT_MEMBER_ACCESS, location),
           struct_variable(struct_variable), struct_member(struct_member) {}
+
+    StructMemberAccess(std::optional<FunctionCall *> function_call,
+                       AST *struct_member, Location location)
+        : AST(ASTType::STRUCT_MEMBER_ACCESS, location),
+          function_call(function_call), struct_member(struct_member) {}
 
     std::string toString() override;
 };

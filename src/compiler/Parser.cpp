@@ -189,6 +189,15 @@ expression:
                                                         struct_member);
 }
 
+AST *Parser::struct_member_access(FunctionCall *function_call) {
+    advance(TokenType::PERIOD);
+
+    auto struct_member = expression();
+
+    return this->create_declaration<StructMemberAccess>(function_call,
+                                                        struct_member);
+}
+
 AST *Parser::struct_init_or_enum_case_access() {
     advance(TokenType::PERIOD);
 
@@ -700,6 +709,7 @@ AST *Parser::primary(bool parses_goto) {
     if (peek().type == TokenType::PERIOD) {
         return struct_member_access();
     }
+
     if (this->current().type == TokenType::PERIOD) {
         return struct_init_or_enum_case_access();
     }
@@ -751,8 +761,14 @@ AST *Parser::function_call(
     auto arguments = function_call_arguments();
     advance(TokenType::PARENS_CLOSE);
 
-    return this->create_declaration<FunctionCall>(function_name, arguments,
-                                                  template_arguments);
+    auto decl = this->create_declaration<FunctionCall>(function_name, arguments,
+                                                       template_arguments);
+
+    if (this->current().type == TokenType::PERIOD) {
+        return this->struct_member_access(decl);
+    }
+
+    return decl;
 }
 
 std::vector<AST *> Parser::function_call_arguments() {
