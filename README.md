@@ -1,6 +1,6 @@
 <div align="center">
 
-![Drast Logo](resources/Logo.png?)
+![Drast Logo](resources/Logo_32.png?)
 
 # Drast Programming Language
 
