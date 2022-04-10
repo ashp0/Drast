@@ -1,5 +1,7 @@
 <div align="center">
 
+![Drast Logo](resources/Logo.png?)
+
 # Drast Programming Language
 
 ![issues](https://img.shields.io/github/issues/Malvion/drast?style=flat-square)
