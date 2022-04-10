@@ -78,6 +78,8 @@ class Parser {
 
     DoCatchStatement *do_catch_statement();
 
+    OperatorOverload *operator_overload(AST *&return_type);
+
     AST *expression();
 
     AST *try_expression();
@@ -142,7 +144,7 @@ class Parser {
     template <class ast_type, class... Args>
     ast_type *create_declaration(Args &&...args);
 
-    static int throw_error(const char *message);
+    int throw_error(const char *message);
 };
 
 #endif // DRAST_PARSER_H

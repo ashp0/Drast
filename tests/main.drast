@@ -57,6 +57,14 @@ enum Color {
     Blue
 }
 
+int :: operator[](float offset) {
+    return self.items//[offset]
+}
+
+int :: operator[](float offset) {
+    return self.items//[offset]
+}
+
 asm (
 "loop:"
         "cli"

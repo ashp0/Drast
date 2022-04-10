@@ -20,6 +20,7 @@ enum class ASTType {
     FUNCTION_ARGUMENT,    // int a, int b
     FUNCTION_CALL,        // test(1, 2)
     FIRST_CLASS_FUNCTION, // $(void)(int, int)
+    OPERATOR_OVERLOAD,    // int :: operator[](float offset) { ... }
 
     TYPE,                      // int, string, float, bool, etc.
     FIRST_CLASS_FUNCTION_TYPE, // $bool(int, int)
@@ -631,6 +632,23 @@ class CastExpression : public AST {
         : AST(ASTType::CAST, location), cast_value(cast_value),
           cast_type(cast_type), is_force_cast(is_force_cast),
           is_optional_cast(is_optional_cast) {}
+
+    std::string toString() override;
+};
+
+class OperatorOverload : public AST {
+  public:
+    AST *return_type;
+    std::vector<TokenType> operators;
+    std::vector<FunctionArgument *> arguments;
+    CompoundStatement *body;
+
+  public:
+    OperatorOverload(AST *return_type, std::vector<TokenType> operators,
+                     std::vector<FunctionArgument *> arguments,
+                     CompoundStatement *body, Location location)
+        : AST(ASTType::OPERATOR_OVERLOAD, location), return_type(return_type),
+          operators(operators), arguments(arguments), body(body) {}
 
     std::string toString() override;
 };

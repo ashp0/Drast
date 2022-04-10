@@ -17,6 +17,7 @@ static const std::unordered_map<std::string_view, TokenType> keywords = {
     {"volatile", TokenType::VOLATILE},
     {"cast", TokenType::CAST},
     {"extern", TokenType::EXTERN},
+    {"operator", TokenType::OPERATOR},
 
     {"switch", TokenType::SWITCH},
     {"case", TokenType::CASE},
@@ -72,6 +73,8 @@ std::string tokenTypeAsLiteral(TokenType type) {
         return "CAST";
     case TokenType::EXTERN:
         return "EXTERN";
+    case TokenType::OPERATOR:
+        return "OPERATOR";
 
     case TokenType::SWITCH:
         return "SWITCH";

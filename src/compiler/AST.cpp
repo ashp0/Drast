@@ -539,3 +539,31 @@ std::string CastExpression::toString() {
 
     return cast_expression;
 }
+
+std::string OperatorOverload::toString() {
+    std::string operator_overload;
+
+    operator_overload += this->return_type->toString();
+
+    operator_overload += " :: ";
+
+    for (auto &operator_ : operators) {
+        operator_overload += tokenTypeAsLiteral(operator_);
+        operator_overload += "|";
+    }
+
+    operator_overload += "(";
+    for (auto &argument : arguments) {
+        operator_overload += argument->toString();
+        operator_overload += ", ";
+    }
+
+    if (!arguments.empty()) {
+        operator_overload.resize(operator_overload.size() - 2);
+    }
+    operator_overload += ")";
+
+    operator_overload += this->body->toString();
+
+    return operator_overload;
+}

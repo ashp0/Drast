@@ -25,13 +25,15 @@ CompoundStatement *Parser::compound() {
         auto statement = this->statement();
         compoundStatement->statements.push_back(statement);
 
-        if (this->current().type != TokenType::NEW_LINE) {
-            advance(TokenType::SEMICOLON);
-        } else if (this->current().type != TokenType::T_EOF) {
-            advance(TokenType::NEW_LINE);
-        }
+        if (this->current().type != TokenType::T_EOF) {
+            if (this->current().type != TokenType::NEW_LINE) {
+                advance(TokenType::SEMICOLON);
+            } else {
+                advance(TokenType::NEW_LINE);
+            }
 
-        advanceLines();
+            advanceLines();
+        }
     }
 
     return compoundStatement;
@@ -117,7 +119,7 @@ ImportStatement *Parser::import() {
         is_library = true;
         break;
     default:
-        Parser::throw_error("Expected string literal\n");
+        this->throw_error("Expected string literal\n");
     }
 
     return this->create_declaration<ImportStatement>(import_path, is_library);
@@ -152,7 +154,7 @@ AST *Parser::struct_member_access() {
         variable_name = "self";
         advance(TokenType::SELF);
     } else {
-        throw Parser::throw_error("Expected Identifier Or Self");
+        throw this->throw_error("Expected Identifier Or Self");
     }
 
     advance(TokenType::PERIOD);
@@ -292,6 +294,9 @@ start:
     auto type = this->type();
 
     if (advanceIf(TokenType::DOUBLE_COLON)) {
+        if (this->current().type == TokenType::OPERATOR) {
+            return operator_overload(type);
+        }
         return this->function_declaration(type, qualifiers);
     }
 
@@ -324,8 +329,7 @@ Parser::function_declaration(AST *&return_type,
     }
 
     if (template_) {
-        throw Parser::throw_error(
-            "Functions without body can't have template!");
+        throw this->throw_error("Functions without body can't have template!");
     }
 
     return this->create_declaration<FunctionDeclaration>(
@@ -544,6 +548,36 @@ DoCatchStatement *Parser::do_catch_statement() {
                                                       catch_expression);
 }
 
+OperatorOverload *Parser::operator_overload(AST *&return_type) {
+    /*
+     int :: operator[](float offset) {
+        return self.items[offset]
+     }
+     */
+    advance(TokenType::OPERATOR);
+    std::vector<TokenType> operators;
+
+    while (this->current().type != TokenType::PARENS_OPEN) {
+        if (!isOperatorOverloadType(this->current().type)) {
+            throw this->throw_error("Invalid Operator");
+        }
+
+        operators.push_back(this->current().type);
+        advance();
+    }
+
+    advance(TokenType::PARENS_OPEN);
+    auto arguments = this->function_arguments();
+    advance(TokenType::PARENS_CLOSE);
+
+    advance(TokenType::BRACE_OPEN);
+    auto body = this->compound();
+    advance(TokenType::BRACE_CLOSE);
+
+    return this->create_declaration<OperatorOverload>(return_type, operators,
+                                                      arguments, body);
+}
+
 AST *Parser::expression() { return this->equality(); }
 
 AST *Parser::try_expression() {
@@ -706,7 +740,7 @@ AST *Parser::primary(bool parses_goto) {
         return cast_expression();
     } else {
         std::cout << tokenTypeAsLiteral(this->current().type);
-        throw Parser::throw_error("Invalid Expression");
+        throw this->throw_error("Invalid Expression");
     }
 }
 
@@ -773,7 +807,7 @@ std::vector<TemplateDeclarationArgument *> Parser::template_arguments() {
 
     while (this->current().type != TokenType::PARENS_CLOSE) {
         if (!isTemplateKeyword(this->current().type)) {
-            throw Parser::throw_error("Invalid Template Type");
+            throw this->throw_error("Invalid Template Type");
         }
 
         auto argument_type = getAndAdvance()->type;
@@ -872,7 +906,7 @@ AST *Parser::type() {
 
     if (!isRegularType(this->current().type)) {
         std::cout << tokenTypeAsLiteral(this->current().type) << std::endl;
-        Parser::throw_error("Parser: Expected type\n");
+        this->throw_error("Parser: Expected type\n");
     }
 
     if (this->current().type == TokenType::DOLLAR) {
@@ -942,7 +976,7 @@ void Parser::advance(TokenType type) {
         std::cout << tokenTypeAsLiteral(this->current().type)
                   << " :: " << tokenTypeAsLiteral(type)
                   << " :: " << this->current().location.toString() << std::endl;
-        Parser::throw_error("Didn't Get Expected Token");
+        this->throw_error("Didn't Get Expected Token");
     }
 }
 
@@ -983,6 +1017,6 @@ ast_type *Parser::create_declaration(Args &&...args) {
 }
 
 int Parser::throw_error(const char *message) {
-    std::cout << "Error: " << message << std::endl;
-    exit(-1);
+    printer.error(message, this->current().location);
+    return -1;
 }

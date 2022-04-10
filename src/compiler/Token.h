@@ -24,6 +24,7 @@ enum class TokenType : uint8_t {
     VOLATILE,
     CAST,
     EXTERN,
+    OPERATOR,
 
     INT,
     FLOAT,
@@ -136,6 +137,48 @@ enum class TokenType : uint8_t {
 };
 
 std::string tokenTypeAsLiteral(TokenType type);
+
+constexpr bool isOperatorOverloadType(TokenType type) {
+    switch (type) {
+    case TokenType::LESS_THAN:
+    case TokenType::LESS_THAN_EQUAL:
+    case TokenType::GREATER_THAN:
+    case TokenType::GREATER_THAN_EQUAL:
+    case TokenType::EQUAL:
+    case TokenType::EQUAL_EQUAL:
+    case TokenType::NOT_EQUAL:
+    case TokenType::OPERATOR_ADD:
+    case TokenType::OPERATOR_ADD_EQUAL:
+    case TokenType::OPERATOR_SUB:
+    case TokenType::OPERATOR_SUB_EQUAL:
+    case TokenType::OPERATOR_MUL:
+    case TokenType::OPERATOR_MUL_EQUAL:
+    case TokenType::OPERATOR_DIV:
+    case TokenType::OPERATOR_DIV_EQUAL:
+    case TokenType::OPERATOR_MOD:
+    case TokenType::OPERATOR_MOD_EQUAL:
+    case TokenType::BITWISE_AND:
+    case TokenType::BITWISE_AND_EQUAL:
+    case TokenType::BITWISE_AND_AND:
+    case TokenType::BITWISE_AND_AND_EQUAL:
+    case TokenType::BITWISE_PIPE:
+    case TokenType::BITWISE_PIPE_EQUAL:
+    case TokenType::BITWISE_PIPE_PIPE:
+    case TokenType::BITWISE_PIPE_PIPE_EQUAL:
+    case TokenType::BITWISE_SHIFT_LEFT:
+    case TokenType::BITWISE_SHIFT_LEFT_EQUAL:
+    case TokenType::BITWISE_SHIFT_RIGHT:
+    case TokenType::BITWISE_SHIFT_RIGHT_EQUAL:
+    case TokenType::BITWISE_POWER:
+    case TokenType::BITWISE_POWER_EQUAL:
+    case TokenType::SQUARE_OPEN:
+    case TokenType::SQUARE_CLOSE:
+        return true;
+
+    default:
+        return false;
+    }
+}
 
 constexpr bool isOperatorType(TokenType type) {
     switch (type) {

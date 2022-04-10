@@ -178,8 +178,7 @@ Token Lexer::number() {
                 this->throw_error("Expected Literal after decimal");
             }
         }
-        if (this->current() == '\0' || !isnumber(this->current()) ||
-            this->current() == '\n') {
+        if (this->current() == '\0' || !isnumber(this->current())) {
             break;
         }
         advance();
@@ -192,11 +191,8 @@ Token Lexer::number() {
         }
     }
 
-    if (is_float) {
-        return this->returnToken(TokenType::V_FLOAT, true);
-    } else {
-        return this->returnToken(TokenType::V_INT, true);
-    }
+    return this->returnToken(is_float ? TokenType::V_FLOAT : TokenType::V_INT,
+                             true);
 }
 
 Token Lexer::string() {
