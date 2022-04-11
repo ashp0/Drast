@@ -41,7 +41,7 @@ class Parser {
 
     StructInitializerDeclaration *struct_initializer_declaration();
 
-    AST *struct_deinitializer_declaration();
+    AST *struct_destructor_declaration();
 
     EnumDeclaration *
     enum_declaration(const std::vector<TokenType> &qualifiers = {});
@@ -100,9 +100,9 @@ class Parser {
 
     AST *primary(bool parses_goto = true);
 
-    AST *function_call(
-        std::string_view function_name,
-        std::optional<std::vector<AST *>> template_arguments = std::nullopt);
+    AST *function_call(std::string_view function_name,
+                       const std::optional<std::vector<AST *>>
+                           &template_arguments = std::nullopt);
 
     AST *array_access();
 

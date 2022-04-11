@@ -163,7 +163,7 @@ Token Lexer::octal() {
     advance();
 
     return lexWhile(TokenType::V_OCTAL,
-                    [this]() { return isoctalnum(this->current()); });
+                    [this]() { return is_octal(this->current()); });
 }
 
 Token Lexer::number() {

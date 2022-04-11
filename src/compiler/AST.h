@@ -19,11 +19,10 @@ enum class ASTType {
     FUNCTION_DECLARATION, // int :: test(int a, int b) { ... }
     FUNCTION_ARGUMENT,    // int a, int b
     FUNCTION_CALL,        // test(1, 2)
-    FIRST_CLASS_FUNCTION, // $(void)(int, int)
+    FIRST_CLASS_FUNCTION, //  $bool(int, int)
     OPERATOR_OVERLOAD,    // int :: operator[](float offset) { ... }
 
-    TYPE,                      // int, string, float, bool, etc.
-    FIRST_CLASS_FUNCTION_TYPE, // $bool(int, int)
+    TYPE, // int, string, float, bool, etc.
 
     STRUCT_DECLARATION,             // struct Test { ... }
     STRUCT_MEMBER_ACCESS,           // test.integer
@@ -106,16 +105,6 @@ class ImportStatement : public AST {
     std::string toString() override;
 };
 
-/*
- private:
-     using TemplateDeclaration = class TemplateDeclaration;
-   public:
-     std::string_view name;
-     CompoundStatement *body;
-     std::vector<TokenType> qualifiers;
-     std::optional<TemplateDeclaration *> template_declaration;
- */
-
 class FunctionDeclaration : public AST {
   private:
     using FunctionArgument = class FunctionArgument;
@@ -181,7 +170,7 @@ class FunctionCall : public AST {
                  Location location)
         : AST(ASTType::FUNCTION_CALL, location), name(name),
           arguments(std::move(arguments)),
-          template_arguments(template_arguments) {}
+          template_arguments(std::move(template_arguments)) {}
 
     std::string toString() override;
 };
@@ -189,16 +178,16 @@ class FunctionCall : public AST {
 class Type : public AST {
   public:
     std::string_view literal_value;
-    TokenType type;
+    TokenType type_;
     bool is_pointer;
     bool is_array;
     bool is_optional;
     std::optional<std::vector<AST *>> template_values = std::nullopt;
 
   public:
-    Type(TokenType type, std::string_view literal_value, bool is_pointer,
+    Type(TokenType type_, std::string_view literal_value, bool is_pointer,
          bool is_array, bool is_optional, Location location)
-        : AST(ASTType::TYPE, location), type(type),
+        : AST(ASTType::TYPE, location), type_(type_),
           literal_value(literal_value), is_pointer(is_pointer),
           is_array(is_array), is_optional(is_optional) {}
 
@@ -577,7 +566,7 @@ class TemplateDeclaration : public AST {
   public:
     TemplateDeclaration(std::vector<StructDeclarationArgument *> arguments,
                         Location location)
-        : AST(ASTType::TOKEN, location), arguments(arguments) {}
+        : AST(ASTType::TOKEN, location), arguments(std::move(arguments)) {}
 
     std::string toString() override;
 };
@@ -605,7 +594,7 @@ class FirstClassFunction : public AST {
     FirstClassFunction(std::optional<AST *> return_type,
                        std::vector<FunctionArgument *> function_arguments,
                        bool is_type, Location location)
-        : AST(ASTType::FIRST_CLASS_FUNCTION_TYPE, location),
+        : AST(ASTType::FIRST_CLASS_FUNCTION, location),
           return_type(return_type),
           function_arguments(std::move(function_arguments)) {}
 
@@ -656,7 +645,8 @@ class OperatorOverload : public AST {
                      std::vector<FunctionArgument *> arguments,
                      CompoundStatement *body, Location location)
         : AST(ASTType::OPERATOR_OVERLOAD, location), return_type(return_type),
-          operators(operators), arguments(arguments), body(body) {}
+          operators(std::move(operators)), arguments(std::move(arguments)),
+          body(body) {}
 
     std::string toString() override;
 };

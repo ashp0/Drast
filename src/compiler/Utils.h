@@ -5,6 +5,6 @@
 #ifndef DRAST_UTILS_H
 #define DRAST_UTILS_H
 
-bool isoctalnum(char c);
+bool is_octal(char c);
 
 #endif // DRAST_UTILS_H

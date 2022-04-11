@@ -18,7 +18,7 @@ std::string read_file(const char *file_name) {
     return buffer;
 }
 
-int main(int argc, char *argv[]) {
+int main([[maybe_unused]] int argc, char *argv[]) {
     std::string source;
     if (strcmp(argv[1], "-s") == 0) {
         source = argv[2];

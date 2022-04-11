@@ -15,5 +15,7 @@ add_executable(drast
         src/compiler/AST.h
         src/compiler/Parser.cpp
         src/compiler/Parser.h
+        src/compiler/SemanticAnalyzer.cpp
+        src/compiler/SemanticAnalyzer.h
         src/compiler/Utils.cpp
         src/compiler/Utils.h)

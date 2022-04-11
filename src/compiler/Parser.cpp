@@ -86,7 +86,7 @@ AST *Parser::statement() {
     case TokenType::AT:
         return this->struct_initializer_declaration();
     case TokenType::BITWISE_NOT:
-        return this->struct_deinitializer_declaration();
+        return this->struct_destructor_declaration();
     case TokenType::PERIOD:
     case TokenType::OPERATOR_SUB:
         return this->expression();
@@ -229,7 +229,7 @@ StructInitializerDeclaration *Parser::struct_initializer_declaration() {
                                                                   body);
 }
 
-AST *Parser::struct_deinitializer_declaration() {
+AST *Parser::struct_destructor_declaration() {
     advance(TokenType::BITWISE_NOT);
     if (!advanceIf(TokenType::PARENS_OPEN)) {
         this->index -= 1;
@@ -762,7 +762,7 @@ AST *Parser::primary(bool parses_goto) {
 
 AST *Parser::function_call(
     std::string_view function_name,
-    std::optional<std::vector<AST *>> template_arguments) {
+    const std::optional<std::vector<AST *>> &template_arguments) {
 
     auto arguments = function_call_arguments();
     advance(TokenType::PARENS_CLOSE);

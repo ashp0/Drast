@@ -2,7 +2,7 @@
 // Drast Programming Language Tests
 //
 
-tokens.insertAt@(Token, Token)()
+tokens.insertAt@(Token, Token)().Token@(Token, Token)().testFunction().test_variable
 
 import io
 
@@ -11,6 +11,9 @@ struct Test {
         self.test =  40
         self.test(.test)
         return self.returnEqualToken(.greater, .greater_equal)
+    }
+    ~{
+        
     }
 }
 

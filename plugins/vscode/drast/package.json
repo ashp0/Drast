@@ -1,0 +1,34 @@
+{
+  "name": "drast",
+  "displayName": "Drast",
+  "description": "Syntax highlighting for the drast programming language.",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.66.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "drast",
+        "aliases": [
+          "Drast",
+          "drast"
+        ],
+        "extensions": [
+          ".drast"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "drast",
+        "scopeName": "source.drast",
+        "path": "./syntaxes/drast.tmLanguage.json"
+      }
+    ]
+  }
+}
