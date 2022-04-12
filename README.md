@@ -50,7 +50,7 @@ cmake ..
 If all goes well, Drast should be built and ready to run! If you have encountered any errors, please report them in
 the 'Issues' tab!
 
-*NOTE:* For Windows, in the build directory, there should a Visual Studio solution file. Double click this file, then build and
+> **NOTE:** For Windows, in the build directory, there should a Visual Studio solution file. Double click this file, then build and
 run.
 
 ## Social
