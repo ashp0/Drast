@@ -6,6 +6,7 @@
 
 ![issues](https://img.shields.io/github/issues/Malvion/drast?style=flat-square)
 ![license](https://img.shields.io/github/license/Malvion/drast?style=flat-square)
+[![Our Discord channel](https://img.shields.io/discord/622797245368238082?logo=discord)](https://discord.gg/ZbmHzNmzPH)
 
 A general-purpose language written in cpp20, that is meant to be a more modernized version of C, while still maintaining
 its simplicity.
@@ -61,7 +62,3 @@ the 'Issues' tab!
 
 *NOTE:* For Windows, the build directory will have a Visual Studio Solution file. Double click this file, then build and
 run.
-
-## Social
-
-- [Discord Server](https://discord.gg/ZbmHzNmzPH)
