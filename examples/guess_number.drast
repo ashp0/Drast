@@ -5,15 +5,15 @@
 import io
 
 int :: main(int argc, string[] argv) {
-    int random_number = randomIntBetween(1, 10)
+    int randomNumber = randomIntBetween(1, 10)
 
     print("Type in a random number between 1 and 10")
-    float user_input = getInt()
+    float userInput = getInt()
 
-    if (user_input == random_number) {
+    if (userInput == randomNumber) {
         print("You have guessed the correct number!")
     } else {
-        print("You have guess the wrong number, the number was: ", random_number)
+        print("You have guess the wrong number, the number was: ", randomNumber)
     }
 
     return 0
