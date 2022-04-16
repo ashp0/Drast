@@ -46,6 +46,7 @@ AST *Parser::statement() {
     case TokenType::ENUM:
         return this->enum_declaration();
     case TokenType::STRUCT:
+    case TokenType::UNION:
         return this->struct_declaration();
     case TokenType::EXTERN:
     case TokenType::VOLATILE:
@@ -133,22 +134,31 @@ ImportStatement *Parser::import() {
 
 StructDeclaration *
 Parser::struct_declaration(const std::vector<TokenType> &qualifiers) {
-    advance(TokenType::STRUCT);
+    bool is_union = false;
+    if (this->current().type == TokenType::UNION) {
+        advance(TokenType::UNION);
+        is_union = true;
+    } else {
+        advance(TokenType::STRUCT);
+    }
 
     auto struct_name =
         getAndAdvance(TokenType::IDENTIFIER)->value(this->printer.source);
 
     std::optional<TemplateDeclaration *> template_ = std::nullopt;
-    if (advanceIf(TokenType::COLON)) {
-        template_ = this->template_declaration();
+
+    if (!is_union) {
+        if (advanceIf(TokenType::COLON)) {
+            template_ = this->template_declaration();
+        }
     }
 
     advance(TokenType::BRACE_OPEN);
     auto struct_body = this->compound();
     advance(TokenType::BRACE_CLOSE);
 
-    return this->create_declaration<StructDeclaration>(struct_name, qualifiers,
-                                                       struct_body, template_);
+    return this->create_declaration<StructDeclaration>(
+        struct_name, qualifiers, struct_body, template_, is_union);
 }
 
 AST *Parser::struct_member_access() {
@@ -302,6 +312,12 @@ AST *Parser::function_or_variable_declaration(
         if (isKeywordType(this->current().type)) {
             goto start;
         }
+
+        // Advance the equal sign because we don't need it
+        if (this->current().type == TokenType::EQUAL) {
+            advance();
+        }
+
         return this->expression();
     }
 
@@ -372,11 +388,19 @@ RangeBasedForLoop *Parser::range_based_for_loop() {
     auto name2 =
         getAndAdvance(TokenType::IDENTIFIER)->value(this->printer.source);
     this->advance(TokenType::PARENS_CLOSE);
+
+    std::optional<AST *> for_index = std::nullopt;
+    if (advanceIf(TokenType::BITWISE_PIPE)) {
+        for_index = statement();
+        advance(TokenType::BITWISE_PIPE);
+    }
+
     this->advance(TokenType::BRACE_OPEN);
     auto for_body = this->compound();
     this->advance(TokenType::BRACE_CLOSE);
 
-    return this->create_declaration<RangeBasedForLoop>(name, name2, for_body);
+    return this->create_declaration<RangeBasedForLoop>(name, name2, for_index,
+                                                       for_body);
 }
 
 AST *Parser::for_loop() {
@@ -644,6 +668,8 @@ AST *Parser::cast_expression() {
         is_optional_cast = true;
     } else if (advanceIf(TokenType::NOT)) {
         is_force_cast = true;
+    } else {
+        throw this->throw_error("Cast expression must be forced or optional");
     }
 
     advance(TokenType::PARENS_OPEN);
@@ -672,10 +698,6 @@ TernaryExpression *Parser::ternary_expression(AST *bool_expression) {
 }
 
 AST *Parser::equality() {
-    if (this->current().type == TokenType::TRY) {
-        return try_expression();
-    }
-
     auto expr = this->comparison();
 
     while (isEqualityOperator(this->current().type)) {
@@ -748,6 +770,9 @@ AST *Parser::unary() {
 }
 
 AST *Parser::primary() {
+    if (this->current().type == TokenType::TRY) {
+        return try_expression();
+    }
     if (peek().type == TokenType::PERIOD) {
         return struct_member_access();
     } else if (peek().type == TokenType::SQUARE_OPEN) {
@@ -1093,7 +1118,8 @@ AST *Parser::qualifiers() {
 
     if (this->current().type == TokenType::ENUM) {
         return this->enum_declaration(qualifiers);
-    } else if (this->current().type == TokenType::STRUCT) {
+    } else if (this->current().type == TokenType::STRUCT ||
+               this->current().type == TokenType::UNION) {
         return this->struct_declaration(qualifiers);
     }
     return function_or_variable_declaration(qualifiers);

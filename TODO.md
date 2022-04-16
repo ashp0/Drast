@@ -21,10 +21,12 @@
     - [x] Support for array's, array index referencing, array operator overloading
     - [x] Typeof and Any operator
     - [x] ternary operator
-    - [x] `for (dog in dogs) { ... }`
+    - [x] `for (dog in dogs) |int index| { ... }`
     - [x] Functions which throw an exception must use `!` instead of `?` as their type
     - [x] Functions with default parameters
     - [x] Named arguments in function calls
+    - [x] Unions
+    - [x] Index in range based for loop
 - [ ] Semantic Analyzer
     - [ ] Duplicate Variable and Functions
     - [ ] Duplicate Struct Initializers
