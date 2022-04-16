@@ -44,6 +44,7 @@ enum class TokenType : uint8_t {
     FOR,
     CONTINUE,
     UNION,
+    TYPEOF, // compile time constant
 
     // Values
     V_INT,

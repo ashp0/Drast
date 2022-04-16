@@ -15,6 +15,7 @@ class Parser {
     std::vector<Token> &tokens;
     uint32_t index;
     Print printer;
+    bool parses_goto_labels = true;
 
   public:
     Parser(std::string &file_name, std::vector<Token> &tokens,
@@ -88,6 +89,8 @@ class Parser {
 
     AST *cast_expression();
 
+    TernaryExpression *ternary_expression(AST *bool_expression);
+
     AST *equality();
 
     AST *comparison();
@@ -98,7 +101,7 @@ class Parser {
 
     AST *unary();
 
-    AST *primary(bool parses_goto = true);
+    AST *primary();
 
     AST *function_call(std::string_view function_name,
                        const std::optional<std::vector<AST *>>

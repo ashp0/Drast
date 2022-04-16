@@ -27,6 +27,7 @@ static const std::unordered_map<std::string_view, TokenType> keywords = {
     {"for", TokenType::FOR},
     {"continue", TokenType::CONTINUE},
     {"union", TokenType::UNION},
+    {"typeof", TokenType::TYPEOF},
 
     {"false", TokenType::FALSE},
     {"true", TokenType::TRUE},
@@ -92,6 +93,8 @@ std::string tokenTypeAsLiteral(TokenType type) {
         return "CONTINUE";
     case TokenType::UNION:
         return "UNION";
+    case TokenType::TYPEOF:
+        return "TYPEOF";
 
     case TokenType::FALSE:
         return "FALSE";

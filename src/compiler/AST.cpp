@@ -373,6 +373,16 @@ std::string UnaryExpression::toString() {
     return unary_expression;
 }
 
+std::string TernaryExpression::toString() {
+    std::string ternary;
+    ternary += this->bool_expression->toString();
+    ternary += " ? ";
+    ternary += this->first_expression->toString();
+    ternary += " : ";
+    ternary += this->second_expression->toString();
+    return ternary;
+}
+
 std::string LiteralExpression::toString() {
     std::string literal_expression;
     if (string_value) {

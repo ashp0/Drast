@@ -12,8 +12,9 @@ struct Test {
         self.test(.test)
         return self.returnEqualToken(.greater, .greater_equal)
     }
-    ~{
-        
+
+    ~(){
+        int test = 40
     }
 }
 
@@ -151,6 +152,8 @@ int :: main(int argc, string[] argv) {
     int[] myArray = [30, 20, 40]
 
     print(myArray[0])
+
+    int test = test == 30 ? 50 : 20
 
     return 0
 }

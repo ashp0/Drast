@@ -60,6 +60,11 @@ AST *Parser::statement() {
     case TokenType::IDENTIFIER:
     case TokenType::SELF:
         return this->function_or_variable_declaration({});
+    case TokenType::V_INT:
+    case TokenType::V_CHAR:
+    case TokenType::V_FLOAT:
+    case TokenType::V_STRING:
+        return expression();
     case TokenType::FOR:
         return this->for_loop();
     case TokenType::WHILE:
@@ -512,7 +517,9 @@ SwitchCase *Parser::switch_case() {
 
     AST *case_expression;
     if (is_case) {
-        case_expression = primary(false);
+        parses_goto_labels = false;
+        case_expression = primary();
+        parses_goto_labels = true;
     }
 
     advance(TokenType::COLON);
@@ -629,6 +636,21 @@ AST *Parser::cast_expression() {
         cast_value, type, is_force_cast, is_optional_cast);
 }
 
+TernaryExpression *Parser::ternary_expression(AST *bool_expression) {
+    // (expression) ? 50 : 20
+    // 50 == 30 ? return true : return false
+    advance(TokenType::QUESTION);
+
+    parses_goto_labels = false;
+    auto first_expression = statement();
+    advance(TokenType::COLON);
+    auto second_expression = statement();
+    parses_goto_labels = true;
+
+    return this->create_declaration<TernaryExpression>(
+        bool_expression, first_expression, second_expression);
+}
+
 AST *Parser::equality() {
     if (this->current().type == TokenType::TRY) {
         return try_expression();
@@ -705,7 +727,7 @@ AST *Parser::unary() {
     return this->primary();
 }
 
-AST *Parser::primary(bool parses_goto) {
+AST *Parser::primary() {
     if (peek().type == TokenType::PERIOD) {
         return struct_member_access();
     } else if (peek().type == TokenType::SQUARE_OPEN) {
@@ -726,7 +748,7 @@ AST *Parser::primary(bool parses_goto) {
 
         if (advanceIf(TokenType::PARENS_OPEN)) {
             return this->function_call(literal->value);
-        } else if (parses_goto) {
+        } else if (parses_goto_labels) {
             if (advanceIf(TokenType::COLON)) {
                 return this->create_declaration<GOTO>(literal->value, false);
             }
@@ -742,6 +764,10 @@ AST *Parser::primary(bool parses_goto) {
             // TODO: Just to function call for now, in the future, when there
             // will be nested structs, we might have to make this more complex
             return this->function_call(literal->value, template_arguments);
+        }
+
+        if (this->current().type == TokenType::QUESTION) {
+            return ternary_expression(literal);
         }
 
         return literal;

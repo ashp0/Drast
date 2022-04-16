@@ -54,6 +54,7 @@ enum class ASTType {
     UNARY_EXPRESSION,    // -5;
     GROUPING_EXPRESSION, // (5 + 6)
     LITERAL_EXPRESSION,  // 5;
+    TERNARY_EXPRESSION,  // ? 50 : 20
     ARRAY_ACCESS,        // myVariable[]
     ARRAY_CREATION,      // [50, 30+20]
     CAST,                // cast(5.50, int);
@@ -497,6 +498,22 @@ class UnaryExpression : public AST {
   public:
     UnaryExpression(AST *expr, TokenType op, Location location)
         : AST(ASTType::UNARY_EXPRESSION, location), expr(expr), op(op){};
+
+    std::string toString() override;
+};
+
+class TernaryExpression : public AST {
+  public:
+    AST *bool_expression;
+    AST *first_expression;
+    AST *second_expression;
+
+  public:
+    TernaryExpression(AST *bool_expression, AST *first_expression,
+                      AST *second_expression, Location location)
+        : AST(ASTType::TERNARY_EXPRESSION, location),
+          bool_expression(bool_expression), first_expression(first_expression),
+          second_expression(second_expression) {}
 
     std::string toString() override;
 };
