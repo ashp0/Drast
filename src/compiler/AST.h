@@ -227,15 +227,16 @@ class StructDeclaration : public AST {
     CompoundStatement *body;
     std::vector<TokenType> qualifiers;
     std::optional<TemplateDeclaration *> template_declaration;
+    bool is_union = false;
 
   public:
     StructDeclaration(std::string_view name, std::vector<TokenType> qualifiers,
                       CompoundStatement *body,
                       std::optional<TemplateDeclaration *> template_declaration,
-                      Location location)
+                      bool is_union, Location location)
         : AST(ASTType::STRUCT_DECLARATION, location), name(name), body(body),
           qualifiers(std::move(qualifiers)),
-          template_declaration(template_declaration) {}
+          template_declaration(template_declaration), is_union(is_union) {}
 
     std::string toString() override;
 };
@@ -381,14 +382,16 @@ class RangeBasedForLoop : public AST {
   public:
     std::string_view name;
     std::string_view name2;
+    std::optional<AST *> for_index;
 
     CompoundStatement *body;
 
   public:
     RangeBasedForLoop(std::string_view name, std::string_view name2,
-                      CompoundStatement *body, Location location)
+                      std::optional<AST *> for_index, CompoundStatement *body,
+                      Location location)
         : AST(ASTType::RANGE_BASED_FOR, location), name(name), name2(name2),
-          body(body) {}
+          for_index(for_index), body(body) {}
 
     std::string toString() override;
 };

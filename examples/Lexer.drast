@@ -295,11 +295,4 @@ struct Lexer {
 
         return self.returnType(type)
     }
-
-    // NOTE: Used for documentation purposes
-    // void :: myOtherFunction() {
-    //     testFunction(!{ $(int a, bool b)
-    //         return true
-    //     }, 5+30)
-    // }
 }

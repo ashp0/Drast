@@ -2,16 +2,16 @@
 // Drast Programming Language Tests
 //
 
-extern private void :: printf(string fmt, ...) 
+extern private void :: printf(string fmt, ... args)
 
 private enum AgeCategory {
-    case Kid,
-    case Teen,
-    case Adult,
-    case Elder
+    Kid,
+    Teen,
+    Adult,
+    Elder
 }
 
-alias AgePointer : AgeCategory*
+typealias AgePointer = AgeCategory
 
 struct Person {
     string first_name
@@ -19,7 +19,7 @@ struct Person {
     int age
     AgeCategory age_category
 
-    @init(string first_name, string last_name, int age, AgeCategory age_category) {
+    @(string first_name, string last_name, int age, AgeCategory age_category) {
         self.first_name = first_name
         self.last_name = last_name
         self.age = age
@@ -75,11 +75,11 @@ int :: main(int argc, string[] argv) {
         a = a + 1
     }
 
-    do {
+    while (a < 10) {
         a = a + 1
-    } while (a < 10)
+    }
 
-    for (int i = 0; i < 10; i = i + 1) {
+    for (int i = 0, i < 10, i += 1) {
         printf("%d\n", i)
     }
 
@@ -95,16 +95,15 @@ int :: main(int argc, string[] argv) {
     }
 
     int i = 0
-    char operator = '+'
-    i = advanceIf(a) {
-        '+': a + b
-        '-': a - b
-        '*': a * b
-        '/': a / b
-        _: {
-            printf("Unknown operator: %c\n", operator)
+    char op = '+'
+    switch (op) {
+        case '+': a + b
+        case '-': a - b
+        case '*': a * b
+        case '/': a / b
+        default:
+            printf("Unknown operator: %c\n", op)
             return 0
-        }
     }
 
     multiply(a, b)
