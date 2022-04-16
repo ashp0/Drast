@@ -27,6 +27,7 @@
     - [x] Named arguments in function calls
     - [x] Unions
     - [x] Index in range based for loop
+    - [x] Better Error Messages
 - [ ] Semantic Analyzer
     - [ ] Duplicate Variable and Functions
     - [ ] Duplicate Struct Initializers

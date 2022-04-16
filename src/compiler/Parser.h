@@ -16,6 +16,7 @@ class Parser {
     uint32_t index;
     Print printer;
     bool parses_goto_labels = true;
+    bool inside_function_body = false; // myFunction(!{return true})
 
   public:
     Parser(std::string &file_name, std::vector<Token> &tokens,
@@ -142,7 +143,7 @@ class Parser {
 
     void advance();
 
-    void advance(TokenType type);
+    void advance(TokenType type, const char *error_message = "");
 
     bool advanceIf(TokenType type);
 
@@ -150,7 +151,7 @@ class Parser {
 
     Token *getAndAdvance();
 
-    Token *getAndAdvance(TokenType type);
+    Token *getAndAdvance(TokenType type, const char *message = "");
 
     Token &peek(int offset = 1);
 
