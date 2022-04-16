@@ -19,9 +19,9 @@
     - [x] Casting
     - [x] New lines as semicolons instead of just parsing
     - [x] Support for array's, array index referencing, array operator overloading
-    - [ ] Typeof and Any operator
-  - [ ] ternary operator
-  - [ ] `for (dog in dogs) { ... }`
+    - [x] Typeof and Any operator
+    - [x] ternary operator
+    - [x] `for (dog in dogs) { ... }`
 - [ ] Semantic Analyzer
     - [ ] Duplicate Variable and Functions
     - [ ] Duplicate Struct Initializers

@@ -474,12 +474,12 @@
     },
     "keywords": {
       "name": "keyword.control.drast",
-      "match": "@|~|\\b(break|continue|do|else|for|goto|if|return|while|catch|throw|case|default|import|typelias)\\b"
+      "match": "@|~|\\b(self|typealias|return|if|else|import|volatile|cast|extern|operator|switch|case|break|default|while|for|continue|typeof|false|true|goto|private|do|try|catch|throw|import)\\b"
     },
     "storage_types": {
       "patterns": [
         {
-          "match": "(?-mix:(?<!\\w)(?:float|void|char|bool|int|string)(?!\\w))",
+          "match": "(?-mix:(?<!\\w)(?:bool|int|float|void|string|char|nil|any)(?!\\w))",
           "name": "storage.type.built-in.primitive.drast"
         },
         {

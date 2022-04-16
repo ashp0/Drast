@@ -18,6 +18,7 @@ static const std::unordered_map<std::string_view, TokenType> keywords = {
     {"cast", TokenType::CAST},
     {"extern", TokenType::EXTERN},
     {"operator", TokenType::OPERATOR},
+    {"in", TokenType::IN},
 
     {"switch", TokenType::SWITCH},
     {"case", TokenType::CASE},
@@ -38,6 +39,7 @@ static const std::unordered_map<std::string_view, TokenType> keywords = {
     {"string", TokenType::STRING},
     {"char", TokenType::CHAR},
     {"nil", TokenType::NIL},
+    {"any", TokenType::ANY},
 
     {"goto", TokenType::GOTO},
     {"private", TokenType::PRIVATE},
@@ -114,6 +116,8 @@ std::string tokenTypeAsLiteral(TokenType type) {
         return "CHAR";
     case TokenType::NIL:
         return "NIL";
+    case TokenType::ANY:
+        return "ANY";
     case TokenType::IDENTIFIER:
         return "IDENTIFIER";
 

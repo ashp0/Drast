@@ -35,6 +35,8 @@ enum class TokenType : uint8_t {
     FALSE,
     TRUE,
     NIL,
+    ANY,
+    IN,
 
     SWITCH,
     CASE,
@@ -229,6 +231,7 @@ constexpr bool isOperatorType(TokenType type) {
 constexpr bool isTemplateKeyword(TokenType type) {
     switch (type) {
     case TokenType::INT:
+    case TokenType::ANY:
     case TokenType::CHAR:
     case TokenType::VOID:
     case TokenType::BOOL:
@@ -246,6 +249,7 @@ constexpr bool isTemplateKeyword(TokenType type) {
 constexpr bool isKeywordType(TokenType type) {
     switch (type) {
     case TokenType::INT:
+    case TokenType::ANY:
     case TokenType::CHAR:
     case TokenType::VOID:
     case TokenType::BOOL:
@@ -260,6 +264,7 @@ constexpr bool isKeywordType(TokenType type) {
 constexpr bool isRegularType(TokenType type) {
     switch (type) {
     case TokenType::INT:
+    case TokenType::ANY:
     case TokenType::CHAR:
     case TokenType::VOID:
     case TokenType::BOOL:
@@ -287,6 +292,7 @@ constexpr bool isRegularValue(TokenType type) {
     case TokenType::IDENTIFIER:
     case TokenType::SELF:
     case TokenType::OPERATOR_SUB:
+    case TokenType::TYPEOF:
         return true;
     default:
         return false;

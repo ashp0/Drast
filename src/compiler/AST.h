@@ -35,8 +35,9 @@ enum class ASTType {
 
     VARIABLE_DECLARATION, // int a = 1
 
-    WHILE, // while (a == 1) { ... }
-    FOR,   // for (int i = 0; i < 10; i++) { ... }
+    WHILE,           // while (a == 1) { ... }
+    FOR,             // for (int i = 0; i < 10; i++) { ... }
+    RANGE_BASED_FOR, // for (dog in dogs) { ... }
 
     SWITCH,      // switch (a) { case 1: ... }
     SWITCH_CASE, // case 1: ...
@@ -349,6 +350,22 @@ class ForLoop : public AST {
             CompoundStatement *body, Location location)
         : AST(ASTType::FOR, location), first_statement(first_statement),
           second_statement(second_statement), third_statement(third_statement),
+          body(body) {}
+
+    std::string toString() override;
+};
+
+class RangeBasedForLoop : public AST {
+  public:
+    std::string_view name;
+    std::string_view name2;
+
+    CompoundStatement *body;
+
+  public:
+    RangeBasedForLoop(std::string_view name, std::string_view name2,
+                      CompoundStatement *body, Location location)
+        : AST(ASTType::RANGE_BASED_FOR, location), name(name), name2(name2),
           body(body) {}
 
     std::string toString() override;

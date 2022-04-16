@@ -88,12 +88,16 @@ std::string FunctionArgument::toString() {
 
     if (!is_vaarg) {
         argument += this->type.value()->toString();
-        if (name) {
-            argument += " ";
-            argument += this->name.value();
-        }
+        goto print_name;
     } else {
         argument += "...";
+        goto print_name;
+    }
+
+print_name:
+    if (name) {
+        argument += " ";
+        argument += this->name.value();
     }
 
     return argument;
@@ -229,6 +233,18 @@ std::string ForLoop::toString() {
     for_loop += ") ";
     for_loop += this->body->toString();
     return for_loop;
+}
+
+std::string RangeBasedForLoop::toString() {
+    std::string range_based_for_loop;
+    range_based_for_loop += "for (";
+    range_based_for_loop += this->name;
+    range_based_for_loop += " in ";
+    range_based_for_loop += this->name2;
+    range_based_for_loop += ") ";
+    range_based_for_loop += this->body->toString();
+
+    return range_based_for_loop;
 }
 
 std::string WhileLoop::toString() {

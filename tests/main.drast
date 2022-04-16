@@ -6,6 +6,21 @@ tokens.insertAt@(Token, Token)().Token@(Token, Token)().testFunction().test_vari
 
 import io
 
+any :: function_with_any(any myArgument) {
+    int i = cast!(myArgument, int)
+    any test = 40
+    return i
+}
+
+void :: printf(... args) {
+    for (arg in args) {
+        switch (typeof(arg)) {
+            case "string":
+            case "int":
+        }
+    }
+}
+
 struct Test {
     @() {
         self.test =  40
@@ -40,7 +55,7 @@ struct Vector : @(struct type) {
 
 end:
 
-extern int :: printf(string format, ...)
+extern int :: printf(string format, ... args)
 
 struct Person {
     int age; int test
@@ -74,7 +89,7 @@ asm (
 )
 
 
-extern int[]*? :: hello(int test, ...) {
+extern int[]*? :: hello(int test, ... args) {
     for (int i = 0, i < 10, i += 1) {
         i += 30
     }

@@ -59,7 +59,9 @@ class Parser {
     AST *variable_declaration(AST *&variable_type,
                               const std::vector<TokenType> &qualifiers = {});
 
-    ForLoop *for_loop();
+    RangeBasedForLoop *range_based_for_loop();
+
+    AST *for_loop();
 
     WhileLoop *while_loop();
 

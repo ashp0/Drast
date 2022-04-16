@@ -59,6 +59,7 @@ AST *Parser::statement() {
     case TokenType::STRING:
     case TokenType::IDENTIFIER:
     case TokenType::SELF:
+    case TokenType::ANY:
         return this->function_or_variable_declaration({});
     case TokenType::V_INT:
     case TokenType::V_CHAR:
@@ -364,10 +365,28 @@ AST *Parser::variable_declaration(AST *&variable_type,
         variable_name, variable_type, variable_value, qualifiers);
 }
 
-ForLoop *Parser::for_loop() {
+RangeBasedForLoop *Parser::range_based_for_loop() {
+    auto name =
+        getAndAdvance(TokenType::IDENTIFIER)->value(this->printer.source);
+    advance(TokenType::IN);
+    auto name2 =
+        getAndAdvance(TokenType::IDENTIFIER)->value(this->printer.source);
+    this->advance(TokenType::PARENS_CLOSE);
+    this->advance(TokenType::BRACE_OPEN);
+    auto for_body = this->compound();
+    this->advance(TokenType::BRACE_CLOSE);
+
+    return this->create_declaration<RangeBasedForLoop>(name, name2, for_body);
+}
+
+AST *Parser::for_loop() {
     this->advance(TokenType::FOR);
 
     this->advance(TokenType::PARENS_OPEN);
+
+    if (peek().type == TokenType::IN) {
+        return this->range_based_for_loop();
+    }
 
     auto for_initialization = this->statement();
     this->advance(TokenType::COMMA);
@@ -376,6 +395,7 @@ ForLoop *Parser::for_loop() {
     this->advance(TokenType::COMMA);
 
     auto for_increment = this->statement();
+
     this->advance(TokenType::PARENS_CLOSE);
 
     this->advance(TokenType::BRACE_OPEN);
@@ -939,7 +959,8 @@ std::vector<FunctionArgument *> Parser::function_arguments() {
 
             auto argument = this->create_declaration<FunctionArgument>();
             argument->is_vaarg = true;
-
+            argument->name = getAndAdvance(TokenType::IDENTIFIER)
+                                 ->value(this->printer.source);
             arguments.push_back(argument);
 
             break;
