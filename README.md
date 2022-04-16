@@ -29,7 +29,7 @@ All examples are located in [`examples`](https://github.com/Malvion/drast/tree/m
 
 ## Contributing
 
-Want to contribute to drast? First, read the [`CONTRIBUTING.md`](https://github.com/Malvion/drast/blob/master/CONTRIBUTING.md) and [`CODE_OF_CONDUCT`](https://github.com/Malvion/drast/blob/master/CODE_OF_CONDUCT.md). Then fork drast, put in your own changes and open a pull request!
+Want to contribute to drast? First, read the [`CONTRIBUTING.md`](https://github.com/Malvion/drast/blob/master/CONTRIBUTING.md) and [`CODE_OF_CONDUCT`](https://github.com/Malvion/drast/blob/master/CODE_OF_CONDUCT.md). Then fork drast, add in your own amazing changes, the open up a pull request!
 
 ## Building
 
