@@ -180,7 +180,7 @@ AST *Parser::struct_member_access() {
         variable_name = "self";
     } else {
         throw this->throw_error(
-            "Expected a identifier or a self after struct member access").;
+            "Expected a identifier or a self after struct member access.");
     }
 
     advance(TokenType::PERIOD);
