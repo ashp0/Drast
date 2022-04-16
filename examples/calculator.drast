@@ -6,18 +6,15 @@ import io
 
 int :: main(int argc, string[] argv) {
     print("Hello World")
-
-    float first_number
-    float second_number
-    float result
-    char operator
+    
+    float result = 0
 
     print("Type your first number\n")
-    firstNumber = readFloat()
+    float firstNumber = readFloat()
     getInput("Type your second number\n")
-    secondNumber = readFloat()
+    float secondNumber = readFloat()
     getInput("Type your operator\n")
-    operator = readChar()
+    char operator = readChar()
 
     switch (operator) {
         '+': result = firstNumber + secondNumber
@@ -28,4 +25,5 @@ int :: main(int argc, string[] argv) {
     }
 
     print(result)
+    return result
 }
