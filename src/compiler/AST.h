@@ -16,11 +16,13 @@ enum class ASTType {
 
     IMPORT_STATEMENT, // import io
 
-    FUNCTION_DECLARATION, // int :: test(int a, int b) { ... }
-    FUNCTION_ARGUMENT,    // int a, int b
-    FUNCTION_CALL,        // test(1, 2)
-    FIRST_CLASS_FUNCTION, //  $bool(int, int)
-    OPERATOR_OVERLOAD,    // int :: operator[](float offset) { ... }
+    FUNCTION_DECLARATION,              // int :: test(int a, int b) { ... }
+    FUNCTION_ARGUMENT,                 // int a, int b
+    FUNCTION_CALL,                     // test(1, 2)
+    FUNCTION_CALL_NAME_BASED_ARGUMENT, // multiply(second_number: 50,
+                                       // first_number: 30)
+    FIRST_CLASS_FUNCTION,              //  $bool(int, int)
+    OPERATOR_OVERLOAD, // int :: operator[](float offset) { ... }
 
     TYPE, // int, string, float, bool, etc.
 
@@ -146,13 +148,16 @@ class FunctionDeclaration : public AST {
 class FunctionArgument : public AST {
   public:
     std::optional<std::string_view> name = std::nullopt;
+    std::optional<AST *> argument_default_value = std::nullopt;
     std::optional<AST *> type = std::nullopt;
     bool is_vaarg = false;
 
   public:
     FunctionArgument(std::optional<std::string_view> name, AST *type,
+                     std::optional<AST *> argument_default_value,
                      Location location)
-        : AST(ASTType::FUNCTION_ARGUMENT, location), name(name), type(type) {}
+        : AST(ASTType::FUNCTION_ARGUMENT, location), name(name), type(type),
+          argument_default_value(argument_default_value) {}
 
     explicit FunctionArgument(Location location)
         : AST(ASTType::FUNCTION_ARGUMENT, location) {}
@@ -173,6 +178,20 @@ class FunctionCall : public AST {
         : AST(ASTType::FUNCTION_CALL, location), name(name),
           arguments(std::move(arguments)),
           template_arguments(std::move(template_arguments)) {}
+
+    std::string toString() override;
+};
+
+class FunctionCallNameBasedArgument : public AST {
+  public:
+    std::string_view name;
+    AST *expression;
+
+  public:
+    FunctionCallNameBasedArgument(std::string_view name, AST *expression,
+                                  Location location)
+        : AST(ASTType::FUNCTION_CALL_NAME_BASED_ARGUMENT, location), name(name),
+          expression(expression) {}
 
     std::string toString() override;
 };

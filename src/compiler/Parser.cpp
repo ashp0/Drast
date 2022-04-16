@@ -864,6 +864,8 @@ AST *Parser::array_creation() {
 std::vector<AST *> Parser::function_call_arguments() {
     std::vector<AST *> arguments;
 
+    this->parses_goto_labels = false;
+    bool argument_can_have_unnamed_arguments = true;
     while (this->current().type != TokenType::PARENS_CLOSE) {
         if (advanceIf(TokenType::NOT)) {
             advance(TokenType::BRACE_OPEN);
@@ -874,9 +876,30 @@ std::vector<AST *> Parser::function_call_arguments() {
             continue;
         }
 
-        arguments.push_back(this->expression());
+        if (peek().type == TokenType::COLON) {
+            // name based argument
+            auto argument_name = getAndAdvance(TokenType::IDENTIFIER)
+                                     ->value(this->printer.source);
+            advance(TokenType::COLON);
+            auto argument_value = this->expression();
+
+            auto argument =
+                this->create_declaration<FunctionCallNameBasedArgument>(
+                    argument_name, argument_value);
+
+            argument_can_have_unnamed_arguments = false;
+            arguments.push_back(argument);
+        } else {
+            if (!argument_can_have_unnamed_arguments) {
+                throw throw_error("You cannot use unnamed arguments after "
+                                  "using a named argument");
+            }
+            arguments.push_back(this->expression());
+        }
+
         advanceIf(TokenType::COMMA);
     }
+    this->parses_goto_labels = true;
 
     return arguments;
 }
@@ -952,6 +975,7 @@ std::vector<AST *> Parser::template_call_arguments() {
 std::vector<FunctionArgument *> Parser::function_arguments() {
     std::vector<FunctionArgument *> arguments;
 
+    bool can_use_arguments_without_default_value = true;
     while (this->current().type != TokenType::PARENS_CLOSE) {
         if (advanceIf(TokenType::PERIOD)) {
             advance(TokenType::PERIOD);
@@ -968,14 +992,27 @@ std::vector<FunctionArgument *> Parser::function_arguments() {
 
         AST *argument_type = this->type();
         std::optional<std::string_view> argument_name;
+        std::optional<AST *> argument_default_value = std::nullopt;
 
         if (this->current().type == TokenType::IDENTIFIER) {
             argument_name = getAndAdvance(TokenType::IDENTIFIER)
                                 ->value(this->printer.source);
+
+            if (advanceIf(TokenType::EQUAL)) {
+                can_use_arguments_without_default_value = false;
+                argument_default_value = this->expression();
+            }
+        }
+
+        if (!can_use_arguments_without_default_value &&
+            !argument_default_value) {
+            throw throw_error("Move the argument with a default value to the "
+                              "end of the argument list, since you have "
+                              "already specified a default value");
         }
 
         auto argument = this->create_declaration<FunctionArgument>(
-            argument_name, argument_type);
+            argument_name, argument_type, argument_default_value);
 
         arguments.push_back(argument);
 

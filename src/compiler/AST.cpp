@@ -99,6 +99,10 @@ print_name:
         argument += " ";
         argument += this->name.value();
     }
+    if (argument_default_value) {
+        argument += " = ";
+        argument += this->argument_default_value.value()->toString();
+    }
 
     return argument;
 }
@@ -129,6 +133,15 @@ std::string FunctionCall::toString() {
     }
     function_call += ")";
     return function_call;
+}
+
+std::string FunctionCallNameBasedArgument::toString() {
+    std::string function_call_name_based_argument;
+    function_call_name_based_argument += this->name;
+    function_call_name_based_argument += ": ";
+    function_call_name_based_argument += this->expression->toString();
+
+    return function_call_name_based_argument;
 }
 
 std::string Type::toString() {
