@@ -1,7 +1,6 @@
 # Drast VSCode Plugin
 
-This is the README for your extension "drast". After writing up a brief description, we recommend including the
-following sections.
+The Drast VSCode Plugin that helps you write in the drast programming language.
 
 ## Features
 
@@ -31,7 +30,7 @@ This extension contributes the following settings:
 
 ## Reporting Issues
 
-When reporting a issue with the plugin, please look at the [Issues](https://github.com/Malvion/drast/labels/Plugins) first to make sure you are not reporting a duplicate error. If your error is not already reported, feel free to report the issue on github.
+When reporting a issue with the plugin, please look at the [Issues](https://github.com/Malvion/drast/labels/Plugins) tab first to make sure you are not reporting a duplicate error. If your error is not already reported, feel free to report the issue on [Github](https://github.com/Malvion/drast/issues/new).
 
 ## Release Notes
 
