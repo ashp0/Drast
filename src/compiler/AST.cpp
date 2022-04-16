@@ -173,7 +173,7 @@ std::string StructDeclaration::toString() {
 
     PRINT_QUALIFIERS(struct_declaration)
 
-    struct_declaration += "struct ";
+    struct_declaration += is_union ? "union " : "struct ";
     struct_declaration += this->name;
     struct_declaration += " ";
 
@@ -256,6 +256,11 @@ std::string RangeBasedForLoop::toString() {
     range_based_for_loop += " in ";
     range_based_for_loop += this->name2;
     range_based_for_loop += ") ";
+    if (for_index) {
+        range_based_for_loop += "|";
+        range_based_for_loop += for_index.value()->toString();
+        range_based_for_loop += "| ";
+    }
     range_based_for_loop += this->body->toString();
 
     return range_based_for_loop;

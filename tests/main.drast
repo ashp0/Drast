@@ -13,7 +13,7 @@ any! :: function_with_any(any myArgument = 50) {
 }
 
 void :: printf(... args) {
-    for (arg in args) {
+    for (arg in args) |int index| {
         switch (typeof(arg)) {
             case "string":
             case "int":
@@ -170,7 +170,21 @@ int :: main(int argc, string[] argv) {
 
     int test = test == 30 ? 50 : 20
 
+    myOtherFunction()
+
+    string test = "lmao"
+
     return 0
+}
+
+void :: myOtherFunction() {
+    testFunction(!{ $(int a, bool b)
+        return a + b
+    }, 5+30)
+}
+
+int :: testFunction($int(int a, int b) predicate, int test) {
+   return predicate((50 + 20) / test)
 }
 
 main(argv: 50, argc: test + 40)
