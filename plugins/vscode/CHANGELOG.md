@@ -1,9 +1,3 @@
 # Change Log
 
-All notable changes to the "drast" extension will be documented in this file.
-
-Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
-
-## [Unreleased]
-
-- Initial release
+No official releases yet

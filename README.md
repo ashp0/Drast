@@ -27,6 +27,10 @@ its simplicity.
 
 All examples are located in [`examples`](https://github.com/Malvion/drast/tree/master/examples)
 
+## Contributing
+
+Want to contribute to drast? First, read the [`CONTRIBUTING.md`](https://github.com/Malvion/drast/blob/master/CONTRIBUTING.md) and [`CODE_OF_CONDUCT`](https://github.com/Malvion/drast/blob/master/CODE_OF_CONDUCT.md). Then fork drast, add in your own amazing changes, the open up a pull request!
+
 ## Building
 
 Drast is built in a similar manner for Windows, macOS, and Linux.
@@ -56,3 +60,7 @@ run.
 ## Social
 
 - [Our Discord Server](https://discord.gg/ZbmHzNmzPH)
+
+## Contact us
+
+If you want to contact the developers of drast, please join our [discord server](https://discord.com/invite/ZbmHzNmzPH) or DM either 'Reece Wong#7295' or 'Dewata#3029' on discord
