@@ -1,4 +1,4 @@
-# drast README
+# Drast VSCode Plugin
 
 This is the README for your extension "drast". After writing up a brief description, we recommend including the
 following sections.
@@ -16,7 +16,7 @@ For example if there is an image subfolder under your extension project workspac
 
 ## Requirements
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+Nothing is required to use this plugin except that you need to VSCode to use this plugin.
 
 ## Extension Settings
 
@@ -29,39 +29,14 @@ This extension contributes the following settings:
 * `myExtension.enable`: enable/disable this extension
 * `myExtension.thing`: set to `blah` to do something
 
-## Known Issues
+## Reporting Issues
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+When reporting a issue with the plugin, please look at the [Issues](https://github.com/Malvion/drast/labels/Plugins) first to make sure you are not reporting a duplicate error. If your error is not already reported, feel free to report the issue on github.
 
 ## Release Notes
 
-Users appreciate release notes as you update your extension.
+No official releases yet.
 
-### 1.0.0
+### Contact us
 
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
------------------------------------------------------------------------------------------------------------
-
-## Working with Markdown
-
-**Note:** You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux)
-* Toggle preview (`Shift+CMD+V` on macOS or `Shift+Ctrl+V` on Windows and Linux)
-* Press `Ctrl+Space` (Windows, Linux) or `Cmd+Space` (macOS) to see a list of Markdown snippets
-
-### For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+If you want to contact the developers of drast, please join our [discord server](https://discord.com/invite/ZbmHzNmzPH) or DM either 'Reece Wong#7295' or 'Dewata#3029' on discord

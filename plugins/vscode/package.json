@@ -4,7 +4,7 @@
   "description": "Syntax highlighting for the drast programming language.",
   "version": "0.0.1",
   "engines": {
-    "vscode": "^1.66.0"
+    "vscode": "^1.65.0"
   },
   "categories": [
     "Programming Languages"
