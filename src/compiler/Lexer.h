@@ -42,6 +42,8 @@ class Lexer {
 
     Token octal();
 
+    Token binary();
+
     Token number();
 
     Token string();

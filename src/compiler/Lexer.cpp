@@ -166,6 +166,14 @@ Token Lexer::octal() {
                     [this]() { return is_octal(this->current()); });
 }
 
+Token Lexer::binary() {
+    // 0b0103
+    advance();
+
+    return lexWhile(TokenType::V_BINARY,
+                    [this]() { return is_binary(this->current()); });
+}
+
 Token Lexer::number() {
     this->start = this->index;
     bool is_float = false;
@@ -188,6 +196,10 @@ Token Lexer::number() {
 
         if (this->current() == 'o' || this->current() == 'O') {
             return octal();
+        }
+
+        if (this->current() == 'b' || this->current() == 'B') {
+            return binary();
         }
     }
 

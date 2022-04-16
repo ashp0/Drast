@@ -21,7 +21,8 @@
     - [x] Support for array's, array index referencing, array operator overloading
     - [x] Typeof and Any operator
     - [x] ternary operator
-    - [x] `for (dog in dogs) { ... }`
+  - [x] `for (dog in dogs) { ... }`
+  - [x] Functions which throw an exception must use `!` instead of `?` as their type
 - [ ] Semantic Analyzer
     - [ ] Duplicate Variable and Functions
     - [ ] Duplicate Struct Initializers

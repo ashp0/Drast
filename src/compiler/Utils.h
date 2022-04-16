@@ -7,4 +7,6 @@
 
 bool is_octal(char c);
 
+bool is_binary(char c);
+
 #endif // DRAST_UTILS_H

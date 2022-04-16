@@ -184,14 +184,17 @@ class Type : public AST {
     bool is_pointer;
     bool is_array;
     bool is_optional;
+    bool is_throw_statement;
     std::optional<std::vector<AST *>> template_values = std::nullopt;
 
   public:
     Type(TokenType type_, std::string_view literal_value, bool is_pointer,
-         bool is_array, bool is_optional, Location location)
+         bool is_array, bool is_optional, bool is_throw_statement,
+         Location location)
         : AST(ASTType::TYPE, location), type_(type_),
           literal_value(literal_value), is_pointer(is_pointer),
-          is_array(is_array), is_optional(is_optional) {}
+          is_array(is_array), is_optional(is_optional),
+          is_throw_statement(is_throw_statement) {}
 
     std::string toString() override;
 };

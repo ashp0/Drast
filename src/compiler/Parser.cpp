@@ -1009,7 +1009,7 @@ FirstClassFunction *Parser::first_class_function() {
 AST *Parser::type() {
     auto type = this->create_declaration<Type>(
         current().type, current().value(this->printer.source), false, false,
-        false);
+        false, false);
 
     if (!isRegularType(this->current().type)) {
         std::cout << tokenTypeAsLiteral(this->current().type) << std::endl;
@@ -1033,6 +1033,9 @@ AST *Parser::type() {
         case TokenType::SQUARE_OPEN:
             this->advance();
             type->is_array = true;
+            break;
+        case TokenType::NOT:
+            type->is_throw_statement = true;
             break;
         case TokenType::AT:
             type->template_values = template_call_arguments();

@@ -6,7 +6,7 @@ tokens.insertAt@(Token, Token)().Token@(Token, Token)().testFunction().test_vari
 
 import io
 
-any :: function_with_any(any myArgument) {
+any! :: function_with_any(any myArgument) {
     int i = cast!(myArgument, int)
     any test = 40
     return i

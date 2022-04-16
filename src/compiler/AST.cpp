@@ -149,7 +149,8 @@ std::string Type::toString() {
 
     type_string += (this->is_pointer ? "*" : "");
     type_string += (this->is_array ? "[]" : "");
-    type_string += (this->is_optional ? "? " : "");
+    type_string += (this->is_optional ? "?" : "");
+    type_string += (this->is_throw_statement ? "!" : "");
 
     return type_string;
 }

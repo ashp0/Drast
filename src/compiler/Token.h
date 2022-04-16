@@ -55,6 +55,7 @@ enum class TokenType : uint8_t {
     V_CHAR,
     V_HEX,
     V_OCTAL,
+    V_BINARY,
     IDENTIFIER,
 
     GOTO,
@@ -285,6 +286,7 @@ constexpr bool isRegularValue(TokenType type) {
     case TokenType::V_CHAR:
     case TokenType::V_HEX:
     case TokenType::V_OCTAL:
+    case TokenType::V_BINARY:
     case TokenType::V_STRING:
     case TokenType::TRUE:
     case TokenType::FALSE:
