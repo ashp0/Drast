@@ -63,4 +63,4 @@ run.
 
 ## Contact us
 
-If you want to contact the developers of drast, please join our [discord server](https://discord.com/invite/ZbmHzNmzPH) or DM either 'Reece Wong#7295' or 'Dewata#3029' on discord
+If you want to contact the developers of drast, please join our [discord server](https://discord.com/invite/ZbmHzNmzPH)
