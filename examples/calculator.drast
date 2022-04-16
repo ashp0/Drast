@@ -5,11 +5,9 @@
 import io
 
 int :: main(int argc, string[] argv) {
-    print("Hello World")
-    
     float result = 0
 
-    print("Type your first number\n")
+    getInput("Type your first number\n")
     float firstNumber = readFloat()
     getInput("Type your second number\n")
     float secondNumber = readFloat()

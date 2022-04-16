@@ -17,7 +17,7 @@ CompoundStatement *Parser::compound() {
     if (this->current().type == TokenType::DOLLAR) {
         if (!inside_function_body) {
             throw throw_error(
-                "First Class Function Parameter must be inside a valid body");
+                "The First Class Function Parameter must be inside a valid body.");
         }
         compoundStatement->first_class_function = this->first_class_function();
     }
@@ -105,14 +105,14 @@ AST *Parser::statement() {
         return this->expression();
     case TokenType::NEW_LINE:
         throw this->throw_error(
-            "Parser: Error with '\\n' parsing, create github issue");
+            "Parser: Error with '\\n' parsing, please create a Github issue.");
         return nullptr;
     case TokenType::T_EOF:
         return nullptr;
     default:
         std::cout << tokenTypeAsLiteral(this->current().type) << " "
                   << this->current().location.toString();
-        throw this->throw_error("Parser: Cannot Parse Token");
+        throw this->throw_error("Parser: Cannot parse token.");
     }
 }
 
@@ -133,7 +133,7 @@ ImportStatement *Parser::import() {
         break;
     default:
         this->throw_error(
-            "Expected string literal or library name after import");
+            "Expected string literal or library name after import.");
     }
 
     return this->create_declaration<ImportStatement>(import_path, is_library);
@@ -151,7 +151,7 @@ Parser::struct_declaration(const std::vector<TokenType> &qualifiers) {
 
     auto struct_name =
         getAndAdvance(TokenType::IDENTIFIER,
-                      "Expected struct or union name after declaration")
+                      "Expected a struct or a union name after declaration.")
             ->value(this->printer.source);
 
     std::optional<TemplateDeclaration *> template_ = std::nullopt;
@@ -162,10 +162,10 @@ Parser::struct_declaration(const std::vector<TokenType> &qualifiers) {
         }
     }
 
-    advance(TokenType::BRACE_OPEN, "Struct Declaration must have a body");
+    advance(TokenType::BRACE_OPEN, "The struct declaration must have a body.");
     auto struct_body = this->compound();
     advance(TokenType::BRACE_CLOSE,
-            "The struct declaration must have a '}' in order to close it");
+            "The struct declaration must have a '}' in order to close it.");
 
     return this->create_declaration<StructDeclaration>(
         struct_name, qualifiers, struct_body, template_, is_union);
@@ -180,7 +180,7 @@ AST *Parser::struct_member_access() {
         variable_name = "self";
     } else {
         throw this->throw_error(
-            "Expected Identifier Or Self after struct member access");
+            "Expected a identifier or a self after struct member access").;
     }
 
     advance(TokenType::PERIOD);
@@ -191,18 +191,18 @@ AST *Parser::struct_member_access() {
 
         if (identifier == "init") {
             advance(TokenType::PARENS_OPEN,
-                    "Expected initializer to have arguments");
+                    "Expected initializer to have arguments.");
             auto arguments = function_call_arguments();
             advance(TokenType::PARENS_CLOSE,
-                    "Expected close parenthesis after initializer");
+                    "Expected close parenthesis after initializer.");
 
             return this->create_declaration<StructInitializerCall>(
                 variable_name, arguments);
         } else if (identifier == "deinit") {
             advance(TokenType::PARENS_OPEN,
-                    "Expected deinitializer to have open parenthesis");
+                    "Expected the deinitializer to have a open parenthesis.");
             advance(TokenType::PARENS_CLOSE,
-                    "Expected deinitializer to have close parenthesis");
+                    "Expected the deinitializer to have a close parenthesis.");
 
             return this->create_declaration<StructInitializerCall>(
                 variable_name, true);
@@ -234,15 +234,15 @@ AST *Parser::struct_init_or_enum_case_access() {
     auto identifier =
         getAndAdvance(
             TokenType::IDENTIFIER,
-            "Expected identifier after struct initializer or enum case")
+            "Expected a identifier after struct initializer or enum case.")
             ->value(this->printer.source);
 
     if (identifier == "init") {
         advance(TokenType::PARENS_OPEN,
-                "Expected initializer to have arguments");
+                "Expected the initializer to have arguments.");
         auto arguments = function_call_arguments();
         advance(TokenType::PARENS_CLOSE,
-                "Expected close parenthesis after initializer");
+                "Expected close parenthesis after the initializer.");
 
         return this->create_declaration<StructInitializerCall>(arguments);
     } else {
@@ -252,14 +252,14 @@ AST *Parser::struct_init_or_enum_case_access() {
 
 StructInitializerDeclaration *Parser::struct_initializer_declaration() {
     advance(TokenType::AT);
-    advance(TokenType::PARENS_OPEN, "Expected initializer to have arguments");
+    advance(TokenType::PARENS_OPEN, "Expected the initializer to have arguments.");
     auto arguments = function_arguments();
     advance(TokenType::PARENS_CLOSE,
-            "Expected close parenthesis after initializer");
+            "Expected close parenthesis after the initialize.r");
 
-    advance(TokenType::BRACE_OPEN, "Expected body after struct initializer");
+    advance(TokenType::BRACE_OPEN, "Expected a body after the struct initializer.");
     auto body = compound();
-    advance(TokenType::BRACE_CLOSE, "Struct Initializer body must be closed");
+    advance(TokenType::BRACE_CLOSE, "The struct initializer body must be closed.");
 
     return this->create_declaration<StructInitializerDeclaration>(arguments,
                                                                   body);
@@ -272,11 +272,11 @@ AST *Parser::struct_destructor_declaration() {
         return this->expression();
     }
     advance(TokenType::PARENS_CLOSE,
-            "Expected close parenthesis after destructor");
+            "Expected close parenthesis after the destructor.");
 
-    advance(TokenType::BRACE_OPEN, "Destructor must have body");
+    advance(TokenType::BRACE_OPEN, "The destructor must have body.");
     auto body = compound();
-    advance(TokenType::BRACE_CLOSE, "Destructor body must be closed");
+    advance(TokenType::BRACE_CLOSE, "The destructor body must be closed.");
 
     return this->create_declaration<StructInitializerDeclaration>(body);
 }
@@ -285,13 +285,13 @@ EnumDeclaration *
 Parser::enum_declaration(const std::vector<TokenType> &qualifiers) {
     advance(TokenType::ENUM);
 
-    auto enum_name = getAndAdvance(TokenType::IDENTIFIER, "Expected enum name")
+    auto enum_name = getAndAdvance(TokenType::IDENTIFIER, "Expected a enum name.")
                          ->value(this->printer.source);
 
-    advance(TokenType::BRACE_OPEN, "Enum must have body");
+    advance(TokenType::BRACE_OPEN, "The enum must have body.");
     advanceLines();
     auto cases = enum_cases();
-    advance(TokenType::BRACE_CLOSE, "Enum body must be closed");
+    advance(TokenType::BRACE_CLOSE, "The enum body must be closed.");
 
     return this->create_declaration<EnumDeclaration>(enum_name, cases,
                                                      qualifiers);
@@ -303,7 +303,7 @@ std::vector<EnumCase *> Parser::enum_cases() {
     for (int enum_case_value = 0;
          this->current().type != TokenType::BRACE_CLOSE; enum_case_value++) {
         auto case_name =
-            getAndAdvance(TokenType::IDENTIFIER, "Enum case must have a name")
+            getAndAdvance(TokenType::IDENTIFIER, "THe enum case must have a name.")
                 ->value(this->printer.source);
 
         AST *case_value;
@@ -360,10 +360,10 @@ FunctionDeclaration *
 Parser::function_declaration(AST *&return_type,
                              const std::vector<TokenType> &qualifiers) {
     auto function_name =
-        getAndAdvance(TokenType::IDENTIFIER, "Function must have a name.")
+        getAndAdvance(TokenType::IDENTIFIER, "Functions must have a name.")
             ->value(this->printer.source);
 
-    advance(TokenType::PARENS_OPEN, "Function must have arguments");
+    advance(TokenType::PARENS_OPEN, "Functions must have arguments.");
 
     auto function_arguments = this->function_arguments();
 
@@ -383,7 +383,7 @@ Parser::function_declaration(AST *&return_type,
     }
 
     if (template_) {
-        throw this->throw_error("Functions without body can't have template!");
+        throw this->throw_error("Functions without a body can't have a template!");
     }
 
     return this->create_declaration<FunctionDeclaration>(
@@ -393,7 +393,7 @@ Parser::function_declaration(AST *&return_type,
 AST *Parser::variable_declaration(AST *&variable_type,
                                   const std::vector<TokenType> &qualifiers) {
     auto variable_name =
-        getAndAdvance(TokenType::IDENTIFIER, "Expected variable name.")
+        getAndAdvance(TokenType::IDENTIFIER, "Expected a variable name.")
             ->value(this->printer.source);
 
     std::optional<AST *> variable_value = std::nullopt;
@@ -407,30 +407,30 @@ AST *Parser::variable_declaration(AST *&variable_type,
 
 RangeBasedForLoop *Parser::range_based_for_loop() {
     auto name = getAndAdvance(TokenType::IDENTIFIER,
-                              "Expected name for range based for loops.")
+                              "Expected a name for range-based for loops.")
                     ->value(this->printer.source);
-    advance(TokenType::IN, "Range based for loop must have `in` token.");
+    advance(TokenType::IN, "Range-based for loops must have `in` token.");
 
     // TODO: Make this an expression instead
     auto name2 =
         getAndAdvance(TokenType::IDENTIFIER,
-                      "Expected second name for range based for loops.")
+                      "Expected a second name for range-based for loops.")
             ->value(this->printer.source);
     this->advance(TokenType::PARENS_CLOSE,
-                  "Expected Closing parenthesis after range based for loop.");
+                  "Expected a closing parenthesis after range-based for loops.");
 
     std::optional<AST *> for_index = std::nullopt;
     if (advanceIf(TokenType::BITWISE_PIPE)) {
         for_index = statement();
         advance(TokenType::BITWISE_PIPE,
-                "Expected closing pipe operator after range based for loop.");
+                "Expected a closing pipe operator after range-based for loops.");
     }
 
     this->advance(TokenType::BRACE_OPEN,
-                  "Range based for loop must have a body");
+                  "Range-based for loops must have a body.");
     auto for_body = this->compound();
     this->advance(TokenType::BRACE_CLOSE,
-                  "Range based for loop must have a body that closes");
+                  "Range-based for loops must have a body that closes.");
 
     return this->create_declaration<RangeBasedForLoop>(name, name2, for_index,
                                                        for_body);
@@ -440,7 +440,7 @@ AST *Parser::for_loop() {
     this->advance(TokenType::FOR);
 
     this->advance(TokenType::PARENS_OPEN,
-                  "Expected opening parenthesis after for loop.");
+                  "Expected a opening parenthesis after a for loop.");
 
     if (peek().type == TokenType::IN) {
         return this->range_based_for_loop();
@@ -448,20 +448,20 @@ AST *Parser::for_loop() {
 
     auto for_initialization = this->statement();
     this->advance(TokenType::COMMA,
-                  "Expected comma after for loop's first expression.");
+                  "Expected a comma after for loop's first expression.");
 
     auto for_condition = this->expression();
     this->advance(TokenType::COMMA,
-                  "Expected comma after for loop's second expression.");
+                  "Expected a comma after for loop's second expression.");
 
     auto for_increment = this->statement();
 
     this->advance(TokenType::PARENS_CLOSE,
-                  "For loop's parenthesis must be closed.");
+                  "The for loop's parenthesis must be closed.");
 
-    this->advance(TokenType::BRACE_OPEN, "For loop must have a body.");
+    this->advance(TokenType::BRACE_OPEN, "The for loop must have a body.");
     auto for_body = this->compound();
-    this->advance(TokenType::BRACE_CLOSE, "For loop's body must be closed.");
+    this->advance(TokenType::BRACE_CLOSE, "The for loop's body must be closed.");
 
     return this->create_declaration<ForLoop>(for_initialization, for_condition,
                                              for_increment, for_body);
@@ -470,14 +470,14 @@ AST *Parser::for_loop() {
 WhileLoop *Parser::while_loop() {
     advance(TokenType::WHILE);
 
-    advance(TokenType::PARENS_OPEN, "While loop must have a parenthesis.");
+    advance(TokenType::PARENS_OPEN, "The while loop must have a parenthesis.");
     auto expression = this->expression();
     advance(TokenType::PARENS_CLOSE,
             "While loop's parenthesis must be closed.");
 
-    this->advance(TokenType::BRACE_OPEN, "While loop must have a body.");
+    this->advance(TokenType::BRACE_OPEN, "The while loop must have a body.");
     auto body = this->compound();
-    this->advance(TokenType::BRACE_CLOSE, "While loop's body must be closed.");
+    this->advance(TokenType::BRACE_CLOSE, "The while loop's body must be closed.");
 
     return this->create_declaration<WhileLoop>(expression, body);
 }
@@ -514,10 +514,10 @@ If *Parser::if_statement() {
             elseif_conditions.push_back(else_body_and_statement.first);
             elseif_bodies.push_back(else_body_and_statement.second);
         } else {
-            advance(TokenType::BRACE_OPEN, "Else statement must have a body");
+            advance(TokenType::BRACE_OPEN, "The else statement must have a body.");
             else_body = this->compound();
             advance(TokenType::BRACE_CLOSE,
-                    "Else statement's body must be closed");
+                    "The else statement's body must be closed.");
             break;
         }
     }
@@ -529,22 +529,22 @@ If *Parser::if_statement() {
 
 std::pair<AST *, CompoundStatement *> Parser::if_else_statements() {
     advance(TokenType::PARENS_OPEN,
-            "Expected expression after if or else statement");
+            "Expected a expression after a if or else statement.");
     auto condition = this->expression();
     advance(TokenType::PARENS_CLOSE,
-            "Parenthesis must be closed inside an if statement");
+            "Parenthesis must be closed inside an if statement.");
 
-    advance(TokenType::BRACE_OPEN, "If or else statement must have a body");
+    advance(TokenType::BRACE_OPEN, "The if or else statement must have a body.");
     auto body = this->compound();
     advance(TokenType::BRACE_CLOSE,
-            "If or else statement's body must be closed");
+            "The if or else statement's body must be closed.");
 
     return std::make_pair(condition, body);
 }
 
 ASM *Parser::inline_assembly() {
     advance(TokenType::ASM);
-    advance(TokenType::PARENS_OPEN, "Expected parenthesis after assembly.");
+    advance(TokenType::PARENS_OPEN, "Expected a parenthesis after assembly.");
     advanceLines();
 
     std::vector<std::string_view> instructions;
@@ -552,7 +552,7 @@ ASM *Parser::inline_assembly() {
     while (this->current().type != TokenType::PARENS_CLOSE) {
         instructions.push_back(
             getAndAdvance(TokenType::V_STRING,
-                          "Assembly instruction must be inside string literal.")
+                          "The assembly instruction must be inside a string literal.")
                 ->value(this->printer.source));
         advanceLines();
     }
@@ -566,7 +566,7 @@ GOTO *Parser::goto_statement() {
     advance(TokenType::GOTO);
 
     auto label = getAndAdvance(TokenType::IDENTIFIER,
-                               "Expected label after goto statement.")
+                               "Expected a label after the goto statement.")
                      ->value(this->printer.source);
 
     return this->create_declaration<GOTO>(label, true);
@@ -576,16 +576,16 @@ SwitchStatement *Parser::switch_statement() {
     advance(TokenType::SWITCH);
 
     advance(TokenType::PARENS_OPEN,
-            "Switch statement must have an opening parenthesis.");
+            "The switch statement must have an opening parenthesis.");
     auto switch_expression = expression();
     advance(TokenType::PARENS_CLOSE,
-            "Switch statement must have a closing parenthesis.");
+            "The switch statement must have a closing parenthesis.");
 
-    advance(TokenType::BRACE_OPEN, "Switch statement must have a body");
+    advance(TokenType::BRACE_OPEN, "The switch statement must have a body.");
     advanceLines();
     auto cases = switch_cases();
     advance(TokenType::BRACE_CLOSE,
-            "Body of switch statement must end with '}`");
+            "The body of the switch statement must end with a '}'.");
 
     return this->create_declaration<SwitchStatement>(switch_expression, cases);
 }
@@ -614,7 +614,7 @@ SwitchCase *Parser::switch_case() {
         parses_goto_labels = true;
     }
 
-    advance(TokenType::COLON, "Expected ':' after switch case.");
+    advance(TokenType::COLON, "Expected a ':' after the switch case.");
 
     auto *case_body = this->create_declaration<CompoundStatement>();
 
@@ -637,21 +637,21 @@ SwitchCase *Parser::switch_case() {
 DoCatchStatement *Parser::do_catch_statement() {
     advance(TokenType::DO);
 
-    advance(TokenType::BRACE_OPEN, "Expected '(' after do statement case.");
+    advance(TokenType::BRACE_OPEN, "Expected a '(' after the do statement case.");
     auto do_body = this->compound();
-    advance(TokenType::BRACE_CLOSE, "Expected ')' after do statement case.");
+    advance(TokenType::BRACE_CLOSE, "Expected a ')' after the do statement case.");
 
-    advance(TokenType::CATCH, "Do statement must have a catch clause.");
+    advance(TokenType::CATCH, "The do statement must have a catch clause.");
     std::optional<AST *> catch_expression = std::nullopt;
     if (advanceIf(TokenType::PARENS_OPEN)) {
         catch_expression = this->statement();
         advance(TokenType::PARENS_CLOSE,
-                "Expected ')' after catch statement expression.");
+                "Expected a ')' after the catch statement expression.");
     }
 
-    advance(TokenType::BRACE_OPEN, "Catch statement must have a body");
+    advance(TokenType::BRACE_OPEN, "The catch statement must have a body.");
     auto catch_body = this->compound();
-    advance(TokenType::BRACE_CLOSE, "Catch statement's body must end");
+    advance(TokenType::BRACE_CLOSE, "The catch statement's body must end.");
 
     return this->create_declaration<DoCatchStatement>(do_body, catch_body,
                                                       catch_expression);
@@ -675,12 +675,12 @@ OperatorOverload *Parser::operator_overload(AST *&return_type) {
         advance();
     }
 
-    advance(TokenType::PARENS_OPEN, "Expected '(' after operator overloading.");
+    advance(TokenType::PARENS_OPEN, "Expected a '(' after the operator overloading.");
     auto arguments = this->function_arguments();
     advance(TokenType::PARENS_CLOSE,
-            "Expected ')' after operator overloading.");
+            "Expected a ')' after operator overloading.");
 
-    advance(TokenType::BRACE_OPEN, "Expected body after operator overloading.");
+    advance(TokenType::BRACE_OPEN, "Expected a body after the operator overloading.");
     auto body = this->compound();
     advance(TokenType::BRACE_CLOSE,
             "Body after operator overloading must end.");
@@ -720,16 +720,16 @@ AST *Parser::cast_expression() {
     } else if (advanceIf(TokenType::NOT)) {
         is_force_cast = true;
     } else {
-        throw this->throw_error("Cast expression must be forced or optional");
+        throw this->throw_error("The cast expression must be forced or optional.");
     }
 
-    advance(TokenType::PARENS_OPEN, "Cast expression must have '('");
+    advance(TokenType::PARENS_OPEN, "THe cast expression must have '('.");
     auto cast_value = expression();
     advance(TokenType::COMMA,
-            "Cast expression must have a comma after expression");
+            "The cast expression must have a comma after expression.");
     auto type = this->type();
     advance(TokenType::PARENS_CLOSE,
-            "Expected ')' at the end of a cast expression");
+            "Expected a ')' at the end of the cast expression.");
 
     return this->create_declaration<CastExpression>(
         cast_value, type, is_force_cast, is_optional_cast);
@@ -742,7 +742,7 @@ TernaryExpression *Parser::ternary_expression(AST *bool_expression) {
 
     parses_goto_labels = false;
     auto first_expression = statement();
-    advance(TokenType::COLON, "Expected ':' after ternary expression");
+    advance(TokenType::COLON, "Expected a ':' after the ternary expression.");
     auto second_expression = statement();
     parses_goto_labels = true;
 
@@ -856,10 +856,10 @@ AST *Parser::primary() {
             auto template_arguments = this->template_call_arguments();
 
             advance(TokenType::PARENS_CLOSE,
-                    "Expected ')' after function call template arguments.");
+                    "Expected a ')' after the function call template arguments.");
             // TODO: Optional Templates
             advance(TokenType::PARENS_OPEN,
-                    "Expected '(' after function call template arguments.");
+                    "Expected a '(' after the function call template arguments.");
 
             // TODO: Just to function call for now, in the future, when there
             // will be nested structs, we might have to make this more complex
@@ -874,7 +874,7 @@ AST *Parser::primary() {
     } else if (advanceIf(TokenType::PARENS_OPEN)) {
         auto expr = this->expression();
         advance(TokenType::PARENS_CLOSE,
-                "Expected closing parenthesis after group expression.");
+                "Expected a closing parenthesis after group expression.");
 
         return this->create_declaration<GroupingExpression>(expr);
     } else if (this->current().type == TokenType::SELF) {
@@ -883,7 +883,7 @@ AST *Parser::primary() {
         return cast_expression();
     } else {
         std::cout << tokenTypeAsLiteral(this->current().type);
-        throw this->throw_error("Invalid Expression");
+        throw this->throw_error("Invalid expression.");
     }
 }
 
@@ -893,7 +893,7 @@ AST *Parser::function_call(
 
     auto arguments = function_call_arguments();
     advance(TokenType::PARENS_CLOSE,
-            "Expected closing parenthesis after function call");
+            "Expected a closing parenthesis after function call.");
 
     auto decl = this->create_declaration<FunctionCall>(function_name, arguments,
                                                        template_arguments);
@@ -910,12 +910,12 @@ AST *Parser::function_call(
 AST *Parser::array_access() {
     // myVariable[40]
     auto variable_name = getAndAdvance(TokenType::IDENTIFIER,
-                                       "Expected identifier after array access")
+                                       "Expecteda  identifier after array access.")
                              ->value(this->printer.source);
     advance(TokenType::SQUARE_OPEN);
     auto inside = this->expression();
     advance(TokenType::SQUARE_CLOSE,
-            "Expected closing square after array access");
+            "Expected a closing square after array access.");
 
     return this->create_declaration<ArrayAccess>(variable_name, inside);
 }
@@ -925,7 +925,7 @@ AST *Parser::array_access(FunctionCall *function_call) {
     advance(TokenType::SQUARE_OPEN);
     auto inside = this->expression();
     advance(TokenType::SQUARE_CLOSE,
-            "Expected closing square after array access");
+            "Expected a closing square after array access.");
 
     return this->create_declaration<ArrayAccess>(function_call, inside);
 }
@@ -942,7 +942,7 @@ AST *Parser::array_creation() {
     }
 
     advance(TokenType::SQUARE_CLOSE,
-            "Expected closing square after array creation");
+            "Expected a closing square after array creation.");
 
     return this->create_declaration<ArrayCreation>(items);
 }
@@ -956,11 +956,11 @@ std::vector<AST *> Parser::function_call_arguments() {
         if (advanceIf(TokenType::NOT)) {
             inside_function_body = true;
             advance(TokenType::BRACE_OPEN,
-                    "Expected '{' after using first class function");
+                    "Expected a '{' after using first class function.");
             auto body = this->compound();
             arguments.push_back(body);
             advance(TokenType::BRACE_CLOSE,
-                    "Expected '}' after using first class function");
+                    "Expected a '}' after using first class function.");
             advanceIf(TokenType::COMMA);
             inside_function_body = false;
             continue;
@@ -970,7 +970,7 @@ std::vector<AST *> Parser::function_call_arguments() {
             // name based argument
             auto argument_name =
                 getAndAdvance(TokenType::IDENTIFIER,
-                              "Expected identifier after using a name based "
+                              "Expected a identifier after using a name based "
                               "argument style")
                     ->value(this->printer.source);
             advance(TokenType::COLON);
@@ -984,7 +984,7 @@ std::vector<AST *> Parser::function_call_arguments() {
             arguments.push_back(argument);
         } else {
             if (!argument_can_have_unnamed_arguments) {
-                throw throw_error("You cannot use unnamed arguments after "
+                throw throw_error("Cannot use unnamed arguments after "
                                   "using a named argument");
             }
             arguments.push_back(this->expression());
@@ -1000,9 +1000,9 @@ std::vector<AST *> Parser::function_call_arguments() {
 AST *Parser::typealias() {
     advance(TokenType::TYPEALIAS);
     auto type_name = getAndAdvance(TokenType::IDENTIFIER,
-                                   "Expected type name after type alias")
+                                   "Expected a type name after the type alias.")
                          ->value(this->printer.source);
-    advance(TokenType::EQUAL, "Expected type after type alias");
+    advance(TokenType::EQUAL, "Expected a type after the type alias.");
     auto value = expression();
 
     return this->create_declaration<Typealias>(type_name, value);
@@ -1017,12 +1017,12 @@ AST *Parser::token() {
 TemplateDeclaration *Parser::template_declaration() {
     advance(TokenType::AT);
     advance(TokenType::PARENS_OPEN,
-            "Expected '(' when using template declarations");
+            "Expected a '(' when using template declarations.");
 
     auto arguments = template_arguments();
 
     advance(TokenType::PARENS_CLOSE,
-            "Expected ')' when using template declarations");
+            "Expected a ')' when using template declarations.");
 
     return this->create_declaration<TemplateDeclaration>(arguments);
 }
@@ -1032,12 +1032,12 @@ std::vector<TemplateDeclarationArgument *> Parser::template_arguments() {
 
     while (this->current().type != TokenType::PARENS_CLOSE) {
         if (!isTemplateKeyword(this->current().type)) {
-            throw this->throw_error("Invalid Template Type");
+            throw this->throw_error("Invalid template type.");
         }
 
         auto argument_type = getAndAdvance()->type;
         auto argument_name = getAndAdvance(TokenType::IDENTIFIER,
-                                           "Expected template argument name")
+                                           "Expected a template argument name.")
                                  ->value(this->printer.source);
 
         auto argument = this->create_declaration<TemplateDeclarationArgument>(
@@ -1055,7 +1055,7 @@ std::vector<TemplateDeclarationArgument *> Parser::template_arguments() {
 
 std::vector<AST *> Parser::template_call_arguments() {
     this->advance(TokenType::AT);
-    advance(TokenType::PARENS_OPEN, "Expected '(' when using template calls");
+    advance(TokenType::PARENS_OPEN, "Expected a '(' when using template calls.");
 
     std::vector<AST *> template_values;
     while (this->current().type != TokenType::PARENS_CLOSE) {
@@ -1075,13 +1075,13 @@ std::vector<FunctionArgument *> Parser::function_arguments() {
     bool can_use_arguments_without_default_value = true;
     while (this->current().type != TokenType::PARENS_CLOSE) {
         if (advanceIf(TokenType::PERIOD)) {
-            advance(TokenType::PERIOD, "Expected '..' when using vaargs");
-            advance(TokenType::PERIOD, "Expected '.' when using vaargs");
+            advance(TokenType::PERIOD, "Expected a '..' when using vaargs.");
+            advance(TokenType::PERIOD, "Expected a '.' when using vaargs.");
 
             auto argument = this->create_declaration<FunctionArgument>();
             argument->is_vaarg = true;
             argument->name =
-                getAndAdvance(TokenType::IDENTIFIER, "Expected vaarg name")
+                getAndAdvance(TokenType::IDENTIFIER, "Expected a vaarg name.")
                     ->value(this->printer.source);
             arguments.push_back(argument);
 
@@ -1106,7 +1106,7 @@ std::vector<FunctionArgument *> Parser::function_arguments() {
             !argument_default_value) {
             throw throw_error("Move the argument with a default value to the "
                               "end of the argument list, since you have "
-                              "already specified a default value");
+                              "already specified a default value.");
         }
 
         auto argument = this->create_declaration<FunctionArgument>(
@@ -1134,10 +1134,10 @@ FirstClassFunction *Parser::first_class_function() {
         return_type = this->type();
     }
     advance(TokenType::PARENS_OPEN,
-            "Expected '(' at the start of a first class function");
+            "Expected a '(' at the start of a first class function.");
     auto arguments = this->function_arguments();
     advance(TokenType::PARENS_CLOSE,
-            "Expected ')' at the end of a first class function");
+            "Expected a ')' at the end of a first class function.");
 
     return this->create_declaration<FirstClassFunction>(return_type, arguments,
                                                         is_type);
@@ -1177,7 +1177,7 @@ AST *Parser::type() {
         case TokenType::AT:
             type->template_values = template_call_arguments();
             advance(TokenType::PARENS_CLOSE,
-                    "Expected closing template argument.");
+                    "Expected a closing template argument.");
         default:
             goto end;
         }
