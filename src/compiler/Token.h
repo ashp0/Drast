@@ -27,6 +27,7 @@ enum class TokenType : uint8_t {
     OPERATOR,
     VAR,
     FUNC,
+    LET,
 
     INT,
     FLOAT,

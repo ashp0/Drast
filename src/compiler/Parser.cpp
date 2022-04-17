@@ -85,6 +85,8 @@ AST *Parser::statement() {
         return this->function_declaration();
     case TokenType::VAR:
         return variable_declaration();
+    case TokenType::LET:
+        return variable_declaration({}, true);
     case TokenType::V_INT:
     case TokenType::V_CHAR:
     case TokenType::V_FLOAT:
@@ -398,12 +400,13 @@ Parser::function_declaration(const std::vector<TokenType> &qualifiers) {
         qualifiers, return_type, function_name, function_arguments);
 }
 
-AST *Parser::variable_declaration(const std::vector<TokenType> &qualifiers) {
-    advance(TokenType::VAR);
+AST *Parser::variable_declaration(const std::vector<TokenType> &qualifiers,
+                                  bool is_let) {
+    is_let ? advance(TokenType::LET) : advance(TokenType::VAR);
 
-    auto variable_name =
-        getAndAdvance(TokenType::IDENTIFIER, "Expected a variable name.")
-            ->value(this->printer.source);
+    auto variable_name = getAndAdvance(TokenType::IDENTIFIER,
+                                       "Expected a variable or constant name.")
+                             ->value(this->printer.source);
 
     if (should_check_duplicates) {
         current_compound->declaration_names.emplace_back(
@@ -422,15 +425,16 @@ AST *Parser::variable_declaration(const std::vector<TokenType> &qualifiers) {
         }
     } else {
         throw this->throw_error(
-            "Expected ':' or '=' after variable declaration.");
+            "Expected ':' or '=' after variable or constant declaration.");
     }
 
     if (!is_parsing_struct && !variable_value) {
-        throw this->throw_error("Uninitialized variable declaration.");
+        throw this->throw_error(
+            "Uninitialized variable or constant declaration.");
     }
 
     return this->create_declaration<VariableDeclaration>(
-        variable_name, variable_type, variable_value, qualifiers);
+        variable_name, variable_type, variable_value, qualifiers, is_let);
 }
 
 RangeBasedForLoop *Parser::range_based_for_loop() {
@@ -778,6 +782,22 @@ TernaryExpression *Parser::ternary_expression(AST *bool_expression) {
         bool_expression, first_expression, second_expression);
 }
 
+OptionalUnwrapExpression *Parser::optional_unwrap(AST *expression) {
+    // myOptionalVariable ?? 40
+    advance(TokenType::QUESTION);
+    advance(TokenType::QUESTION);
+
+    auto if_nilled_value = this->expression();
+
+    return this->create_declaration<OptionalUnwrapExpression>(expression,
+                                                              if_nilled_value);
+}
+
+ForceUnwrapExpression *Parser::force_unwrap(AST *expression) {
+    advance(TokenType::NOT);
+    return this->create_declaration<ForceUnwrapExpression>(expression);
+}
+
 AST *Parser::equality() {
     auto expr = this->comparison();
 
@@ -854,6 +874,7 @@ AST *Parser::primary() {
     if (this->current().type == TokenType::TRY) {
         return try_expression();
     }
+
     if (peek().type == TokenType::PERIOD) {
         return struct_member_access();
     } else if (peek().type == TokenType::SQUARE_OPEN) {
@@ -895,7 +916,14 @@ AST *Parser::primary() {
         }
 
         if (this->current().type == TokenType::QUESTION) {
+            if (peek().type == TokenType::QUESTION) {
+                return optional_unwrap(literal);
+            }
             return ternary_expression(literal);
+        }
+
+        if (this->current().type == TokenType::NOT) {
+            return force_unwrap(literal);
         }
 
         return literal;
@@ -982,6 +1010,9 @@ std::vector<AST *> Parser::function_call_arguments() {
     bool argument_can_have_unnamed_arguments = true;
     while (this->current().type != TokenType::PARENS_CLOSE) {
         if (advanceIf(TokenType::NOT)) {
+            if (this->current().type != TokenType::BRACE_OPEN) {
+                goto argument_expression;
+            }
             inside_function_body = true;
             advance(TokenType::BRACE_OPEN,
                     "Expected a '{' after using first class function.");
@@ -1011,6 +1042,7 @@ std::vector<AST *> Parser::function_call_arguments() {
             argument_can_have_unnamed_arguments = false;
             arguments.push_back(argument);
         } else {
+        argument_expression:
             if (!argument_can_have_unnamed_arguments) {
                 throw throw_error("Cannot use unnamed arguments after "
                                   "using a named argument");
@@ -1227,6 +1259,8 @@ AST *Parser::qualifiers() {
         return this->struct_declaration(qualifiers);
     } else if (this->current().type == TokenType::VAR) {
         return this->variable_declaration(qualifiers);
+    } else if (this->current().type == TokenType::LET) {
+        return variable_declaration(qualifiers, true);
     } else if (this->current().type == TokenType::FUNC) {
         return this->function_declaration(qualifiers);
     }

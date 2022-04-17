@@ -54,13 +54,11 @@ class Parser {
 
     std::vector<EnumCase *> enum_cases();
 
-    AST *
-    function_or_variable_declaration(const std::vector<TokenType> &qualifiers);
-
     FunctionDeclaration *
     function_declaration(const std::vector<TokenType> &qualifiers = {});
 
-    AST *variable_declaration(const std::vector<TokenType> &qualifiers = {});
+    AST *variable_declaration(const std::vector<TokenType> &qualifiers = {},
+                              bool is_let = false);
 
     RangeBasedForLoop *range_based_for_loop();
 
@@ -95,6 +93,10 @@ class Parser {
     AST *cast_expression();
 
     TernaryExpression *ternary_expression(AST *bool_expression);
+
+    OptionalUnwrapExpression *optional_unwrap(AST *expression);
+
+    ForceUnwrapExpression *force_unwrap(AST *expression);
 
     AST *equality();
 

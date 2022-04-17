@@ -9,6 +9,11 @@ func printf(string fmt, ... args)
 private func main(): i64 || @(struct first_type) {
     var test = 30
     var test1: i64 = 40
+    let pi = 3.14
+    var string_ = "123"
+    var number: int? = string_.convertTo("int")
+
+    print("Number: {}", number!)
     printf("Hello, world!")
 
     return 0

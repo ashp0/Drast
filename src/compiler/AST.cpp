@@ -226,7 +226,11 @@ std::string VariableDeclaration::toString() {
 
     PRINT_QUALIFIERS(variable_declaration)
 
-    variable_declaration += "var ";
+    if (is_let) {
+        variable_declaration += "let ";
+    } else {
+        variable_declaration += "var ";
+    }
     variable_declaration += this->name;
     if (type) {
         variable_declaration += ": ";
@@ -653,4 +657,19 @@ std::string ArrayCreation::toString() {
 
     array_creation += "]";
     return array_creation;
+}
+std::string OptionalUnwrapExpression::toString() {
+    std::string optional_unwrap_expression;
+    optional_unwrap_expression += this->first_expression->toString();
+    optional_unwrap_expression += " ?? ";
+    optional_unwrap_expression += this->if_nilled_value->toString();
+
+    return optional_unwrap_expression;
+}
+std::string ForceUnwrapExpression::toString() {
+    std::string force_unwrap_expression;
+    force_unwrap_expression += this->expression->toString();
+    force_unwrap_expression += "!";
+
+    return force_unwrap_expression;
 }

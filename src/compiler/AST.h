@@ -62,6 +62,8 @@ enum class ASTType {
     ARRAY_ACCESS,        // myVariable[]
     ARRAY_CREATION,      // [50, 30+20]
     CAST,                // cast(5.50, int);
+    OPTIONAL_UNWRAP,     // myOptionalFloat ?? 3.14
+    FORCE_UNWRAP,        // myOptionalFloat!
     TOKEN,               // break, continue etc...
 };
 
@@ -352,13 +354,15 @@ class VariableDeclaration : public AST {
     std::optional<AST *> type;
     std::optional<AST *> value = std::nullopt;
     std::vector<TokenType> qualifiers;
+    bool is_let;
 
   public:
     VariableDeclaration(std::string_view name, std::optional<AST *> type,
                         std::optional<AST *> value,
-                        std::vector<TokenType> qualifiers, Location location)
+                        std::vector<TokenType> qualifiers, bool is_let,
+                        Location location)
         : AST(ASTType::VARIABLE_DECLARATION, location), name(name), type(type),
-          value(value), qualifiers(std::move(qualifiers)) {}
+          value(value), qualifiers(std::move(qualifiers)), is_let(is_let) {}
 
     std::string toString() override;
 };
@@ -738,6 +742,32 @@ class ArrayCreation : public AST {
   public:
     ArrayCreation(std::vector<AST *> &items, Location location)
         : AST(ASTType::ARRAY_CREATION, location), items(std::move(items)) {}
+
+    std::string toString() override;
+};
+
+class OptionalUnwrapExpression : public AST {
+  public:
+    AST *first_expression;
+    AST *if_nilled_value;
+
+  public:
+    OptionalUnwrapExpression(AST *first_expression, AST *if_nilled_value,
+                             Location location)
+        : AST(ASTType::OPTIONAL_UNWRAP, location),
+          first_expression(first_expression), if_nilled_value(if_nilled_value) {
+    }
+
+    std::string toString() override;
+};
+
+class ForceUnwrapExpression : public AST {
+  public:
+    AST *expression;
+
+  public:
+    ForceUnwrapExpression(AST *expression, Location location)
+        : AST(ASTType::FORCE_UNWRAP, location), expression(expression) {}
 
     std::string toString() override;
 };

@@ -28,6 +28,7 @@
     - [x] Unions
     - [x] Index in range based for loop
     - [x] Better Error Messages
+    - [x] myVariable ?? 57.0
 - [ ] Semantic Analyzer
     - [ ] Duplicate Variable and Functions
     - [ ] Duplicate Struct Initializers
