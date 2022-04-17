@@ -52,10 +52,7 @@ std::string FunctionDeclaration::toString() {
     std::string function;
     PRINT_QUALIFIERS(function)
 
-    function += this->return_type->toString();
-
-    function += " :: ";
-
+    function += "func ";
     function += this->name;
 
     function += "(";
@@ -69,10 +66,16 @@ std::string FunctionDeclaration::toString() {
         function.resize(function.size() - 2);
     }
 
-    function += ") ";
+    function += ")";
+
+    if (return_type) {
+        function += ": ";
+        function += return_type.value()->toString();
+        function += " ";
+    }
 
     if (this->template_declaration) {
-        function += ": ";
+        function += "|| ";
         function += this->template_declaration.value()->toString();
     }
 
@@ -223,10 +226,12 @@ std::string VariableDeclaration::toString() {
 
     PRINT_QUALIFIERS(variable_declaration)
 
-    variable_declaration += this->type->toString();
-    variable_declaration += " ";
-
+    variable_declaration += "var ";
     variable_declaration += this->name;
+    if (type) {
+        variable_declaration += ": ";
+        variable_declaration += this->type.value()->toString();
+    }
 
     if (this->value) {
         variable_declaration += " = ";

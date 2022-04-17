@@ -118,7 +118,7 @@ class FunctionDeclaration : public AST {
 
   public:
     std::vector<TokenType> qualifiers;
-    AST *return_type;
+    std::optional<AST *> return_type;
     std::string_view name;
     std::vector<FunctionArgument *> arguments;
     std::optional<CompoundStatement *> body = std::nullopt;
@@ -126,7 +126,7 @@ class FunctionDeclaration : public AST {
 
   public:
     FunctionDeclaration(
-        std::vector<TokenType> qualifiers, AST *return_type,
+        std::vector<TokenType> qualifiers, std::optional<AST *> return_type,
         std::string_view name, std::vector<FunctionArgument *> arguments,
         CompoundStatement *body,
         std::optional<TemplateDeclaration *> template_declaration,
@@ -136,8 +136,8 @@ class FunctionDeclaration : public AST {
           name(name), arguments(std::move(arguments)), body(body),
           template_declaration(template_declaration) {}
 
-    FunctionDeclaration(std::vector<TokenType> qualifiers, AST *return_type,
-                        std::string_view name,
+    FunctionDeclaration(std::vector<TokenType> qualifiers,
+                        std::optional<AST *> return_type, std::string_view name,
                         std::vector<FunctionArgument *> arguments,
                         Location location)
         : AST(ASTType::FUNCTION_DECLARATION, location),
@@ -349,12 +349,12 @@ class EnumCaseAccess : public AST {
 class VariableDeclaration : public AST {
   public:
     std::string_view name;
-    AST *type;
+    std::optional<AST *> type;
     std::optional<AST *> value = std::nullopt;
     std::vector<TokenType> qualifiers;
 
   public:
-    VariableDeclaration(std::string_view name, AST *type,
+    VariableDeclaration(std::string_view name, std::optional<AST *> type,
                         std::optional<AST *> value,
                         std::vector<TokenType> qualifiers, Location location)
         : AST(ASTType::VARIABLE_DECLARATION, location), name(name), type(type),

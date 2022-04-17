@@ -58,11 +58,9 @@ class Parser {
     function_or_variable_declaration(const std::vector<TokenType> &qualifiers);
 
     FunctionDeclaration *
-    function_declaration(AST *&return_type,
-                         const std::vector<TokenType> &qualifiers = {});
+    function_declaration(const std::vector<TokenType> &qualifiers = {});
 
-    AST *variable_declaration(AST *&variable_type,
-                              const std::vector<TokenType> &qualifiers = {});
+    AST *variable_declaration(const std::vector<TokenType> &qualifiers = {});
 
     RangeBasedForLoop *range_based_for_loop();
 

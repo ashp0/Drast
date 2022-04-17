@@ -25,6 +25,8 @@ enum class TokenType : uint8_t {
     CAST,
     EXTERN,
     OPERATOR,
+    VAR,
+    FUNC,
 
     INT,
     FLOAT,

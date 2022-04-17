@@ -3,7 +3,3 @@
 //
 
 #include "SemanticAnalyzer.h"
-
-void SemanticAnalyzer::check_expression() {
-    //
-}

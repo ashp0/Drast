@@ -77,16 +77,14 @@ AST *Parser::statement() {
     case TokenType::VOLATILE:
     case TokenType::PRIVATE:
         return qualifiers();
-    case TokenType::INT:
-    case TokenType::CHAR:
-    case TokenType::VOID:
-    case TokenType::BOOL:
-    case TokenType::FLOAT:
-    case TokenType::STRING:
     case TokenType::IDENTIFIER:
     case TokenType::SELF:
     case TokenType::ANY:
-        return this->function_or_variable_declaration({});
+        return this->expression();
+    case TokenType::FUNC:
+        return this->function_declaration();
+    case TokenType::VAR:
+        return variable_declaration();
     case TokenType::V_INT:
     case TokenType::V_CHAR:
     case TokenType::V_FLOAT:
@@ -182,7 +180,9 @@ Parser::struct_declaration(const std::vector<TokenType> &qualifiers) {
     }
 
     advance(TokenType::BRACE_OPEN, "The struct declaration must have a body.");
+    is_parsing_struct = true;
     auto struct_body = this->compound();
+    is_parsing_struct = false;
     advance(TokenType::BRACE_CLOSE,
             "The struct declaration must have a '}' in order to close it.");
 
@@ -352,37 +352,11 @@ std::vector<EnumCase *> Parser::enum_cases() {
     return enum_cases;
 }
 
-AST *Parser::function_or_variable_declaration(
-    const std::vector<TokenType> &qualifiers) {
-    if (isOperatorType(peek().type)) {
-        if (isKeywordType(this->current().type)) {
-            goto start;
-        }
-
-        // Advance the equal sign because we don't need it
-        if (this->current().type == TokenType::EQUAL) {
-            advance();
-        }
-
-        return this->expression();
-    }
-
-start:
-    auto type = this->type();
-
-    if (advanceIf(TokenType::DOUBLE_COLON)) {
-        if (this->current().type == TokenType::OPERATOR) {
-            return operator_overload(type);
-        }
-        return this->function_declaration(type, qualifiers);
-    }
-
-    return this->variable_declaration(type, qualifiers);
-}
-
 FunctionDeclaration *
-Parser::function_declaration(AST *&return_type,
-                             const std::vector<TokenType> &qualifiers) {
+Parser::function_declaration(const std::vector<TokenType> &qualifiers) {
+    // func main(): i64 { ... }
+    advance(TokenType::FUNC);
+
     auto function_name =
         getAndAdvance(TokenType::IDENTIFIER, "Functions must have a name.")
             ->value(this->printer.source);
@@ -393,8 +367,13 @@ Parser::function_declaration(AST *&return_type,
 
     advance(TokenType::PARENS_CLOSE, "Function's arguments must be closed.");
 
-    std::optional<TemplateDeclaration *> template_ = std::nullopt;
+    std::optional<AST *> return_type = std::nullopt;
     if (advanceIf(TokenType::COLON)) {
+        return_type = type();
+    }
+
+    std::optional<TemplateDeclaration *> template_ = std::nullopt;
+    if (advanceIf(TokenType::BITWISE_PIPE_PIPE)) {
         template_ = this->template_declaration();
     }
 
@@ -419,8 +398,9 @@ Parser::function_declaration(AST *&return_type,
         qualifiers, return_type, function_name, function_arguments);
 }
 
-AST *Parser::variable_declaration(AST *&variable_type,
-                                  const std::vector<TokenType> &qualifiers) {
+AST *Parser::variable_declaration(const std::vector<TokenType> &qualifiers) {
+    advance(TokenType::VAR);
+
     auto variable_name =
         getAndAdvance(TokenType::IDENTIFIER, "Expected a variable name.")
             ->value(this->printer.source);
@@ -431,8 +411,22 @@ AST *Parser::variable_declaration(AST *&variable_type,
     }
 
     std::optional<AST *> variable_value = std::nullopt;
+    std::optional<AST *> variable_type = std::nullopt;
     if (advanceIf(TokenType::EQUAL)) {
         variable_value = this->expression();
+    } else if (advanceIf(TokenType::COLON)) {
+        variable_type = this->type();
+
+        if (advanceIf(TokenType::EQUAL)) {
+            variable_value = this->expression();
+        }
+    } else {
+        throw this->throw_error(
+            "Expected ':' or '=' after variable declaration.");
+    }
+
+    if (!is_parsing_struct && !variable_value) {
+        throw this->throw_error("Uninitialized variable declaration.");
     }
 
     return this->create_declaration<VariableDeclaration>(
@@ -1231,8 +1225,12 @@ AST *Parser::qualifiers() {
     } else if (this->current().type == TokenType::STRUCT ||
                this->current().type == TokenType::UNION) {
         return this->struct_declaration(qualifiers);
+    } else if (this->current().type == TokenType::VAR) {
+        return this->variable_declaration(qualifiers);
+    } else if (this->current().type == TokenType::FUNC) {
+        return this->function_declaration(qualifiers);
     }
-    return function_or_variable_declaration(qualifiers);
+    throw this->throw_error("Expected enum, struct, function or variable.");
 }
 
 std::vector<TokenType> Parser::getQualifiers() {

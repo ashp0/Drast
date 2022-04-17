@@ -1,6 +1,7 @@
 <div align="center">
 
-![Drast Logo 64](resources/Logo_64.png?)
+![Drast Logo 64](resources/Logo_64_dark.png#gh-dark-mode-only?)
+![Drast Logo 64](resources/Logo_64_light.png#gh-light-mode-only?)
 
 # Drast Programming Language
 
@@ -55,7 +56,7 @@ If all goes well, Drast should be built and ready to run! If you have encountere
 the 'Issues' tab!
 
 > **NOTE:** For Windows, in the build directory, there should be a Visual Studio solution file. Double click this file, then build and
-run.
+> run.
 
 ## Social
 

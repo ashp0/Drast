@@ -1,0 +1,192 @@
+//
+// Drast Programming Language Tests
+//
+
+import io
+
+struct Main {
+    var tokens: pair@(Token, Token)
+}
+
+tokens.insertAt@(Token, Token)().Token@(Token, Token)().testFunction().test_variable
+
+any! :: function_with_any(any myArgument = 50) {
+    int i = cast!(myArgument, int)
+    any test = 40
+    return i
+}
+
+extern int :: printf(string format, ... args)
+
+void :: print(... args) {
+    for (arg in args) |int index| {
+        switch (typeof(arg)) {
+            case "string":
+            case "int":
+        }
+    }
+}
+
+struct Test {
+    @() {
+        self.test =  40
+        self.test(.test)
+        return self.returnEqualToken(.greater, .greater_equal)
+    }
+
+    ~(){
+        int test = 40
+    }
+}
+
+struct Pair : @(struct first_type, struct second_type) {
+     first_type :: first(first_type)
+     second_type :: second(second_type)
+}
+
+// tokens.insertAt@(Token, Token)()
+
+// tokens.insertAt@Token()
+struct Vector : @(struct type) {
+    // void :: insertAt(type, int position)
+
+    void :: insertAt(type, int position) : @(struct first_type) {
+
+    }
+}
+
+// john_doe.insertAt
+
+end:
+
+struct Person {
+    int age; int test
+
+    @(int age) {
+        self.age = age
+        self.source = source
+        self.line = 1
+        self.column = 1
+        self.index = 0
+        self.start = self.index
+    }
+}
+
+enum Color {
+    Red = 50,
+    Green,
+    Blue
+}
+
+int :: operator[](float offset) {
+    return self.items[offset]
+}
+
+asm (
+"loop:"
+        "cli"
+        "htl"
+        "jmp loop"
+    "mov rax, 0"
+)
+
+
+extern int[]*? :: hello(int test, ... args) {
+    for (int i = 0, i < 10, i += 1) {
+        i += 30
+    }
+
+    print(.test)
+    Person john = .init(50, 40)
+    john.name.at(40) = "John"
+    int[]*? result = test
+    int test = myFunction()
+    int test1 = 50 + 30 + 40 + (30 * 40)
+    int test2 = 40 + myFunction(50 + 230, 40 + 20, "flaskdfm") + 50
+
+    bool test3 = true
+
+    if (test) {
+        bool test = 59
+    } else if (test) {
+        bool test = 59
+    } else {
+        bool test = 59
+    }
+    goto end
+
+    myFunction()
+
+    int i = 500
+    while (i > 40) {
+        print("Hello World")
+
+        i -= 1
+        break
+    }
+
+    float floatnum = 40.3
+    int hexnum = 0xFFFFFFFFFFFF
+    int octnum = 0o43
+
+    char op = '+'
+    int first = 30
+    int second = 40
+    int value = 0
+
+    int test4 = cast!(53.4, int)
+
+    switch (op) {
+        case '+':
+            value = first + second
+        case '-':
+                value = first - second
+        case '*':
+                value = first * second
+        case '/':
+                value = first - second
+    }
+
+    int? test5 = try? myTestFunction()
+
+
+    do {
+        int wer = try myTestFunction()
+    } catch {
+        print("Error")
+    }
+
+    hello.i.am.testing.my.programming.languages.ability.to.parse.things@(Token, Token)().like.these().with.function.calls().and.variables
+
+end:
+    return 50 + 30 + 40
+}
+
+int :: main(int argc, string[] argv) {
+    int variable = 40
+    print("Hello World!", variable, "\n")
+
+    int[] myArray = [30, 20, 40]
+
+    print(myArray[0])
+
+    int test = test == 30 ? 50 : 20
+
+    myOtherFunction()
+
+    string test1 = "lmao"
+
+    return 0
+}
+
+void :: myOtherFunction() {
+    testFunction(!{ $(int a, bool b)
+        return a + b
+    }, 5+30)
+}
+
+int :: testFunction($int(int a, int b) predicate, int test) {
+   return predicate((50 + 20) / test)
+}
+
+main(argv: 50, argc: test + 40)
