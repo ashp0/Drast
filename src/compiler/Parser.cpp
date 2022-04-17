@@ -412,10 +412,7 @@ RangeBasedForLoop *Parser::range_based_for_loop() {
     advance(TokenType::IN, "Range-based for loops must have `in` token.");
 
     // TODO: Make this an expression instead
-    auto name2 =
-        getAndAdvance(TokenType::IDENTIFIER,
-                      "Expected a second name for range-based for loops.")
-            ->value(this->printer.source);
+    auto name2 = expression();
     this->advance(TokenType::PARENS_CLOSE,
                   "Expected a closing parenthesis after range-based for loops.");
 
