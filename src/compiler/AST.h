@@ -7,6 +7,7 @@
 
 #include "Token.h"
 #include "Types.h"
+#include <map>
 #include <string>
 #include <utility>
 #include <vector>
@@ -84,6 +85,7 @@ class CompoundStatement : public AST {
   public:
     std::vector<AST *> statements;
     std::optional<FirstClassFunction *> first_class_function;
+    std::vector<std::pair<std::string_view, Location>> declaration_names;
 
   public:
     CompoundStatement(std::vector<AST *> &statements, Location &location)
@@ -345,6 +347,7 @@ class EnumCaseAccess : public AST {
 };
 
 class VariableDeclaration : public AST {
+  public:
     std::string_view name;
     AST *type;
     std::optional<AST *> value = std::nullopt;

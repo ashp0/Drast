@@ -12,12 +12,14 @@ void Parser::parse() {
 
 CompoundStatement *Parser::compound() {
     auto compoundStatement = this->create_declaration<CompoundStatement>();
+    auto old_compound = current_compound;
+    current_compound = compoundStatement;
 
     // $(int a, bool b)
     if (this->current().type == TokenType::DOLLAR) {
         if (!inside_function_body) {
-            throw throw_error(
-                "The First Class Function Parameter must be inside a valid body.");
+            throw throw_error("The First Class Function Parameter must be "
+                              "inside a valid body.");
         }
         compoundStatement->first_class_function = this->first_class_function();
     }
@@ -41,6 +43,23 @@ CompoundStatement *Parser::compound() {
             advanceLines();
         }
     }
+
+    for (int i = 0; i < compoundStatement->declaration_names.size(); ++i) {
+        for (int j = i + 1; j < compoundStatement->declaration_names.size();
+             ++j) {
+            if (compoundStatement->declaration_names[i].first ==
+                compoundStatement->declaration_names[j].first) {
+                std::string error = "Found duplicate declaration '";
+                error += compoundStatement->declaration_names[i].first;
+                error += "'";
+                this->throw_error(
+                    error.c_str(),
+                    compoundStatement->declaration_names[j].second);
+            }
+        }
+    }
+
+    current_compound = old_compound;
 
     return compoundStatement;
 }
@@ -285,14 +304,19 @@ EnumDeclaration *
 Parser::enum_declaration(const std::vector<TokenType> &qualifiers) {
     advance(TokenType::ENUM);
 
-    auto enum_name = getAndAdvance(TokenType::IDENTIFIER, "Expected a enum name.")
-                         ->value(this->printer.source);
+    auto enum_name =
+        getAndAdvance(TokenType::IDENTIFIER, "Expected a enum name.")
+            ->value(this->printer.source);
 
     advance(TokenType::BRACE_OPEN, "The enum must have body.");
     advanceLines();
     auto cases = enum_cases();
     advance(TokenType::BRACE_CLOSE, "The enum body must be closed.");
 
+    if (should_check_duplicates) {
+        current_compound->declaration_names.emplace_back(
+            enum_name, this->current().location);
+    }
     return this->create_declaration<EnumDeclaration>(enum_name, cases,
                                                      qualifiers);
 }
@@ -374,6 +398,11 @@ Parser::function_declaration(AST *&return_type,
         template_ = this->template_declaration();
     }
 
+    if (should_check_duplicates) {
+        current_compound->declaration_names.emplace_back(
+            function_name, this->current().location);
+    }
+
     if (advanceIf(TokenType::BRACE_OPEN)) {
         auto function_body = this->compound();
         advance(TokenType::BRACE_CLOSE, "Function's body must be closed.");
@@ -396,6 +425,11 @@ AST *Parser::variable_declaration(AST *&variable_type,
         getAndAdvance(TokenType::IDENTIFIER, "Expected a variable name.")
             ->value(this->printer.source);
 
+    if (should_check_duplicates) {
+        current_compound->declaration_names.emplace_back(
+            variable_name, this->current().location);
+    }
+
     std::optional<AST *> variable_value = std::nullopt;
     if (advanceIf(TokenType::EQUAL)) {
         variable_value = this->expression();
@@ -411,7 +445,6 @@ RangeBasedForLoop *Parser::range_based_for_loop() {
                     ->value(this->printer.source);
     advance(TokenType::IN, "Range-based for loops must have `in` token.");
 
-    // TODO: Make this an expression instead
     auto name2 = expression();
     this->advance(TokenType::PARENS_CLOSE,
                   "Expected a closing parenthesis after range-based for loops.");
@@ -443,6 +476,7 @@ AST *Parser::for_loop() {
         return this->range_based_for_loop();
     }
 
+    should_check_duplicates = false;
     auto for_initialization = this->statement();
     this->advance(TokenType::COMMA,
                   "Expected a comma after for loop's first expression.");
@@ -453,12 +487,15 @@ AST *Parser::for_loop() {
 
     auto for_increment = this->statement();
 
+    should_check_duplicates = true;
+
     this->advance(TokenType::PARENS_CLOSE,
                   "The for loop's parenthesis must be closed.");
 
     this->advance(TokenType::BRACE_OPEN, "The for loop must have a body.");
     auto for_body = this->compound();
-    this->advance(TokenType::BRACE_CLOSE, "The for loop's body must be closed.");
+    this->advance(TokenType::BRACE_CLOSE,
+                  "The for loop's body must be closed.");
 
     return this->create_declaration<ForLoop>(for_initialization, for_condition,
                                              for_increment, for_body);
@@ -1265,5 +1302,10 @@ ast_type *Parser::create_declaration(Args &&...args) {
 
 int Parser::throw_error(const char *message) {
     printer.error(message, this->current().location);
+    return -1;
+}
+
+int Parser::throw_error(const char *message, Location location) {
+    printer.error(message, location);
     return -1;
 }

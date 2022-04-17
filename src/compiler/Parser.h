@@ -8,6 +8,7 @@
 #include "AST.h"
 #include "Print.h"
 #include "Token.h"
+#include <map>
 #include <vector>
 
 class Parser {
@@ -18,6 +19,8 @@ class Parser {
     bool parses_goto_labels = true;
     bool inside_function_body = false; // myFunction(!{return true})
     bool is_parsing_struct = false;
+    bool should_check_duplicates = true;
+    CompoundStatement *current_compound = nullptr;
 
   public:
     Parser(std::string &file_name, std::vector<Token> &tokens,
@@ -160,6 +163,8 @@ class Parser {
     ast_type *create_declaration(Args &&...args);
 
     int throw_error(const char *message);
+
+    int throw_error(const char *message, Location location);
 };
 
 #endif // DRAST_PARSER_H

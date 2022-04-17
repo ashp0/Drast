@@ -16,7 +16,9 @@ any! :: function_with_any(any myArgument = 50) {
     return i
 }
 
-void :: printf(... args) {
+extern int :: printf(string format, ... args)
+
+void :: print(... args) {
     for (arg in args) |int index| {
         switch (typeof(arg)) {
             case "string":
@@ -46,7 +48,7 @@ struct Pair : @(struct first_type, struct second_type) {
 
 // tokens.insertAt@Token()
 struct Vector : @(struct type) {
-    void :: insertAt(type, int position)
+    // void :: insertAt(type, int position)
 
     void :: insertAt(type, int position) : @(struct first_type) {
 
@@ -56,8 +58,6 @@ struct Vector : @(struct type) {
 // john_doe.insertAt
 
 end:
-
-extern int :: printf(string format, ... args)
 
 struct Person {
     int age; int test
@@ -101,10 +101,10 @@ extern int[]*? :: hello(int test, ... args) {
     john.name.at(40) = "John"
     int[]*? result = test
     int test = myFunction()
-    int test = 50 + 30 + 40 + (30 * 40)
-    int test = 40 + myFunction(50 + 230, 40 + 20, "flaskdfm") + 50
+    int test1 = 50 + 30 + 40 + (30 * 40)
+    int test2 = 40 + myFunction(50 + 230, 40 + 20, "flaskdfm") + 50
 
-    bool test = true
+    bool test3 = true
 
     if (test) {
         bool test = 59
@@ -134,7 +134,7 @@ extern int[]*? :: hello(int test, ... args) {
     int second = 40
     int value = 0
 
-    int test = cast!(53.4, int)
+    int test4 = cast!(53.4, int)
 
     switch (op) {
         case '+':
@@ -147,7 +147,7 @@ extern int[]*? :: hello(int test, ... args) {
                 value = first - second
     }
 
-    int? test = try? myTestFunction()
+    int? test5 = try? myTestFunction()
 
 
     do {
@@ -174,7 +174,7 @@ int :: main(int argc, string[] argv) {
 
     myOtherFunction()
 
-    string test = "lmao"
+    string test1 = "lmao"
 
     return 0
 }

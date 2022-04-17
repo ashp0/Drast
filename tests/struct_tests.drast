@@ -55,9 +55,8 @@ struct JunkFood {
     string ice_cream
     string cake
     string cookies
-    string pizza
 
     string :: printInformation() {
-        return "Pizza: " + pizza + "\nBurger: " + burger + "\nPasta: " + pasta + "\nSalad: " + salad + "\nSoup: " + soup + "\nIce cream: " + ice_cream + "\nCake: " + cake + "\nCookies: " + cookies + "\nPizza: " + pizza
+        return "Pizza: " + pizza + "\nBurger: " + burger + "\nPasta: " + pasta + "\nSalad: " + salad + "\nSoup: " + soup + "\nIce cream: " + ice_cream + "\nCake: " + cake + "\nCookies: " + cookies
     }
 }

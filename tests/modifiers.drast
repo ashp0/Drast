@@ -8,7 +8,7 @@ volatile extern int :: testFunction() {
     return test
 }
 
-extern volatile private int :: testFunction() {
+extern volatile private int :: testFunction1() {
     return test
 }
 
