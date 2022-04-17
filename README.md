@@ -1,7 +1,7 @@
 <div align="center">
 
-![Drast Logo 64](resources/Logo_64_dark.png#gh-dark-mode-only?)
-![Drast Logo 64](resources/Logo_64_light.png#gh-light-mode-only?)
+![Drast Logo 64](resources/Logo_64_dark.png#gh-dark-mode-only)
+![Drast Logo](resources/Logo_64_light.png#gh-light-mode-only)
 
 # Drast Programming Language
 
