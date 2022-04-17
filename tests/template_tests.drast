@@ -31,6 +31,8 @@ enum AgeGroup {
     Senior
 }
 
-Pair@(Person, AgeGroup) john_doe
+struct Test {
+    Pair@(Person, AgeGroup) john_doe
 
-john_doe.test_function@(Person)(1, "test")
+    john_doe.test_function@(Person)(1, "test")
+}

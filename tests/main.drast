@@ -2,9 +2,13 @@
 // Drast Programming Language Tests
 //
 
-tokens.insertAt@(Token, Token)().Token@(Token, Token)().testFunction().test_variable
-
 import io
+
+struct Main {
+    pair@(Token, Token) tokens
+}
+
+tokens.insertAt@(Token, Token)().Token@(Token, Token)().testFunction().test_variable
 
 any! :: function_with_any(any myArgument = 50) {
     int i = cast!(myArgument, int)
@@ -37,8 +41,6 @@ struct Pair : @(struct first_type, struct second_type) {
      first_type :: first(first_type)
      second_type :: second(second_type)
 }
-
-pair@(Token, Token) tokens
 
 // tokens.insertAt@(Token, Token)()
 
@@ -130,7 +132,7 @@ extern int[]*? :: hello(int test, ... args) {
     char op = '+'
     int first = 30
     int second = 40
-    int value
+    int value = 0
 
     int test = cast!(53.4, int)
 

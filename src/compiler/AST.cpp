@@ -254,7 +254,7 @@ std::string RangeBasedForLoop::toString() {
     range_based_for_loop += "for (";
     range_based_for_loop += this->name;
     range_based_for_loop += " in ";
-    range_based_for_loop += this->name2;
+    range_based_for_loop += this->name2->toString();
     range_based_for_loop += ") ";
     if (for_index) {
         range_based_for_loop += "|";

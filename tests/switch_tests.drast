@@ -5,7 +5,7 @@
 char op = '+'
 int first = 30
 int second = 40
-int value
+int value = 0
 
 switch (op) {
     case '+':

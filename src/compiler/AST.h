@@ -381,13 +381,13 @@ class ForLoop : public AST {
 class RangeBasedForLoop : public AST {
   public:
     std::string_view name;
-    std::string_view name2;
+    AST *name2;
     std::optional<AST *> for_index;
 
     CompoundStatement *body;
 
   public:
-    RangeBasedForLoop(std::string_view name, std::string_view name2,
+    RangeBasedForLoop(std::string_view name, AST *name2,
                       std::optional<AST *> for_index, CompoundStatement *body,
                       Location location)
         : AST(ASTType::RANGE_BASED_FOR, location), name(name), name2(name2),

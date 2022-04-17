@@ -2,43 +2,46 @@
 // Drast Programming Language Tests
 //
 
-// T: - Unitialized Variables
+struct Test {
+    // T: - Unitialized Variables
 
-// ST: - Unitialized Integer Variables
-int* unitialized_int_pointer_variable
-int[] unitialized_int_array_variable
-int? unitialized_int_optional_variable
-int unitialized_int_variable
+    // ST: - Unitialized Integer Variables
+    int* unitialized_int_pointer_variable
+    int[] unitialized_int_array_variable
+    int? unitialized_int_optional_variable
+    int unitialized_int_variable
 
-// ST: - Unitialized Float Variables
-float* unitialized_float_pointer_variable
-float[] unitialized_float_array_variable
-float? unitialized_float_optional_variable
-float unitialized_float_variable
+    // ST: - Unitialized Float Variables
+    float* unitialized_float_pointer_variable
+    float[] unitialized_float_array_variable
+    float? unitialized_float_optional_variable
+    float unitialized_float_variable
 
-// ST: - Unitialized String Variables
-string* unitialized_string_pointer_variable
-string[] unitialized_string_array_variable
-string? unitialized_string_optional_variable
-string unitialized_string_variable
+    // ST: - Unitialized String Variables
+    string* unitialized_string_pointer_variable
+    string[] unitialized_string_array_variable
+    string? unitialized_string_optional_variable
+    string unitialized_string_variable
 
-// ST: - Unitialized Boolean Variables
-bool* unitialized_bool_pointer_variable
-bool[] unitialized_bool_array_variable
-bool? unitialized_bool_optional_variable
-bool unitialized_bool_variable
+    // ST: - Unitialized Boolean Variables
+    bool* unitialized_bool_pointer_variable
+    bool[] unitialized_bool_array_variable
+    bool? unitialized_bool_optional_variable
+    bool unitialized_bool_variable
 
-// ST: - Unitialized Char Variables
-char* unitialized_char_pointer_variable
-char[] unitialized_char_array_variable
-char? unitialized_char_optional_variable
-char unitialized_char_variable
+    // ST: - Unitialized Char Variables
+    char* unitialized_char_pointer_variable
+    char[] unitialized_char_array_variable
+    char? unitialized_char_optional_variable
+    char unitialized_char_variable
 
-// ST: - Unitialized Void Variables
-void* unitialized_void_pointer_variable
-void[] unitialized_void_array_variable
-void? unitialized_void_optional_variable
-void unitialized_void_variable
+    // ST: - Unitialized Void Variables
+    void* unitialized_void_pointer_variable
+    void[] unitialized_void_array_variable
+    void? unitialized_void_optional_variable
+    void unitialized_void_variable
+
+}
 
 // T: - Initialized Variables
 

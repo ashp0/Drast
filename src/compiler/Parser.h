@@ -17,6 +17,7 @@ class Parser {
     Print printer;
     bool parses_goto_labels = true;
     bool inside_function_body = false; // myFunction(!{return true})
+    bool is_parsing_struct = false;
 
   public:
     Parser(std::string &file_name, std::vector<Token> &tokens,
