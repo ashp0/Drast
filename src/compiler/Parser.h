@@ -29,7 +29,7 @@ class Parser {
     Parser(std::string &file_name, Lexer &lexer, Error error)
         : lexer(lexer), error(std::move(error)) {}
 
-    void parse();
+    CompoundStatement *parse();
 
   private: /* Parser functions */
     CompoundStatement *compound();

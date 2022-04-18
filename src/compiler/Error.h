@@ -15,16 +15,21 @@ struct Error {
     std::string &buffer;
 
     std::vector<std::pair<std::string, Location>> error_messages;
-    size_t message_index = 0;
+    std::vector<std::pair<std::string, Location>> warning_messages;
 
   public:
-    void append(const char *msg, Location location);
+    void addError(const char *msg, Location location);
 
-    void append(const std::string &msg, Location location);
+    void addError(const std::string &msg, Location location);
 
-    void displayErrors();
+    void addWarning(const char *msg, Location location);
 
-    void displayError(const std::pair<std::string, Location> &error_message);
+    void addWarning(const std::string &msg, Location location);
+
+    void displayMessages();
+
+    void displayMessage(const std::pair<std::string, Location> &message,
+                        bool is_warning);
 };
 
 #endif // DRAST_ERROR_H

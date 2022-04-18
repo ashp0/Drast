@@ -4,6 +4,9 @@
 
 import io
 
+var test = "test"
+test += "ing"
+
 extern func printf(fmt: string, ... args)
 
 private func main(): i32 || @(struct first_type) {

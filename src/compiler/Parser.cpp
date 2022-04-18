@@ -4,10 +4,12 @@
 
 #include "Parser.h"
 
-void Parser::parse() {
+CompoundStatement *Parser::parse() {
     auto compound = this->compound();
 
-    std::cout << compound->toString() << std::endl;
+    //    std::cout << compound->toString() << std::endl;
+
+    return compound;
 }
 
 CompoundStatement *Parser::compound() {
@@ -62,7 +64,7 @@ CompoundStatement *Parser::compound() {
                 error_msg += "'.";
                 this->throwError(
                     error_msg.c_str(),
-                    compoundStatement->declaration_names[j].second);
+                    compoundStatement->declaration_names[j].second->location);
             }
         }
     }
@@ -279,8 +281,7 @@ StructInitializerDeclaration *Parser::structInitializerDeclaration() {
     advance(TokenType::PARENS_OPEN,
             "Expected the initializer to have arguments.");
     auto arguments = functionArguments();
-    advance(TokenType::PARENS_CLOSE,
-            "Expected a ')' after the initializer.");
+    advance(TokenType::PARENS_CLOSE, "Expected a ')' after the initializer.");
 
     advance(TokenType::BRACE_OPEN,
             "Expected a body after the struct initializer.");
@@ -319,11 +320,13 @@ Parser::enumDeclaration(const std::vector<TokenType> &qualifiers) {
     auto cases = enumCases();
     advance(TokenType::BRACE_CLOSE, "The enum body must be closed.");
 
+    auto declaration =
+        this->makeDeclaration<EnumDeclaration>(enum_name, cases, qualifiers);
     if (should_check_duplicates) {
-        current_compound->declaration_names.emplace_back(
-            enum_name, this->current().location);
+        current_compound->declaration_names.emplace_back(enum_name,
+                                                         declaration);
     }
-    return this->makeDeclaration<EnumDeclaration>(enum_name, cases, qualifiers);
+    return declaration;
 }
 
 std::vector<EnumCase *> Parser::enumCases() {
@@ -382,25 +385,31 @@ AST *Parser::functionDeclaration(const std::vector<TokenType> &qualifiers) {
         template_ = this->templateDeclaration();
     }
 
-    if (should_check_duplicates) {
-        current_compound->declaration_names.emplace_back(
-            function_name, this->current().location);
-    }
-
     if (advanceIf(TokenType::BRACE_OPEN)) {
         auto function_body = this->compound();
         advance(TokenType::BRACE_CLOSE, "Function's body must be closed.");
-        return this->makeDeclaration<FunctionDeclaration>(
+
+        auto declaration = this->makeDeclaration<FunctionDeclaration>(
             qualifiers, return_type, function_name, function_arguments,
             function_body, template_);
+        if (should_check_duplicates) {
+            current_compound->declaration_names.emplace_back(function_name,
+                                                             declaration);
+        }
+        return declaration;
     }
 
     if (template_) {
         this->throwError("Functions without a body can't have a template!");
     }
 
-    return this->makeDeclaration<FunctionDeclaration>(
+    auto declaration = this->makeDeclaration<FunctionDeclaration>(
         qualifiers, return_type, function_name, function_arguments);
+    if (should_check_duplicates) {
+        current_compound->declaration_names.emplace_back(function_name,
+                                                         declaration);
+    }
+    return declaration;
 }
 
 AST *Parser::variableDeclaration(const std::vector<TokenType> &qualifiers,
@@ -409,11 +418,6 @@ AST *Parser::variableDeclaration(const std::vector<TokenType> &qualifiers,
 
     auto variable_name = getAndAdvance(TokenType::IDENTIFIER,
                                        "Expected a variable or constant name.");
-
-    if (should_check_duplicates) {
-        current_compound->declaration_names.emplace_back(
-            variable_name, this->current().location);
-    }
 
     std::optional<AST *> variable_value = std::nullopt;
     std::optional<AST *> variable_type = std::nullopt;
@@ -435,8 +439,13 @@ AST *Parser::variableDeclaration(const std::vector<TokenType> &qualifiers,
         this->throwError("Uninitialized variable or constant declaration.");
     }
 
-    return this->makeDeclaration<VariableDeclaration>(
+    auto declaration = this->makeDeclaration<VariableDeclaration>(
         variable_name, variable_type, variable_value, qualifiers, is_let);
+    if (should_check_duplicates) {
+        current_compound->declaration_names.emplace_back(variable_name,
+                                                         declaration);
+    }
+    return declaration;
 }
 
 RangeBasedForLoop *Parser::rangeBasedForLoop() {
@@ -552,7 +561,8 @@ If *Parser::ifStatement() {
             elseif_conditions.push_back(else_body_and_statement.first);
             elseif_bodies.push_back(else_body_and_statement.second);
         } else {
-            advance(TokenType::BRACE_OPEN, "The else statement must have a body.");
+            advance(TokenType::BRACE_OPEN,
+                    "The else statement must have a body.");
             else_body = this->compound();
             advance(TokenType::BRACE_CLOSE,
                     "The else statement's body must be closed.");
@@ -1366,15 +1376,15 @@ ast_type *Parser::makeDeclaration(Args &&...args) {
 }
 
 int Parser::throwError(const char *message) {
-    error.append(message, this->current().location);
-    error.displayErrors();
+    error.addError(message, this->current().location);
+    error.displayMessages();
     exit(-1);
     return -1;
 }
 
 int Parser::throwError(const char *message, Location location) {
-    error.append(message, location);
-    error.displayErrors();
+    error.addError(message, location);
+    error.displayMessages();
     exit(-1);
     return -1;
 }

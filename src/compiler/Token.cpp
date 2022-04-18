@@ -4,7 +4,7 @@
 
 #include "Token.h"
 
-static const std::unordered_map<std::string_view, TokenType> keywords = {
+const LookupTable<std::string_view, TokenType> keywords = {
     {"struct", TokenType::STRUCT},
     {"self", TokenType::SELF},
     {"enum", TokenType::ENUM},
@@ -65,248 +65,248 @@ static const std::unordered_map<std::string_view, TokenType> keywords = {
 std::string tokenTypeAsLiteral(TokenType type) {
     switch (type) {
     case TokenType::STRUCT:
-        return "STRUCT";
+        return "struct";
     case TokenType::SELF:
-        return "SELF";
+        return "self";
     case TokenType::ENUM:
-        return "ENUM";
+        return "enum";
     case TokenType::FUNC:
-        return "FUNC";
+        return "func";
     case TokenType::VAR:
-        return "VAR";
+        return "var";
     case TokenType::LET:
-        return "LET";
+        return "let";
     case TokenType::TYPEALIAS:
-        return "TYPEALIAS";
+        return "typealias";
     case TokenType::RETURN:
-        return "RETURN";
+        return "return";
     case TokenType::IF:
-        return "IF";
+        return "if";
     case TokenType::ELSE:
-        return "ELSE";
+        return "else";
     case TokenType::IMPORT:
-        return "IMPORT";
+        return "import";
     case TokenType::ASM:
-        return "ASM";
+        return "asm";
     case TokenType::VOLATILE:
-        return "VOLATILE";
+        return "volatile";
     case TokenType::CAST:
-        return "CAST";
+        return "cast";
     case TokenType::EXTERN:
-        return "EXTERN";
+        return "extern";
     case TokenType::OPERATOR:
-        return "OPERATOR";
+        return "operator";
     case TokenType::TRUE:
-        return "TRUE";
+        return "true";
     case TokenType::FALSE:
-        return "FALSE";
+        return "false";
     case TokenType::NIL:
-        return "NIL";
+        return "nil";
 
     case TokenType::INT_8:
-        return "INT_8";
+        return "i8";
     case TokenType::INT_16:
-        return "INT_16";
+        return "i16";
     case TokenType::INT_32:
-        return "INT_32";
+        return "i32";
     case TokenType::INT_64:
-        return "INT_64";
+        return "i64";
     case TokenType::INT_SIZE:
-        return "INT_SIZE";
+        return "isize";
     case TokenType::UINT_8:
-        return "UINT_8";
+        return "u8";
     case TokenType::UINT_16:
-        return "UINT_16";
+        return "u16";
     case TokenType::UINT_32:
-        return "UINT_32";
+        return "u32";
     case TokenType::UINT_64:
-        return "UINT_64";
+        return "u64";
     case TokenType::UINT_SIZE:
-        return "UINT_SIZE";
+        return "usize";
     case TokenType::FLOAT_32:
-        return "FLOAT_32";
+        return "f32";
     case TokenType::FLOAT_64:
-        return "FLOAT_64";
+        return "f64";
     case TokenType::VOID:
-        return "VOID";
+        return "void";
     case TokenType::STRING:
-        return "STRING";
+        return "string";
     case TokenType::CHAR:
-        return "CHAR";
+        return "char";
     case TokenType::BOOL:
-        return "BOOL";
+        return "bool";
     case TokenType::ANY:
-        return "ANY";
+        return "any";
 
     case TokenType::SWITCH:
-        return "SWITCH";
+        return "switch";
     case TokenType::CASE:
-        return "CASE";
+        return "case";
     case TokenType::BREAK:
-        return "BREAK";
+        return "break";
     case TokenType::DEFAULT:
-        return "DEFAULT";
+        return "default";
     case TokenType::WHILE:
-        return "WHILE";
+        return "while";
     case TokenType::FOR:
-        return "FOR";
+        return "for";
     case TokenType::CONTINUE:
-        return "CONTINUE";
+        return "continue";
     case TokenType::UNION:
-        return "UNION";
+        return "union";
     case TokenType::TYPEOF:
-        return "TYPEOF";
+        return "typeof";
     case TokenType::IN:
-        return "IN";
+        return "in";
 
     case TokenType::GOTO:
-        return "GOTO";
+        return "goto";
     case TokenType::PRIVATE:
-        return "PRIVATE";
+        return "private";
     case TokenType::DO:
-        return "DO";
+        return "do";
     case TokenType::TRY:
-        return "TRY";
+        return "try";
     case TokenType::CATCH:
-        return "CATCH";
+        return "catch";
     case TokenType::THROW:
-        return "THROW";
+        return "throw";
 
     case TokenType::V_INT:
-        return "V_INT";
+        return "v_int";
     case TokenType::V_FLOAT:
-        return "V_FLOAT";
+        return "v_float";
     case TokenType::V_STRING:
-        return "V_STRING";
+        return "v_string";
     case TokenType::V_CHAR:
-        return "V_CHAR";
+        return "v_char";
     case TokenType::V_MULTILINE_STRING:
-        return "V_MULTILINE_STRING";
+        return "v_multiline_string";
     case TokenType::V_HEX:
-        return "V_HEX";
+        return "v_hex";
     case TokenType::V_OCTAL:
-        return "V_OCTAL";
+        return "v_octal";
     case TokenType::V_BINARY:
-        return "V_BINARY";
+        return "v_binary";
     case TokenType::IDENTIFIER:
-        return "IDENTIFIER";
+        return "identifier";
 
     case TokenType::QUESTION:
-        return "QUESTION";
+        return "?";
 
     case TokenType::LESS_THAN:
-        return "LESS_THAN";
+        return "<";
     case TokenType::LESS_THAN_EQUAL:
-        return "LESS_THAN_EQUAL";
+        return "<=";
 
     case TokenType::GREATER_THAN:
-        return "GREATER_THAN";
+        return ">";
     case TokenType::GREATER_THAN_EQUAL:
-        return "GREATER_THAN_EQUAL";
+        return ">=";
 
     case TokenType::EQUAL:
-        return "EQUAL";
+        return "=";
     case TokenType::EQUAL_EQUAL:
-        return "EQUAL_EQUAL";
+        return "==";
 
     case TokenType::NOT:
-        return "NOT";
+        return "!";
     case TokenType::NOT_EQUAL:
-        return "NOT_EQUAL";
+        return "!=";
 
     case TokenType::OPERATOR_ADD:
-        return "OPERATOR_ADD";
+        return "+";
     case TokenType::OPERATOR_ADD_EQUAL:
-        return "OPERATOR_ADD_EQUAL";
+        return "+=";
 
     case TokenType::OPERATOR_SUB:
-        return "OPERATOR_SUB";
+        return "-";
     case TokenType::OPERATOR_SUB_EQUAL:
-        return "OPERATOR_SUB_EQUAL";
+        return "-=";
 
     case TokenType::OPERATOR_MUL:
-        return "OPERATOR_MUL";
+        return "*";
     case TokenType::OPERATOR_MUL_EQUAL:
-        return "OPERATOR_MUL_EQUAL";
+        return "*=";
 
     case TokenType::OPERATOR_DIV:
-        return "OPERATOR_DIV";
+        return "/";
     case TokenType::OPERATOR_DIV_EQUAL:
-        return "OPERATOR_DIV_EQUAL";
+        return "/=";
 
     case TokenType::OPERATOR_MOD:
-        return "OPERATOR_MOD";
+        return "%";
     case TokenType::OPERATOR_MOD_EQUAL:
-        return "OPERATOR_MOD_EQUAL";
+        return "%=";
 
     case TokenType::BITWISE_AND:
-        return "BITWISE_AND";
+        return "&";
     case TokenType::BITWISE_AND_EQUAL:
-        return "BITWISE_AND_EQUAL";
+        return "&=";
     case TokenType::BITWISE_AND_AND:
-        return "BITWISE_AND_AND";
+        return "&&";
     case TokenType::BITWISE_AND_AND_EQUAL:
-        return "BITWISE_AND_AND_EQUAL";
+        return "&&=";
 
     case TokenType::BITWISE_PIPE:
-        return "BITWISE_PIPE";
+        return "|";
     case TokenType::BITWISE_PIPE_EQUAL:
-        return "BITWISE_PIPE_EQUAL";
+        return "|=";
     case TokenType::BITWISE_PIPE_PIPE:
-        return "BITWISE_PIPE_PIPE";
+        return "||";
     case TokenType::BITWISE_PIPE_PIPE_EQUAL:
-        return "BITWISE_PIPE_PIPE_EQUAL";
+        return "||=";
 
     case TokenType::BITWISE_SHIFT_LEFT:
-        return "BITWISE_SHIFT_LEFT";
+        return "<<";
     case TokenType::BITWISE_SHIFT_LEFT_EQUAL:
-        return "BITWISE_SHIFT_LEFT_EQUAL";
+        return "<<=";
 
     case TokenType::BITWISE_SHIFT_RIGHT:
-        return "BITWISE_SHIFT_RIGHT";
+        return ">>";
     case TokenType::BITWISE_SHIFT_RIGHT_EQUAL:
-        return "BITWISE_SHIFT_RIGHT_EQUAL";
+        return ">>=";
 
     case TokenType::BITWISE_POWER:
-        return "BITWISE_POWER";
+        return "^";
     case TokenType::BITWISE_POWER_EQUAL:
-        return "BITWISE_POWER_EQUAL";
+        return "^=";
     case TokenType::BITWISE_NOT:
-        return "BITWISE_NOT";
+        return "~";
 
     case TokenType::COLON:
-        return "COLON";
+        return ":";
     case TokenType::DOUBLE_COLON:
-        return "DOUBLE_COLON";
+        return "::";
     case TokenType::SEMICOLON:
-        return "SEMICOLON";
+        return ";";
     case TokenType::PARENS_OPEN:
-        return "PARENS_OPEN";
+        return "(";
     case TokenType::PARENS_CLOSE:
-        return "PARENS_CLOSE";
+        return ")";
     case TokenType::BRACE_OPEN:
-        return "BRACE_OPEN";
+        return "{";
     case TokenType::BRACE_CLOSE:
-        return "BRACE_CLOSE";
+        return "}";
     case TokenType::SQUARE_OPEN:
-        return "SQUARE_OPEN";
+        return "[";
     case TokenType::SQUARE_CLOSE:
-        return "SQUARE_CLOSE";
+        return "]";
     case TokenType::COMMA:
-        return "COMMA";
+        return ",";
     case TokenType::PERIOD:
-        return "PERIOD";
+        return ".";
     case TokenType::DOLLAR:
-        return "DOLLAR";
+        return "$";
     case TokenType::HASHTAG:
-        return "HASHTAG";
+        return "#";
     case TokenType::AT:
-        return "AT";
+        return "@";
     case TokenType::BACKSLASH:
-        return "BACKSLASH";
+        return "\\";
 
     case TokenType::NEW_LINE:
-        return "NEW_LINE";
+        return "\n";
     case TokenType::T_EOF:
         return "T_EOF";
 
@@ -318,9 +318,5 @@ std::string tokenTypeAsLiteral(TokenType type) {
 TokenType Token::isKeyword(std::string_view string) {
     auto it = keywords.find(string);
 
-    if (it == keywords.end()) {
-        return TokenType::IDENTIFIER;
-    } else {
-        return it->second;
-    }
+    return it == keywords.end() ? TokenType::IDENTIFIER : it->second;
 }

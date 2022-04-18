@@ -34,9 +34,13 @@ std::string CompoundStatement::toString() {
             compound += statement->toString();
         }
         compound += "\n";
+        if (indent == 1) {
+            compound += "\n";
+        }
     }
 
     indent -= 1;
+
     ADD_INDENTS(compound)
 
     compound += "}";
@@ -89,21 +93,21 @@ std::string FunctionDeclaration::toString() {
 std::string FunctionArgument::toString() {
     std::string argument;
 
-    if (!is_vaarg) {
-        if (type) {
-            argument += this->type.value()->toString();
-        }
-        goto print_name;
-    } else {
-        argument += "...";
+    if (is_vaarg) {
+        argument += "... ";
         goto print_name;
     }
 
 print_name:
     if (name) {
-        argument += " ";
         argument += this->name.value();
     }
+
+    if (type) {
+        argument += ": ";
+        argument += this->type.value()->toString();
+    }
+
     if (argument_default_value) {
         argument += " = ";
         argument += this->argument_default_value.value()->toString();
@@ -324,7 +328,7 @@ std::string If::toString() {
 std::string ASM::toString() {
     std::string asm_;
 
-    asm_ += "ASM (\n";
+    asm_ += "asm (\n";
 
     indent += 1;
     for (auto &instruction : this->instructions) {
@@ -344,7 +348,6 @@ std::string GOTO::toString() {
         goto_ += "goto ";
         goto_ += this->label;
     } else {
-        goto_ += "\bLABEL :: ";
         goto_ += this->label;
         goto_ += ":";
     }
@@ -431,10 +434,16 @@ std::string TernaryExpression::toString() {
 
 std::string LiteralExpression::toString() {
     std::string literal_expression;
+    if (literal_type == TokenType::V_MULTILINE_STRING) {
+        literal_expression += "\"\"\"";
+    }
     if (string_value) {
         literal_expression += string_value.value();
     } else {
         literal_expression += this->value;
+    }
+    if (literal_type == TokenType::V_MULTILINE_STRING) {
+        literal_expression += "\"\"\"";
     }
 
     return literal_expression;

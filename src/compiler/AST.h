@@ -5,6 +5,7 @@
 #ifndef DRAST_AST_H
 #define DRAST_AST_H
 
+#include "LookupTable.h"
 #include "Token.h"
 #include "Types.h"
 #include <map>
@@ -69,7 +70,7 @@ enum class ASTType {
 
 class AST {
   public:
-    Location &location;
+    Location location;
     ASTType type;
 
   protected:
@@ -87,7 +88,7 @@ class CompoundStatement : public AST {
   public:
     std::vector<AST *> statements;
     std::optional<FirstClassFunction *> first_class_function;
-    std::vector<std::pair<std::string_view, Location>> declaration_names;
+    std::vector<std::pair<std::string_view, AST *>> declaration_names;
 
   public:
     CompoundStatement(std::vector<AST *> &statements, Location &location)

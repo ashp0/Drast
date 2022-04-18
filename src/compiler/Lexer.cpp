@@ -18,7 +18,7 @@ void Lexer::lex() {
     }
 
     if (did_encounter_error) {
-        error.displayErrors();
+        error.displayMessages();
     }
 
     //    for (auto &token : tokens) {
@@ -548,14 +548,14 @@ Token Lexer::lexWhile(TokenType type, predicate &&pred) {
 }
 
 Token Lexer::throwError(const std::string &message) {
-    error.append(message, this->location);
+    error.addError(message, this->location);
     did_encounter_error = true;
     advanceLineComment();
     return this->getToken();
 }
 
 Token Lexer::throwError(const std::string &message, Location &loc) {
-    error.append(message, loc);
+    error.addError(message, loc);
     did_encounter_error = true;
     advanceLineComment();
     return this->getToken();

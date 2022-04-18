@@ -18,4 +18,5 @@ add_executable(drast
         src/compiler/Error.cpp
         src/compiler/Error.h
         src/compiler/Utils.cpp
-        src/compiler/Utils.h)
+        src/compiler/Utils.h
+        src/compiler/LookupTable.h)

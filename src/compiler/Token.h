@@ -5,6 +5,7 @@
 #ifndef DRAST_TOKEN_H
 #define DRAST_TOKEN_H
 
+#include "LookupTable.h"
 #include "Types.h"
 #include <iostream>
 #include <sstream>

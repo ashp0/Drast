@@ -32,7 +32,10 @@ All examples are located in [`examples`](https://github.com/Malvion/drast/tree/m
 
 ## Contributing
 
-Want to contribute to drast? First, read the [`CONTRIBUTING.md`](https://github.com/Malvion/drast/blob/master/CONTRIBUTING.md) and [`CODE_OF_CONDUCT`](https://github.com/Malvion/drast/blob/master/CODE_OF_CONDUCT.md). Then fork drast, add in your own amazing changes, the open up a pull request!
+Want to contribute to drast? First, read
+the [`CONTRIBUTING.md`](https://github.com/Malvion/drast/blob/master/CONTRIBUTING.md)
+and [`CODE_OF_CONDUCT`](https://github.com/Malvion/drast/blob/master/CODE_OF_CONDUCT.md). Then fork drast, add in your
+own amazing changes, the open up a pull request!
 
 ## Building
 
@@ -57,7 +60,8 @@ cmake ..
 If all goes well, Drast should be built and ready to run! If you have encountered any errors, please report them in
 the 'Issues' tab!
 
-> **NOTE:** For Windows, in the build directory, there should be a Visual Studio solution file. Double click this file, then build and
+> **NOTE:** For Windows, in the build directory, there should be a Visual Studio solution file. Double click this file,
+> then build and
 > run.
 
 ## Social

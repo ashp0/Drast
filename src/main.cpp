@@ -1,5 +1,6 @@
 #include "compiler/Lexer.h"
 #include "compiler/Parser.h"
+#include "compiler/SemanticAnalyzer.h"
 #include <iostream>
 
 int main([[maybe_unused]] int argc, const char *argv[]) {
@@ -10,7 +11,10 @@ int main([[maybe_unused]] int argc, const char *argv[]) {
     lexer.lex();
 
     Parser parser(file_name, lexer, error);
-    parser.parse();
+    auto ast_tree = parser.parse();
+
+    SemanticAnalyzer semantic_analyzer(ast_tree, error);
+    semantic_analyzer.analyze();
 
     return 0;
 }

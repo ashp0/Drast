@@ -23,32 +23,53 @@ static void print_line(const std::string &str, const Location &location) {
     std::cout << "^" << std::endl;
 }
 
-void Error::append(const char *msg, Location location) {
+void Error::addError(const char *msg, Location location) {
     auto pair = std::make_pair(msg, location);
 
     this->error_messages.emplace_back(pair);
 }
 
-void Error::append(const std::string &msg, Location location) {
+void Error::addError(const std::string &msg, Location location) {
     auto pair = std::make_pair(msg, location);
 
     this->error_messages.emplace_back(pair);
 }
 
-void Error::displayErrors() {
+void Error::addWarning(const char *msg, Location location) {
+    auto pair = std::make_pair(msg, location);
+
+    this->warning_messages.emplace_back(pair);
+}
+
+void Error::addWarning(const std::string &msg, Location location) {
+    auto pair = std::make_pair(msg, location);
+
+    this->warning_messages.emplace_back(pair);
+}
+
+void Error::displayMessages() {
+    for (auto const &warning_message : warning_messages) {
+        displayMessage(warning_message, true);
+        std::cout << std::endl;
+    }
+
     for (auto const &error_message : error_messages) {
-        displayError(error_message);
+        displayMessage(error_message, false);
         std::cout << std::endl;
     }
 
     exit(-1);
 }
 
-void Error::displayError(
-    const std::pair<std::string, Location> &error_message) {
-    std::cout << "error:" << file_name << ":" << error_message.second.line
-              << ":" << error_message.second.column << ": "
-              << error_message.first << std::endl;
+void Error::displayMessage(const std::pair<std::string, Location> &message,
+                           bool is_warning) {
+    if (is_warning) {
+        std::cout << "Warning: ";
+    } else {
+        std::cout << "Error: ";
+    }
+    std::cout << file_name << ":" << message.second.line << ":"
+              << message.second.column << ": " << message.first << std::endl;
 
-    print_line(buffer, error_message.second);
+    print_line(buffer, message.second);
 }

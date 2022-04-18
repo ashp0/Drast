@@ -6,7 +6,6 @@
       "*/"
     ]
   },
-
   "brackets": [
     [
       "{",
@@ -21,7 +20,6 @@
       ")"
     ]
   ],
-
   "autoClosingPairs": [
     [
       "{",
@@ -44,7 +42,6 @@
       "'"
     ]
   ],
-
   "surroundingPairs": [
     [
       "{",

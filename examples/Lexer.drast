@@ -29,10 +29,10 @@ struct Lexer {
 
     void :: lex() {
         for (Token token = getToken(), token.type != .eof, token = getToken()) {
-            self.tokens.append(token)
+            self.tokens.addError(token)
         }
 
-        self.tokens.append(returnToken(.eof))
+        self.tokens.addError(returnToken(.eof))
     }
 
     Token :: getToken() {
