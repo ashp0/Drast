@@ -19,7 +19,7 @@ its simplicity.
 
 ## Features
 
-- **Super Simple and Easy to learn syntax** - Similar to C++
+- **Super Simple and Easy to learn syntax** - Similar to Rust, Go, Kotlin and Swift
 - **Semi-Object Oriented** - Structs have functions and initializers
 - **Templates** - Different Syntax than C++
 - More to come...
