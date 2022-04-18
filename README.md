@@ -8,7 +8,10 @@
 ![issues](https://img.shields.io/github/issues/Malvion/drast?style=flat-square)
 ![license](https://img.shields.io/github/license/Malvion/drast?style=flat-square)
 
-A drastic change in programming
+_A drastic change in programming_
+
+Drast is a general-purpose language written in cpp20, meant to be a more modern version of C, while still maintaining
+its simplicity.
 
 [Docs](docs/docs.md) | [TODO](TODO.md)
 
