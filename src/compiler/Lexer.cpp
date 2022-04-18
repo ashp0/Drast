@@ -116,7 +116,6 @@ Token Lexer::getToken() {
 }
 
 Token Lexer::lexOperator() {
-    using enum TokenType;
     TokenType type;
 
     switch (this->current()) {
@@ -127,41 +126,46 @@ Token Lexer::lexOperator() {
     case '<': {
         if (this->peek() == '<') {
             this->advance();
-            type = equalAndAdvance() ? BITWISE_SHIFT_LEFT_EQUAL
-                                     : BITWISE_SHIFT_LEFT;
+            type = equalAndAdvance() ? TokenType::BITWISE_SHIFT_LEFT_EQUAL
+                                     : TokenType::BITWISE_SHIFT_LEFT;
         } else {
-            type = equalAndAdvance() ? LESS_THAN_EQUAL : LESS_THAN;
+            type = equalAndAdvance() ? TokenType::LESS_THAN_EQUAL
+                                     : TokenType::LESS_THAN;
         }
         break;
     }
     case '>': {
         if (this->peek() == '>') {
             this->advance();
-            type = equalAndAdvance() ? BITWISE_SHIFT_RIGHT_EQUAL
-                                     : BITWISE_SHIFT_RIGHT;
+            type = equalAndAdvance() ? TokenType::BITWISE_SHIFT_RIGHT_EQUAL
+                                     : TokenType::BITWISE_SHIFT_RIGHT;
         } else {
-            type = equalAndAdvance() ? GREATER_THAN_EQUAL : GREATER_THAN;
+            type = equalAndAdvance() ? TokenType::GREATER_THAN_EQUAL
+                                     : TokenType::GREATER_THAN;
         }
         break;
     }
     case '=': {
-        type = equalAndAdvance() ? EQUAL_EQUAL : EQUAL;
+        type = equalAndAdvance() ? TokenType::EQUAL_EQUAL : TokenType::EQUAL;
         break;
     }
     case '!': {
-        type = equalAndAdvance() ? NOT_EQUAL : NOT;
+        type = equalAndAdvance() ? TokenType::NOT_EQUAL : TokenType::NOT;
         break;
     }
     case '+': {
-        type = equalAndAdvance() ? OPERATOR_ADD_EQUAL : OPERATOR_ADD;
+        type = equalAndAdvance() ? TokenType::OPERATOR_ADD_EQUAL
+                                 : TokenType::OPERATOR_ADD;
         break;
     }
     case '-': {
-        type = equalAndAdvance() ? OPERATOR_SUB_EQUAL : OPERATOR_SUB;
+        type = equalAndAdvance() ? TokenType::OPERATOR_SUB_EQUAL
+                                 : TokenType::OPERATOR_SUB;
         break;
     }
     case '*': {
-        type = equalAndAdvance() ? OPERATOR_MUL_EQUAL : OPERATOR_MUL;
+        type = equalAndAdvance() ? TokenType::OPERATOR_MUL_EQUAL
+                                 : TokenType::OPERATOR_MUL;
         break;
     }
     case '/': {
@@ -172,101 +176,107 @@ Token Lexer::lexOperator() {
             this->advanceBlockComment();
             return this->getToken();
         } else {
-            type = equalAndAdvance() ? OPERATOR_DIV_EQUAL : OPERATOR_DIV;
+            type = equalAndAdvance() ? TokenType::OPERATOR_DIV_EQUAL
+                                     : TokenType::OPERATOR_DIV;
         }
         break;
     }
     case '%': {
-        type = equalAndAdvance() ? OPERATOR_MOD_EQUAL : OPERATOR_MOD;
+        type = equalAndAdvance() ? TokenType::OPERATOR_MOD_EQUAL
+                                 : TokenType::OPERATOR_MOD;
         break;
     }
 
     case '&': {
         if (peek() == '&') {
             this->advance();
-            type = equalAndAdvance() ? BITWISE_AND_AND_EQUAL : BITWISE_AND_AND;
+            type = equalAndAdvance() ? TokenType::BITWISE_AND_AND_EQUAL
+                                     : TokenType::BITWISE_AND_AND;
         } else {
-            type = equalAndAdvance() ? BITWISE_AND_EQUAL : BITWISE_AND;
+            type = equalAndAdvance() ? TokenType::BITWISE_AND_EQUAL
+                                     : TokenType::BITWISE_AND;
         }
         break;
     }
     case '|': {
         if (peek() == '|') {
             this->advance();
-            type =
-                equalAndAdvance() ? BITWISE_PIPE_PIPE_EQUAL : BITWISE_PIPE_PIPE;
+            type = equalAndAdvance() ? TokenType::BITWISE_PIPE_PIPE_EQUAL
+                                     : TokenType::BITWISE_PIPE_PIPE;
         } else {
-            type = equalAndAdvance() ? BITWISE_PIPE_EQUAL : BITWISE_PIPE;
+            type = equalAndAdvance() ? TokenType::BITWISE_PIPE_EQUAL
+                                     : TokenType::BITWISE_PIPE;
         }
         break;
     }
     case '^': {
-        type = equalAndAdvance() ? BITWISE_POWER_EQUAL : BITWISE_POWER;
+        type = equalAndAdvance() ? TokenType::BITWISE_POWER_EQUAL
+                                 : TokenType::BITWISE_POWER;
         break;
     }
     case '~': {
-        type = BITWISE_NOT;
+        type = TokenType::BITWISE_NOT;
         break;
     }
     case ':': {
         if (peek() == ':') {
             this->advance();
-            type = DOUBLE_COLON;
+            type = TokenType::DOUBLE_COLON;
         } else {
-            type = COLON;
+            type = TokenType::COLON;
         }
         break;
     }
     case ';': {
-        type = SEMICOLON;
+        type = TokenType::SEMICOLON;
         break;
     }
     case '(': {
-        type = PARENS_OPEN;
+        type = TokenType::PARENS_OPEN;
         break;
     }
     case ')': {
-        type = PARENS_CLOSE;
+        type = TokenType::PARENS_CLOSE;
         break;
     }
     case '[': {
-        type = SQUARE_OPEN;
+        type = TokenType::SQUARE_OPEN;
         break;
     }
     case ']': {
-        type = SQUARE_CLOSE;
+        type = TokenType::SQUARE_CLOSE;
         break;
     }
     case '{': {
-        type = BRACE_OPEN;
+        type = TokenType::BRACE_OPEN;
         break;
     }
     case '}': {
-        type = BRACE_CLOSE;
+        type = TokenType::BRACE_CLOSE;
         break;
     }
     case ',': {
-        type = COMMA;
+        type = TokenType::COMMA;
         break;
     }
     case '.': {
-        type = PERIOD;
+        type = TokenType::PERIOD;
         break;
     }
     case '$': {
-        type = DOLLAR;
+        type = TokenType::DOLLAR;
         break;
     }
     case '#': {
-        type = HASHTAG;
+        type = TokenType::HASHTAG;
         break;
     }
     case '@': {
-        type = AT;
+        type = TokenType::AT;
         break;
     }
     case '\\': {
-        type = BACKSLASH;
+        type = TokenType::BACKSLASH;
         break;
     }
     default:
