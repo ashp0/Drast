@@ -6,15 +6,22 @@ import io
 
 func printf(string fmt, ... args)
 
-private func main(): i64 || @(struct first_type) {
+private func main(): i32 || @(struct first_type) {
     var test = 30
     var test1: i64 = 40
     let pi = 3.14
     var string_ = "123"
+    var test2 = 'a'
+    var test3 = 0o123_123
+    var test4 = "lkasfmsdlkfm"
     var number: int? = string_.convertTo("int")
 
     print("Number: {}", number!)
-    printf("Hello, world!")
 
-    return 0
+    let test5 = """
+                testing multiline comments!
+                """
+
+    printf("Hello, world!")
+    return 0xDEADBEEF
 }

@@ -56,6 +56,7 @@ enum class TokenType : uint8_t {
     V_FLOAT,
     V_STRING,
     V_CHAR,
+    V_MULTILINE_STRING,
     V_HEX,
     V_OCTAL,
     V_BINARY,
@@ -287,6 +288,7 @@ constexpr bool isRegularValue(TokenType type) {
     case TokenType::V_INT:
     case TokenType::V_FLOAT:
     case TokenType::V_CHAR:
+    case TokenType::V_MULTILINE_STRING:
     case TokenType::V_HEX:
     case TokenType::V_OCTAL:
     case TokenType::V_BINARY:
@@ -388,7 +390,9 @@ class Token {
     Token(TokenType type, uint32_t start, uint32_t length, Location location)
         : type(type), start(start), length(length), location(location) {}
 
-    static TokenType is_keyword(std::string_view string);
+    Token(TokenType type) : type(type), start(0), length(0), location(0, 0) {}
+
+    static TokenType isKeyword(std::string_view string);
 
     [[nodiscard]] std::string toString(std::string_view source) const {
         std::stringstream ss;

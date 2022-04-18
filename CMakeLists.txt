@@ -9,13 +9,13 @@ add_executable(drast
         src/compiler/Lexer.h
         src/compiler/Token.cpp
         src/compiler/Token.h
-        src/compiler/Print.cpp
-        src/compiler/Print.h
         src/compiler/AST.cpp
         src/compiler/AST.h
         src/compiler/Parser.cpp
         src/compiler/Parser.h
         src/compiler/SemanticAnalyzer.cpp
         src/compiler/SemanticAnalyzer.h
+        src/compiler/Error.cpp
+        src/compiler/Error.h
         src/compiler/Utils.cpp
         src/compiler/Utils.h)

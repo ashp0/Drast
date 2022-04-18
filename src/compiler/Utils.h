@@ -5,8 +5,20 @@
 #ifndef DRAST_UTILS_H
 #define DRAST_UTILS_H
 
-bool is_octal(char c);
+#include <iostream>
+#include <sstream>
+#include <string>
 
-bool is_binary(char c);
+bool isHexadecimal(char c);
+
+bool isOctal(char c);
+
+bool isBinary(char c);
+
+bool isNumber(char c);
+
+bool isAlphaNumeric(char c);
+
+void readFile(std::string &file_name, std::string &file_buffer);
 
 #endif // DRAST_UTILS_H

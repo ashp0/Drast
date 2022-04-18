@@ -1,7 +1,8 @@
 # TODO
 
 - [x] Lexing
-    - [ ] Unicode Support?
+  - [x] Multiline string
+  - [ ] Unicode Support?
 - [x] Parsing
     - [x] Import Statements
     - [x] Function Declaration

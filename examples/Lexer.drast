@@ -29,10 +29,10 @@ struct Lexer {
 
     void :: lex() {
         for (Token token = getToken(), token.type != .eof, token = getToken()) {
-            self.tokens.push_back(token)
+            self.tokens.append(token)
         }
 
-        self.tokens.push_back(returnToken(.eof))
+        self.tokens.append(returnToken(.eof))
     }
 
     Token :: getToken() {
@@ -130,7 +130,7 @@ struct Lexer {
         case '[':
             return self.returnToken(.open_square)
         case ']':
-            return self.returnToken(.close_square)
+            return self.equalAndAdvance(.close_square)
         case '{':
             return self.returnToken(.open_curly)
         case '}':
@@ -199,7 +199,7 @@ struct Lexer {
         return Token.init(type, .init(self.current()), self.location)
     }
 
-    void :: skipWhitespace() {
+    void :: advanceWhitespace() {
         while (self.current() == ' ' || self.current() == '\r' || self.current() == '\t' || self.current() == '\n') {
             if (self.current() == '\n') {
                 self.line += 1
@@ -212,13 +212,13 @@ struct Lexer {
         }
     }
 
-    void :: skipLine() {
+    void :: advanceLineComment() {
         while (self.current() != '\n') {
             self.advance()
         }
     }
 
-    void :: skipBlockComment() {
+    void :: advanceBlockComment() {
         self.advance()
         self.advance()
 
@@ -240,7 +240,7 @@ struct Lexer {
             self.advance()
             return
         } else {
-            goto while_loop
+            goto whileLoop
         }
     }
 
@@ -288,7 +288,7 @@ struct Lexer {
 
             string value = self.source.substr(self.start, length)
 
-            TokenType token_type = Token.is_keyword(value)
+            TokenType token_type = Token.isKeyword(value)
 
             return self.returnType(token_type)
         }

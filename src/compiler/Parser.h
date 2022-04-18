@@ -6,16 +6,19 @@
 #define DRAST_PARSER_H
 
 #include "AST.h"
-#include "Print.h"
+#include "Lexer.h"
 #include "Token.h"
 #include <map>
+#include <utility>
 #include <vector>
 
 class Parser {
   private:
-    std::vector<Token> &tokens;
-    uint32_t index;
-    Print printer;
+    Lexer lexer;
+    Error error;
+
+    size_t index = 0;
+
     bool parses_goto_labels = true;
     bool inside_function_body = false; // myFunction(!{return true})
     bool is_parsing_struct = false;
@@ -23,9 +26,8 @@ class Parser {
     CompoundStatement *current_compound = nullptr;
 
   public:
-    Parser(std::string &file_name, std::vector<Token> &tokens,
-           std::string &source)
-        : tokens(tokens), printer(file_name, source), index(0){};
+    Parser(std::string &file_name, Lexer &lexer, Error error)
+        : lexer(lexer), error(std::move(error)) {}
 
     void parse();
 
@@ -37,66 +39,66 @@ class Parser {
     ImportStatement *import();
 
     StructDeclaration *
-    struct_declaration(const std::vector<TokenType> &qualifiers = {});
+    structDeclaration(const std::vector<TokenType> &qualifiers = {});
 
-    AST *struct_member_access();
+    AST *structMemberAccess();
 
-    AST *struct_init_or_enum_case_access();
+    AST *structMemberAccess(FunctionCall *function_call);
 
-    AST *struct_member_access(FunctionCall *function_call);
+    AST *initOrEnumCase();
 
-    StructInitializerDeclaration *struct_initializer_declaration();
+    StructInitializerDeclaration *structInitializerDeclaration();
 
-    AST *struct_destructor_declaration();
+    AST *structDestructorDeclaration();
 
     EnumDeclaration *
-    enum_declaration(const std::vector<TokenType> &qualifiers = {});
+    enumDeclaration(const std::vector<TokenType> &qualifiers = {});
 
-    std::vector<EnumCase *> enum_cases();
+    std::vector<EnumCase *> enumCases();
 
     FunctionDeclaration *
-    function_declaration(const std::vector<TokenType> &qualifiers = {});
+    functionDeclaration(const std::vector<TokenType> &qualifiers = {});
 
-    AST *variable_declaration(const std::vector<TokenType> &qualifiers = {},
-                              bool is_let = false);
+    AST *variableDeclaration(const std::vector<TokenType> &qualifiers = {},
+                             bool is_let = false);
 
-    RangeBasedForLoop *range_based_for_loop();
+    RangeBasedForLoop *rangeBasedForLoop();
 
-    AST *for_loop();
+    AST *forLoop();
 
-    WhileLoop *while_loop();
+    WhileLoop *whileLoop();
 
-    Return *return_statement(bool is_throw_statement);
+    Return *returnStatement(bool is_throw_statement);
 
-    If *if_statement();
+    If *ifStatement();
 
-    std::pair<AST *, CompoundStatement *> if_else_statements();
+    std::pair<AST *, CompoundStatement *> ifElseStatements();
 
-    ASM *inline_assembly();
+    ASM *inlineAssembly();
 
-    GOTO *goto_statement();
+    GOTO *gotoStatement();
 
-    SwitchStatement *switch_statement();
+    SwitchStatement *switchStatement();
 
-    std::vector<SwitchCase *> switch_cases();
+    std::vector<SwitchCase *> switchCases();
 
-    SwitchCase *switch_case();
+    SwitchCase *switchCase();
 
-    DoCatchStatement *do_catch_statement();
+    DoCatchStatement *doCatchStatement();
 
-    OperatorOverload *operator_overload(AST *&return_type);
+    OperatorOverload *operatorOverload(AST *&return_type);
 
     AST *expression();
 
-    AST *try_expression();
+    AST *tryExpression();
 
-    AST *cast_expression();
+    AST *castExpression();
 
-    TernaryExpression *ternary_expression(AST *bool_expression);
+    TernaryExpression *ternaryExpression(AST *bool_expression);
 
-    OptionalUnwrapExpression *optional_unwrap(AST *expression);
+    OptionalUnwrapExpression *optionalUnwrap(AST *expression);
 
-    ForceUnwrapExpression *force_unwrap(AST *expression);
+    ForceUnwrapExpression *forceUnwrap(AST *expression);
 
     AST *equality();
 
@@ -110,31 +112,31 @@ class Parser {
 
     AST *primary();
 
-    AST *function_call(std::string_view function_name,
-                       const std::optional<std::vector<AST *>>
-                           &template_arguments = std::nullopt);
+    AST *functionCall(std::string_view function_name,
+                      const std::optional<std::vector<AST *>>
+                          &template_arguments = std::nullopt);
 
-    AST *array_access();
+    AST *arrayAccess();
 
-    AST *array_access(FunctionCall *function_call);
+    AST *arrayAccess(FunctionCall *function_call);
 
-    AST *array_creation();
+    AST *arrayCreation();
 
-    std::vector<AST *> function_call_arguments();
+    std::vector<AST *> functionCallArguments();
 
     AST *typealias();
 
     AST *token();
 
-    TemplateDeclaration *template_declaration();
+    TemplateDeclaration *templateDeclaration();
 
-    std::vector<TemplateDeclarationArgument *> template_arguments();
+    std::vector<TemplateDeclarationArgument *> templateArguments();
 
-    std::vector<AST *> template_call_arguments();
+    std::vector<AST *> templateCallArguments();
 
-    std::vector<FunctionArgument *> function_arguments();
+    std::vector<FunctionArgument *> functionArguments();
 
-    FirstClassFunction *first_class_function();
+    FirstClassFunction *firstClassFunction();
 
     AST *type();
 
@@ -143,9 +145,9 @@ class Parser {
     std::vector<TokenType> getQualifiers();
 
   private: /* Utilities */
-    [[nodiscard]] Token &current() const { return this->tokens[this->index]; }
-
     void advance();
+
+    void reverse();
 
     void advance(TokenType type, const char *error_message = "");
 
@@ -153,18 +155,22 @@ class Parser {
 
     void advanceLines();
 
-    Token *getAndAdvance();
+    TokenType getAndAdvanceType();
 
-    Token *getAndAdvance(TokenType type, const char *message = "");
+    std::string_view getAndAdvance();
 
-    Token &peek(int offset = 1);
+    std::string_view getAndAdvance(TokenType type, const char *message = "");
+
+    Token &current() { return lexer.tokens[index]; }
+
+    Token &peek() { return lexer.tokens[index + 1]; }
 
     template <class ast_type, class... Args>
-    ast_type *create_declaration(Args &&...args);
+    ast_type *makeDeclaration(Args &&...args);
 
-    int throw_error(const char *message);
+    int throwError(const char *message);
 
-    int throw_error(const char *message, Location location);
+    int throwError(const char *message, Location location);
 };
 
 #endif // DRAST_PARSER_H

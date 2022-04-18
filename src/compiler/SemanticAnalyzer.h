@@ -6,7 +6,6 @@
 #define DRAST_SEMANTIC_ANALYZER_H
 
 #include "AST.h"
-#include "Print.h"
 #include <iostream>
 #include <vector>
 

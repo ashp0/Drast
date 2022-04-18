@@ -5,36 +5,38 @@
 #ifndef DRAST_LEXER_H
 #define DRAST_LEXER_H
 
-#include "Print.h"
+#include "Error.h"
 #include "Token.h"
 #include "Types.h"
 #include "Utils.h"
+#include <fstream>
 #include <iostream>
 #include <vector>
 
 class Lexer {
   private:
-    std::string &source; // Maybe add support for unicode?
+    Error error;
+    bool did_encounter_error = false;
 
     Location location;
 
-    uint32_t start;
-    uint32_t index;
+    uint32_t start = 0;
 
-    Print printer;
+    std::string file_buffer;
+    uint32_t buffer_index = 0;
 
   public:
     std::vector<Token> tokens;
 
   public:
-    explicit Lexer(std::string &source, std::string &file_name)
-        : source(source), start(0), index(0), printer(file_name, source),
-          location(1, 1) {}
+    Lexer(std::string &file_name, Error &error);
 
     void lex();
 
-  private:
     Token getToken();
+
+  private:
+    Token lexOperator();
 
     Token identifier();
 
@@ -50,26 +52,36 @@ class Lexer {
 
     Token character();
 
+    Token multilineString();
+
+    Token returnToken(size_t trim, TokenType type);
+
     Token returnToken(TokenType type, bool without_advance = false);
 
-    Token returnToken(TokenType first_type, TokenType second_type);
+    bool equalAndAdvance();
 
-    void skipWhitespace();
+    void advanceWhitespace();
 
-    void skipLine();
+    void advanceLineComment();
 
-    void skipBlockComment();
+    void advanceBlockComment();
 
     void advance();
+
+    void evaluateEscapeSequence();
 
     char peek(size_t offset = 1);
 
     template <typename predicate>
-    Token lexWhile(TokenType type, predicate &&pred, bool is_string = false);
+    Token lexWhile(TokenType type, predicate &&pred);
 
-    int throw_error(const std::string &message);
+    Token throwError(const std::string &message);
 
-    [[nodiscard]] char &current() const { return this->source[this->index]; }
+    Token throwError(const std::string &message, Location &loc);
+
+    [[nodiscard]] char &current() {
+        return this->file_buffer[this->buffer_index];
+    }
 };
 
 #endif // DRAST_LEXER_H

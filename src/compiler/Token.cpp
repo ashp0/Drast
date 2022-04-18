@@ -83,6 +83,8 @@ std::string tokenTypeAsLiteral(TokenType type) {
         return "OPERATOR";
     case TokenType::VAR:
         return "VAR";
+    case TokenType::FUNC:
+        return "FUNC";
     case TokenType::LET:
         return "LET";
 
@@ -134,6 +136,8 @@ std::string tokenTypeAsLiteral(TokenType type) {
         return "V_FLOAT";
     case TokenType::V_CHAR:
         return "V_CHAR";
+    case TokenType::V_MULTILINE_STRING:
+        return "V_MULTILINE_STRING";
     case TokenType::V_STRING:
         return "V_STRING";
     case TokenType::V_HEX:
@@ -279,7 +283,7 @@ std::string tokenTypeAsLiteral(TokenType type) {
     }
 }
 
-TokenType Token::is_keyword(std::string_view string) {
+TokenType Token::isKeyword(std::string_view string) {
     auto it = keywords.find(string);
 
     if (it == keywords.end()) {
