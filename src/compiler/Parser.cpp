@@ -18,7 +18,7 @@ CompoundStatement *Parser::compound() {
     // $(int a, bool b)
     if (this->current().type == TokenType::DOLLAR) {
         if (!inside_function_body) {
-            throwError("The First Class Function Parameter must be "
+            throwError("The first class function parameter must be "
                        "inside a valid body.");
         }
         compoundStatement->first_class_function = this->firstClassFunction();
@@ -34,10 +34,10 @@ CompoundStatement *Parser::compound() {
         if (this->current().type != TokenType::T_EOF) {
             if (this->current().type != TokenType::NEW_LINE) {
                 advance(TokenType::SEMICOLON,
-                        "Expected new line or semicolon after statement.");
+                        "Expected a new line or a semicolon after statement.");
             } else {
                 advance(TokenType::NEW_LINE,
-                        "Expected new line or semicolon after statement.");
+                        "Expected a new line or a semicolon after statement.");
             }
 
             advanceLines();
@@ -49,9 +49,9 @@ CompoundStatement *Parser::compound() {
              ++j) {
             if (compoundStatement->declaration_names[i].first ==
                 compoundStatement->declaration_names[j].first) {
-                std::string error_msg = "Found duplicate declaration '";
+                std::string error_msg = "Found a duplicate declaration '";
                 error_msg += compoundStatement->declaration_names[i].first;
-                error_msg += "'";
+                error_msg += "'.";
                 this->throwError(
                     error_msg.c_str(),
                     compoundStatement->declaration_names[j].second);
@@ -125,14 +125,14 @@ AST *Parser::statement() {
         return this->expression();
     case TokenType::NEW_LINE:
         this->throwError(
-            "Parser: Error with '\\n' parsing, please create a Github issue.");
+            "Error with parsing '\\n', please create a Github issue.");
         return nullptr;
     case TokenType::T_EOF:
         return nullptr;
     default:
         std::cout << tokenTypeAsLiteral(this->current().type) << " "
                   << this->current().location.toString();
-        this->throwError("Parser: Cannot parse token.");
+        this->throwError("Cannot parse token.");
     }
 }
 
@@ -151,7 +151,7 @@ ImportStatement *Parser::import() {
         break;
     default:
         this->throwError(
-            "Expected string literal or library name after import.");
+            "Expected a string literal or a library name after import.");
     }
 
     return this->makeDeclaration<ImportStatement>(import_path, is_library);
@@ -208,10 +208,10 @@ AST *Parser::structMemberAccess() {
 
         if (identifier == "init") {
             advance(TokenType::PARENS_OPEN,
-                    "Expected initializer to have arguments.");
+                    "Expected the initializer to have arguments.");
             auto arguments = functionCallArguments();
             advance(TokenType::PARENS_CLOSE,
-                    "Expected close parenthesis after initializer.");
+                    "Expected a close parenthesis after initializer.");
 
             return this->makeDeclaration<StructInitializerCall>(variable_name,
                                                                 arguments);
@@ -257,7 +257,7 @@ AST *Parser::initOrEnumCase() {
                 "Expected the initializer to have arguments.");
         auto arguments = functionCallArguments();
         advance(TokenType::PARENS_CLOSE,
-                "Expected close parenthesis after the initializer.");
+                "Expected a close parenthesis after the initializer.");
 
         return this->makeDeclaration<StructInitializerCall>(arguments);
     } else {
@@ -271,7 +271,7 @@ StructInitializerDeclaration *Parser::structInitializerDeclaration() {
             "Expected the initializer to have arguments.");
     auto arguments = functionArguments();
     advance(TokenType::PARENS_CLOSE,
-            "Expected close parenthesis after the initialize.r");
+            "Expected a ')' after the initializer.");
 
     advance(TokenType::BRACE_OPEN,
             "Expected a body after the struct initializer.");
@@ -289,7 +289,7 @@ AST *Parser::structDestructorDeclaration() {
         return this->expression();
     }
     advance(TokenType::PARENS_CLOSE,
-            "Expected close parenthesis after the destructor.");
+            "Expected a close parenthesis after the destructor.");
 
     advance(TokenType::BRACE_OPEN, "The destructor must have body.");
     auto body = compound();
@@ -358,7 +358,7 @@ Parser::functionDeclaration(const std::vector<TokenType> &qualifiers) {
 
     auto function_arguments = this->functionArguments();
 
-    advance(TokenType::PARENS_CLOSE, "Function's arguments must be closed.");
+    advance(TokenType::PARENS_CLOSE, "The functions arguments must be closed.");
 
     std::optional<AST *> return_type = std::nullopt;
     if (advanceIf(TokenType::COLON)) {
