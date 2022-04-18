@@ -2,8 +2,8 @@
 // Drast Programming Language Tests
 //
 
-typelias test = 40 + 20
+typealias test = 40 + 20
 
-int :: main() {
+func main(): i32 {
     print(test)
 }

@@ -2,7 +2,7 @@
 // Drast Programming Language Tests
 //
 
-extern private void :: printf(string fmt, ... args)
+extern private func printf(fmt: string, ... args)
 
 private enum AgeCategory {
     Kid,
@@ -14,54 +14,54 @@ private enum AgeCategory {
 typealias AgePointer = AgeCategory
 
 struct Person {
-    string first_name
-    string last_name
-    int age
-    AgeCategory age_category
+    var first_name: string
+    var last_name: string
+    var age: i32
+    var age_category: AgeCategory
 
-    @(string first_name, string last_name, int age, AgeCategory age_category) {
+    @(first_name: string, last_name: string, age: i32, age_category: AgeCategory) {
         self.first_name = first_name
         self.last_name = last_name
         self.age = age
         self.age_category = age_category
     }
 
-    void :: print_information() {
+    func print_information() {
         print("%s %s, %d, %s\n", self.first_name, self.last_name, self.age, self.age_category)
     }
 }
 
 private union Hello2 {
-    int test1
-    string[] test2
+    var test1: i32
+    var test2: string[]
 }
 
-asm("
+asm("""
     loop:
         cli
         htl
         jmp loop
-  ")
+  """)
 
-int :: multiply(int a, int b) {
+func multiply(a: i32, b: i32): i32 {
     return a * b
 }
 
-string? :: myOptionalFunction() {
+func myOptionalFunction(): string? {
     return "Hello"
 }
 
-int :: main(int argc, string[] argv) {
-    Person john = .init("John", "Doe", 21, AgeCategory.Adult)
+func main(argc: i32, argv: string[]): i32 {
+    var john: Person = .init("John", "Doe", 21, AgeCategory.Adult)
 
     john.print_information()
 
-    volatile int a = 1
-    private volatile int b = 2
-    int c = 3
-    char d = 'd'
-    float[]*? e = [1.0, 2.0, 3.0]
-    int f = multiply(a, b)
+    volatile var a: i32 = 1
+    private volatile var b: i32 = 2
+    var c: i32 = 3
+    var d: char = 'd'
+    var e: float[]*? = [1.0, 2.0, 3.0]
+    var f: i32 = multiply(a, b)
 
     if (a == 1) {
         printf("a is 1\n")
@@ -79,7 +79,7 @@ int :: main(int argc, string[] argv) {
         a = a + 1
     }
 
-    for (int i = 0, i < 10, i += 1) {
+    for (var i = 0, i < 10, i += 1) {
         printf("%d\n", i)
     }
 
@@ -94,8 +94,8 @@ int :: main(int argc, string[] argv) {
             printf("a is not 1 or 2\n")
     }
 
-    int i = 0
-    char op = '+'
+    var i = 0
+    var op: char = '+'
     switch (op) {
         case '+': a + b
         case '-': a - b
@@ -108,7 +108,7 @@ int :: main(int argc, string[] argv) {
 
     multiply(a, b)
 
-    string myString = "Hello"
+    var myString = "Hello"
     do {
         myString = try myOptionalFunction()
     } catch {

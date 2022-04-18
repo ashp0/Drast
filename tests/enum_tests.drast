@@ -31,6 +31,6 @@ enum CarBrands {
     Jeep,
 }
 
-int :: test() {
-     CarBrands brands = .Jeep
+func test(): i32 {
+     var brands: CarBrands = .Jeep
 }

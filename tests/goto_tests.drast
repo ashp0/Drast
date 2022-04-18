@@ -1,4 +1,4 @@
-int :: main() {
+func main(): i32 {
     goto line
 }
 

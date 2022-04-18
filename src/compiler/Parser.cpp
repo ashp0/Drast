@@ -33,9 +33,17 @@ CompoundStatement *Parser::compound() {
 
         if (this->current().type != TokenType::T_EOF) {
             if (this->current().type != TokenType::NEW_LINE) {
+                if (this->current().type != TokenType::SEMICOLON) {
+                    std::cout << "HEllo1: " << statement->toString()
+                              << std::endl;
+                }
                 advance(TokenType::SEMICOLON,
                         "Expected a new line or a semicolon after statement.");
             } else {
+                if (this->current().type != TokenType::NEW_LINE) {
+                    std::cout << "HEllo1: " << statement->toString()
+                              << std::endl;
+                }
                 advance(TokenType::NEW_LINE,
                         "Expected a new line or a semicolon after statement.");
             }
@@ -134,6 +142,7 @@ AST *Parser::statement() {
                   << this->current().location.toString();
         this->throwError("Cannot parse token.");
     }
+    exit(-1);
 }
 
 ImportStatement *Parser::import() {
@@ -346,10 +355,13 @@ std::vector<EnumCase *> Parser::enumCases() {
     return enum_cases;
 }
 
-FunctionDeclaration *
-Parser::functionDeclaration(const std::vector<TokenType> &qualifiers) {
+AST *Parser::functionDeclaration(const std::vector<TokenType> &qualifiers) {
     // func main(): i64 { ... }
     advance(TokenType::FUNC);
+
+    if (this->current().type == TokenType::OPERATOR) {
+        return this->operatorOverload();
+    }
 
     auto function_name =
         getAndAdvance(TokenType::IDENTIFIER, "Functions must have a name.");
@@ -439,10 +451,12 @@ RangeBasedForLoop *Parser::rangeBasedForLoop() {
 
     std::optional<AST *> for_index = std::nullopt;
     if (advanceIf(TokenType::BITWISE_PIPE)) {
+        is_parsing_struct = true;
         for_index = statement();
         advance(
             TokenType::BITWISE_PIPE,
             "Expected a closing pipe operator after range-based for loops.");
+        is_parsing_struct = false;
     }
 
     this->advance(TokenType::BRACE_OPEN,
@@ -575,9 +589,17 @@ ASM *Parser::inlineAssembly() {
     std::vector<std::string_view> instructions;
 
     while (this->current().type != TokenType::PARENS_CLOSE) {
-        instructions.push_back(getAndAdvance(
-            TokenType::V_STRING,
-            "The assembly instruction must be inside a string literal."));
+        if (this->current().type == TokenType::V_STRING) {
+            instructions.push_back(getAndAdvance(
+                TokenType::V_STRING,
+                "The assembly instruction must be inside a string literal."));
+        } else {
+            instructions.push_back(
+                getAndAdvance(TokenType::V_MULTILINE_STRING,
+                              "The assembly instruction must be inside a "
+                              "string or multiline."));
+        }
+
         advanceLines();
     }
 
@@ -669,9 +691,11 @@ DoCatchStatement *Parser::doCatchStatement() {
     advance(TokenType::CATCH, "The do statement must have a catch clause.");
     std::optional<AST *> catch_expression = std::nullopt;
     if (advanceIf(TokenType::PARENS_OPEN)) {
+        is_parsing_struct = true;
         catch_expression = this->statement();
         advance(TokenType::PARENS_CLOSE,
                 "Expected a ')' after the catch statement expression.");
+        is_parsing_struct = false;
     }
 
     advance(TokenType::BRACE_OPEN, "The catch statement must have a body.");
@@ -682,9 +706,9 @@ DoCatchStatement *Parser::doCatchStatement() {
                                                    catch_expression);
 }
 
-OperatorOverload *Parser::operatorOverload(AST *&return_type) {
+OperatorOverload *Parser::operatorOverload() {
     /*
-     int :: operator[](float offset) {
+     func operator[](offset: f32): i32 {
         return self.items[offset]
      }
      */
@@ -705,6 +729,9 @@ OperatorOverload *Parser::operatorOverload(AST *&return_type) {
     auto arguments = this->functionArguments();
     advance(TokenType::PARENS_CLOSE,
             "Expected a ')' after operator overloading.");
+
+    advance(TokenType::COLON, "Expected a ':' after the operator overloading.");
+    auto return_type = this->type();
 
     advance(TokenType::BRACE_OPEN,
             "Expected a body after the operator overloading.");
@@ -938,6 +965,7 @@ AST *Parser::primary() {
         std::cout << tokenTypeAsLiteral(this->current().type);
         this->throwError("Invalid expression.");
     }
+    exit(-1);
 }
 
 AST *Parser::functionCall(
@@ -1123,17 +1151,24 @@ std::vector<AST *> Parser::templateCallArguments() {
     return template_values;
 }
 
+// func main(argc: usize, let argv: string[])
 std::vector<FunctionArgument *> Parser::functionArguments() {
     std::vector<FunctionArgument *> arguments;
 
     bool can_use_arguments_without_default_value = true;
+
     while (this->current().type != TokenType::PARENS_CLOSE) {
+        bool is_constant = false;
+        if (advanceIf(TokenType::LET)) {
+            is_constant = true;
+        }
         if (advanceIf(TokenType::PERIOD)) {
             advance(TokenType::PERIOD, "Expected a '..' when using vaargs.");
             advance(TokenType::PERIOD, "Expected a '.' when using vaargs.");
 
             auto argument = this->makeDeclaration<FunctionArgument>();
             argument->is_vaarg = true;
+            argument->is_constant = is_constant;
             argument->name =
                 getAndAdvance(TokenType::IDENTIFIER, "Expected a vaarg name.");
             arguments.push_back(argument);
@@ -1141,17 +1176,22 @@ std::vector<FunctionArgument *> Parser::functionArguments() {
             break;
         }
 
-        AST *argument_type = this->type();
         std::optional<std::string_view> argument_name;
         std::optional<AST *> argument_default_value = std::nullopt;
-
+        std::optional<AST *> argument_type = std::nullopt;
         if (this->current().type == TokenType::IDENTIFIER) {
             argument_name = getAndAdvance(TokenType::IDENTIFIER);
+
+            if (advanceIf(TokenType::COLON)) {
+                argument_type = this->type();
+            }
 
             if (advanceIf(TokenType::EQUAL)) {
                 can_use_arguments_without_default_value = false;
                 argument_default_value = this->expression();
             }
+        } else {
+            argument_type = this->type();
         }
 
         if (!can_use_arguments_without_default_value &&
@@ -1162,7 +1202,7 @@ std::vector<FunctionArgument *> Parser::functionArguments() {
         }
 
         auto argument = this->makeDeclaration<FunctionArgument>(
-            argument_name, argument_type, argument_default_value);
+            argument_name, argument_type, argument_default_value, is_constant);
 
         arguments.push_back(argument);
 
@@ -1257,6 +1297,7 @@ AST *Parser::qualifiers() {
         return this->functionDeclaration(qualifiers);
     }
     this->throwError("Expected enum, struct, function or variable.");
+    exit(-1);
 }
 
 std::vector<TokenType> Parser::getQualifiers() {

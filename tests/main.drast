@@ -4,7 +4,7 @@
 
 import io
 
-func printf(string fmt, ... args)
+extern func printf(fmt: string, ... args)
 
 private func main(): i32 || @(struct first_type) {
     var test = 30
@@ -14,7 +14,7 @@ private func main(): i32 || @(struct first_type) {
     var test2 = 'a'
     var test3 = 0o123_123
     var test4 = "lkasfmsdlkfm"
-    var number: int? = string_.convertTo("int")
+    var number: i32? = string_.convertTo("i32")
 
     print("Number: {}", number!)
 

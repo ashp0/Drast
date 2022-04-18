@@ -8,6 +8,9 @@ static const std::unordered_map<std::string_view, TokenType> keywords = {
     {"struct", TokenType::STRUCT},
     {"self", TokenType::SELF},
     {"enum", TokenType::ENUM},
+    {"func", TokenType::FUNC},
+    {"var", TokenType::VAR},
+    {"let", TokenType::LET},
     {"typealias", TokenType::TYPEALIAS},
     {"return", TokenType::RETURN},
     {"if", TokenType::IF},
@@ -18,10 +21,27 @@ static const std::unordered_map<std::string_view, TokenType> keywords = {
     {"cast", TokenType::CAST},
     {"extern", TokenType::EXTERN},
     {"operator", TokenType::OPERATOR},
-    {"in", TokenType::IN},
-    {"var", TokenType::VAR},
-    {"func", TokenType::FUNC},
-    {"let", TokenType::LET},
+    {"true", TokenType::TRUE},
+    {"false", TokenType::FALSE},
+    {"nil", TokenType::NIL},
+
+    {"i8", TokenType::INT_8},
+    {"i16", TokenType::INT_16},
+    {"i32", TokenType::INT_32},
+    {"i64", TokenType::INT_64},
+    {"isize", TokenType::INT_SIZE},
+    {"u8", TokenType::UINT_8},
+    {"u16", TokenType::UINT_16},
+    {"u32", TokenType::UINT_32},
+    {"u64", TokenType::UINT_64},
+    {"usize", TokenType::UINT_SIZE},
+    {"f32", TokenType::FLOAT_32},
+    {"f64", TokenType::FLOAT_64},
+    {"void", TokenType::VOID},
+    {"string", TokenType::STRING},
+    {"char", TokenType::CHAR},
+    {"bool", TokenType::BOOL},
+    {"any", TokenType::ANY},
 
     {"switch", TokenType::SWITCH},
     {"case", TokenType::CASE},
@@ -32,21 +52,10 @@ static const std::unordered_map<std::string_view, TokenType> keywords = {
     {"continue", TokenType::CONTINUE},
     {"union", TokenType::UNION},
     {"typeof", TokenType::TYPEOF},
-
-    {"false", TokenType::FALSE},
-    {"true", TokenType::TRUE},
-    {"bool", TokenType::BOOL},
-    {"int", TokenType::INT},
-    {"float", TokenType::FLOAT},
-    {"void", TokenType::VOID},
-    {"string", TokenType::STRING},
-    {"char", TokenType::CHAR},
-    {"nil", TokenType::NIL},
-    {"any", TokenType::ANY},
+    {"in", TokenType::IN},
 
     {"goto", TokenType::GOTO},
     {"private", TokenType::PRIVATE},
-
     {"do", TokenType::DO},
     {"try", TokenType::TRY},
     {"catch", TokenType::CATCH},
@@ -61,6 +70,12 @@ std::string tokenTypeAsLiteral(TokenType type) {
         return "SELF";
     case TokenType::ENUM:
         return "ENUM";
+    case TokenType::FUNC:
+        return "FUNC";
+    case TokenType::VAR:
+        return "VAR";
+    case TokenType::LET:
+        return "LET";
     case TokenType::TYPEALIAS:
         return "TYPEALIAS";
     case TokenType::RETURN:
@@ -81,12 +96,47 @@ std::string tokenTypeAsLiteral(TokenType type) {
         return "EXTERN";
     case TokenType::OPERATOR:
         return "OPERATOR";
-    case TokenType::VAR:
-        return "VAR";
-    case TokenType::FUNC:
-        return "FUNC";
-    case TokenType::LET:
-        return "LET";
+    case TokenType::TRUE:
+        return "TRUE";
+    case TokenType::FALSE:
+        return "FALSE";
+    case TokenType::NIL:
+        return "NIL";
+
+    case TokenType::INT_8:
+        return "INT_8";
+    case TokenType::INT_16:
+        return "INT_16";
+    case TokenType::INT_32:
+        return "INT_32";
+    case TokenType::INT_64:
+        return "INT_64";
+    case TokenType::INT_SIZE:
+        return "INT_SIZE";
+    case TokenType::UINT_8:
+        return "UINT_8";
+    case TokenType::UINT_16:
+        return "UINT_16";
+    case TokenType::UINT_32:
+        return "UINT_32";
+    case TokenType::UINT_64:
+        return "UINT_64";
+    case TokenType::UINT_SIZE:
+        return "UINT_SIZE";
+    case TokenType::FLOAT_32:
+        return "FLOAT_32";
+    case TokenType::FLOAT_64:
+        return "FLOAT_64";
+    case TokenType::VOID:
+        return "VOID";
+    case TokenType::STRING:
+        return "STRING";
+    case TokenType::CHAR:
+        return "CHAR";
+    case TokenType::BOOL:
+        return "BOOL";
+    case TokenType::ANY:
+        return "ANY";
 
     case TokenType::SWITCH:
         return "SWITCH";
@@ -106,50 +156,13 @@ std::string tokenTypeAsLiteral(TokenType type) {
         return "UNION";
     case TokenType::TYPEOF:
         return "TYPEOF";
-
-    case TokenType::FALSE:
-        return "FALSE";
-    case TokenType::TRUE:
-        return "TRUE";
-    case TokenType::BOOL:
-        return "BOOL";
-    case TokenType::INT:
-        return "INT";
-    case TokenType::FLOAT:
-        return "FLOAT";
-    case TokenType::VOID:
-        return "VOID";
-    case TokenType::STRING:
-        return "STRING";
-    case TokenType::CHAR:
-        return "CHAR";
-    case TokenType::NIL:
-        return "NIL";
-    case TokenType::ANY:
-        return "ANY";
-    case TokenType::IDENTIFIER:
-        return "IDENTIFIER";
-
-    case TokenType::V_INT:
-        return "V_INT";
-    case TokenType::V_FLOAT:
-        return "V_FLOAT";
-    case TokenType::V_CHAR:
-        return "V_CHAR";
-    case TokenType::V_MULTILINE_STRING:
-        return "V_MULTILINE_STRING";
-    case TokenType::V_STRING:
-        return "V_STRING";
-    case TokenType::V_HEX:
-        return "V_HEX";
-    case TokenType::V_OCTAL:
-        return "V_OCTAL";
+    case TokenType::IN:
+        return "IN";
 
     case TokenType::GOTO:
         return "GOTO";
     case TokenType::PRIVATE:
         return "PRIVATE";
-
     case TokenType::DO:
         return "DO";
     case TokenType::TRY:
@@ -158,6 +171,25 @@ std::string tokenTypeAsLiteral(TokenType type) {
         return "CATCH";
     case TokenType::THROW:
         return "THROW";
+
+    case TokenType::V_INT:
+        return "V_INT";
+    case TokenType::V_FLOAT:
+        return "V_FLOAT";
+    case TokenType::V_STRING:
+        return "V_STRING";
+    case TokenType::V_CHAR:
+        return "V_CHAR";
+    case TokenType::V_MULTILINE_STRING:
+        return "V_MULTILINE_STRING";
+    case TokenType::V_HEX:
+        return "V_HEX";
+    case TokenType::V_OCTAL:
+        return "V_OCTAL";
+    case TokenType::V_BINARY:
+        return "V_BINARY";
+    case TokenType::IDENTIFIER:
+        return "IDENTIFIER";
 
     case TokenType::QUESTION:
         return "QUESTION";

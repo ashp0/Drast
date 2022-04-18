@@ -155,13 +155,16 @@ class FunctionArgument : public AST {
     std::optional<AST *> argument_default_value = std::nullopt;
     std::optional<AST *> type = std::nullopt;
     bool is_vaarg = false;
+    bool is_constant = false;
 
   public:
-    FunctionArgument(std::optional<std::string_view> name, AST *type,
+    FunctionArgument(std::optional<std::string_view> name,
+                     std::optional<AST *> type,
                      std::optional<AST *> argument_default_value,
-                     Location location)
+                     bool is_constant, Location location)
         : AST(ASTType::FUNCTION_ARGUMENT, location), name(name), type(type),
-          argument_default_value(argument_default_value) {}
+          argument_default_value(argument_default_value),
+          is_constant(is_constant) {}
 
     explicit FunctionArgument(Location location)
         : AST(ASTType::FUNCTION_ARGUMENT, location) {}

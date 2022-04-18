@@ -90,7 +90,9 @@ std::string FunctionArgument::toString() {
     std::string argument;
 
     if (!is_vaarg) {
-        argument += this->type.value()->toString();
+        if (type) {
+            argument += this->type.value()->toString();
+        }
         goto print_name;
     } else {
         argument += "...";

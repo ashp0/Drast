@@ -474,7 +474,7 @@
     },
     "keywords": {
       "name": "keyword.control.drast",
-      "match": "@|~|\\b(self|typealias|return|if|else|import|volatile|cast|extern|operator|switch|case|break|default|while|for|continue|typeof|false|true|goto|private|do|try|catch|throw|import)\\b"
+      "match": "@|~|\\b(self|func|var|let|typealias|return|if|else|import|volatile|cast|extern|operator|switch|case|break|default|while|for|continue|typeof|false|true|goto|private|do|try|catch|throw|import)\\b"
     },
     "storage_types": {
       "patterns": [

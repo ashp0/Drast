@@ -339,7 +339,7 @@ Token Lexer::number() {
     }
 
     bool is_float = false;
-    do {
+    while (isNumber(this->current())) {
         if (this->current() == '\n') {
             break;
         }
@@ -356,7 +356,7 @@ Token Lexer::number() {
                 return this->throwError("Invalid number");
             }
         }
-    } while (isNumber(this->current()));
+    }
 
     return this->returnToken(is_float ? TokenType::V_FLOAT : TokenType::V_INT,
                              true);
@@ -371,7 +371,8 @@ Token Lexer::string() {
 
     while (this->current() != '"') {
         if (this->current() == '\n') {
-            return this->throwError("Multiline string not supported");
+            return this->throwError(
+                R"(Multiline string not supported, use """ instead)");
         }
         if (this->current() == '\0') {
             return this->throwError("Unterminated string literal");

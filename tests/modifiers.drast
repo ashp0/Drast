@@ -2,13 +2,13 @@
 // Drast Programming Language Tests
 //
 
-extern volatile int test = 40
+extern volatile var test: i32 = 40
 
-volatile extern int :: testFunction() {
+volatile extern func testFunction(): i32 {
     return test
 }
 
-extern volatile private int :: testFunction1() {
+extern volatile private func testFunction1(): i32 {
     return test
 }
 
@@ -18,8 +18,8 @@ private enum Color {
 }
 
 private struct TestStruct {
-    int test = 40
-    private string test2 = "Hello World"
+    var test: i32 = 40
+    private var test2: string = "Hello World"
 }
 
-private extern volatile string hello_world = "Hello World"
+private extern volatile var hello_world: string = "Hello World"

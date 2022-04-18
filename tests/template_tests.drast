@@ -3,25 +3,25 @@
 //
 
 struct Pair : @(struct first_type, struct second_type) {
-    private first_type first
-    private second_type second
+    private var first: first_type
+    private var second: second_type
 
-    first_type :: get_first() {
+    func get_first(): first_type {
         return first
     }
 
-    second_type :: get_second() {
+    func get_second(): second_type {
         return second
     }
 
-    void :: test_function(int test, string test) : @(struct first_type) {
+    func test_function(test: i32, test: string) || @(struct first_type) {
         
     }
 }
 
 struct Person {
-    string name
-    int age
+    var name: string
+    var age: i32
 }
 
 enum AgeGroup {
@@ -32,7 +32,7 @@ enum AgeGroup {
 }
 
 struct Test {
-    Pair@(Person, AgeGroup) john_doe
+    var john_doe: Pair@(Person, AgeGroup)
 
     john_doe.test_function@(Person)(1, "test")
 }

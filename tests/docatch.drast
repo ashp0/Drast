@@ -1,19 +1,19 @@
-Vector@(int) :: myErrorFunction(bool true_error) {
-    if (true_error) {
+func myErrorFunction(throw_error: bool): Vector@(i32) {
+    if (throw_error) {
         throw [50 + 430]
     } else {
         return [40]
     }
 }
 
-int :: main() {
+func main(): i32 {
     do {
-         int x = try myErrorFunction(true)
-         return x
-    } catch (int e) {
+        var x = try myErrorFunction(true)
+        return x
+    } catch (var e: i32) {
         print("ERROR IN FUNCTION")
-         return -1
+        return -1
     }
 
-    int y = try! myErrorFunction(false)
+    var y = try! myErrorFunction(false)
 }

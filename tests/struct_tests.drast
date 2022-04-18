@@ -3,60 +3,60 @@
 //
 
 private extern struct Person {
-    string first_name
-    string last_name
-    int age
-    string city
-    string country
+    var first_name: string
+    var last_name: string
+    var age: i32
+    var city: string
+    var country: string
 
-    string :: printInformation() {
+    func printInformation(): string {
         return "First name: " + first_name + "\nLast name: " + last_name + "\nAge: " + age + "\nCity: " + city + "\nCountry: " + country
     }
 }
 
 struct Car {
-    string brand
-    string model
-    int year
-    string color
-    int price
+    var brand: string
+    var model: string
+    var year: i32
+    var color: string
+    var price: i32
 
-    string :: printInformation() {
+    func printInformation(): string {
         return "Brand: " + brand + "\nModel: " + model + "\nYear: " + year + "\nColor: " + color + "\nPrice: " + price
     }
 }
 
 struct Colors {
-    string red
-    string blue
-    string green
-    string yellow
-    string white
-    string black
-    string orange
-    string purple
-    string brown
-    string pink
-    string gray
-    string silver
-    string gold
+     var red: string
+     var blue: string
+     var green: string
+     var yellow: string
+     var white: string
+     var black: string
+     var orange: string
+     var purple: string
+     var brown: string
+     var pink: string
+     var gray: string
+     var silver: string
+     var gold: string
 
-    string :: printInformation() {
+    func printInformation(): string {
         return "Red: " + red + "\nBlue: " + blue + "\nGreen: " + green + "\nYellow: " + yellow + "\nWhite: " + white + "\nBlack: " + black + "\nOrange: " + orange + "\nPurple: " + purple + "\nBrown: " + brown + "\nPink: " + pink + "\nGray: " + gray + "\nSilver: " + silver + "\nGold: " + gold
     }
 }
 
 struct JunkFood {
-    string pizza
-    string burger
-    string pasta
-    string salad
-    string soup
-    string ice_cream
-    string cake
-    string cookies
+    var pizza: string
+    var burger: string
+    var pasta: string
+    var salad: string
+    var soup: string
+    var ice_cream: string
+    var cake: string
+    var cookies: string
 
-    string :: printInformation() {
+    func printInformation(): string {
         return "Pizza: " + pizza + "\nBurger: " + burger + "\nPasta: " + pasta + "\nSalad: " + salad + "\nSoup: " + soup + "\nIce cream: " + ice_cream + "\nCake: " + cake + "\nCookies: " + cookies
     }
 }

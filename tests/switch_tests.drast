@@ -2,10 +2,10 @@
 // Drast Programming Language Tests
 //
 
-char op = '+'
-int first = 30
-int second = 40
-int value = 0
+var op: char = '+'
+var first: i32 = 30
+var second: i32 = 40
+var value: i32 = 0
 
 switch (op) {
     case '+':

@@ -8,8 +8,7 @@
 ![issues](https://img.shields.io/github/issues/Malvion/drast?style=flat-square)
 ![license](https://img.shields.io/github/license/Malvion/drast?style=flat-square)
 
-Drast is a general-purpose language written in cpp20, meant to be a more modern version of C, while still maintaining
-its simplicity.
+A drastic change in programming
 
 [Docs](docs/docs.md) | [TODO](TODO.md)
 
@@ -20,8 +19,8 @@ its simplicity.
 ## Features
 
 - **Super Simple and Easy to learn syntax** - Similar to Rust, Go, Kotlin and Swift
-- **Semi-Object Oriented** - Structs have functions and initializers
-- **Templates** - Different Syntax than C++
+- **Semi-Object Oriented** - No need to learn all the OOP concepts
+- **Templates** - Use the same syntax to create different types of objects
 - More to come...
 
 ## Example

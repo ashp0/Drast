@@ -56,8 +56,7 @@ class Parser {
 
     std::vector<EnumCase *> enumCases();
 
-    FunctionDeclaration *
-    functionDeclaration(const std::vector<TokenType> &qualifiers = {});
+    AST *functionDeclaration(const std::vector<TokenType> &qualifiers = {});
 
     AST *variableDeclaration(const std::vector<TokenType> &qualifiers = {},
                              bool is_let = false);
@@ -86,7 +85,7 @@ class Parser {
 
     DoCatchStatement *doCatchStatement();
 
-    OperatorOverload *operatorOverload(AST *&return_type);
+    OperatorOverload *operatorOverload();
 
     AST *expression();
 

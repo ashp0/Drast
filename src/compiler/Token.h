@@ -15,6 +15,9 @@ enum class TokenType : uint8_t {
     STRUCT,
     SELF,
     ENUM,
+    FUNC,
+    VAR,
+    LET,
     TYPEALIAS,
     RETURN,
     IF,
@@ -25,21 +28,27 @@ enum class TokenType : uint8_t {
     CAST,
     EXTERN,
     OPERATOR,
-    VAR,
-    FUNC,
-    LET,
+    TRUE,
+    FALSE,
+    NIL,
 
-    INT,
-    FLOAT,
+    INT_8,
+    INT_16,
+    INT_32,
+    INT_64,
+    INT_SIZE,
+    UINT_8,
+    UINT_16,
+    UINT_32,
+    UINT_64,
+    UINT_SIZE,
+    FLOAT_32,
+    FLOAT_64,
     VOID,
     STRING,
     CHAR,
     BOOL,
-    FALSE,
-    TRUE,
-    NIL,
     ANY,
-    IN,
 
     SWITCH,
     CASE,
@@ -50,6 +59,14 @@ enum class TokenType : uint8_t {
     CONTINUE,
     UNION,
     TYPEOF, // compile time constant
+    IN,
+
+    GOTO,
+    PRIVATE,
+    DO,
+    TRY,
+    CATCH,
+    THROW,
 
     // Values
     V_INT,
@@ -61,14 +78,6 @@ enum class TokenType : uint8_t {
     V_OCTAL,
     V_BINARY,
     IDENTIFIER,
-
-    GOTO,
-    PRIVATE,
-
-    DO,
-    TRY,
-    CATCH,
-    THROW,
 
     // Operators
     QUESTION, // ?
@@ -235,13 +244,23 @@ constexpr bool isOperatorType(TokenType type) {
 
 constexpr bool isTemplateKeyword(TokenType type) {
     switch (type) {
-    case TokenType::INT:
-    case TokenType::ANY:
-    case TokenType::CHAR:
+    case TokenType::INT_8:
+    case TokenType::INT_16:
+    case TokenType::INT_32:
+    case TokenType::INT_64:
+    case TokenType::INT_SIZE:
+    case TokenType::UINT_8:
+    case TokenType::UINT_16:
+    case TokenType::UINT_32:
+    case TokenType::UINT_64:
+    case TokenType::UINT_SIZE:
+    case TokenType::FLOAT_32:
+    case TokenType::FLOAT_64:
     case TokenType::VOID:
-    case TokenType::BOOL:
-    case TokenType::FLOAT:
     case TokenType::STRING:
+    case TokenType::CHAR:
+    case TokenType::BOOL:
+    case TokenType::ANY:
     case TokenType::STRUCT:
     case TokenType::ENUM:
     case TokenType::UNION:
@@ -253,13 +272,23 @@ constexpr bool isTemplateKeyword(TokenType type) {
 
 constexpr bool isKeywordType(TokenType type) {
     switch (type) {
-    case TokenType::INT:
-    case TokenType::ANY:
-    case TokenType::CHAR:
+    case TokenType::INT_8:
+    case TokenType::INT_16:
+    case TokenType::INT_32:
+    case TokenType::INT_64:
+    case TokenType::INT_SIZE:
+    case TokenType::UINT_8:
+    case TokenType::UINT_16:
+    case TokenType::UINT_32:
+    case TokenType::UINT_64:
+    case TokenType::UINT_SIZE:
+    case TokenType::FLOAT_32:
+    case TokenType::FLOAT_64:
     case TokenType::VOID:
-    case TokenType::BOOL:
-    case TokenType::FLOAT:
     case TokenType::STRING:
+    case TokenType::CHAR:
+    case TokenType::BOOL:
+    case TokenType::ANY:
         return true;
     default:
         return false;
@@ -268,13 +297,23 @@ constexpr bool isKeywordType(TokenType type) {
 
 constexpr bool isRegularType(TokenType type) {
     switch (type) {
-    case TokenType::INT:
-    case TokenType::ANY:
-    case TokenType::CHAR:
+    case TokenType::INT_8:
+    case TokenType::INT_16:
+    case TokenType::INT_32:
+    case TokenType::INT_64:
+    case TokenType::INT_SIZE:
+    case TokenType::UINT_8:
+    case TokenType::UINT_16:
+    case TokenType::UINT_32:
+    case TokenType::UINT_64:
+    case TokenType::UINT_SIZE:
+    case TokenType::FLOAT_32:
+    case TokenType::FLOAT_64:
     case TokenType::VOID:
-    case TokenType::BOOL:
-    case TokenType::FLOAT:
     case TokenType::STRING:
+    case TokenType::CHAR:
+    case TokenType::BOOL:
+    case TokenType::ANY:
     case TokenType::IDENTIFIER:
     case TokenType::DOLLAR:
         return true;
@@ -390,7 +429,8 @@ class Token {
     Token(TokenType type, uint32_t start, uint32_t length, Location location)
         : type(type), start(start), length(length), location(location) {}
 
-    Token(TokenType type) : type(type), start(0), length(0), location(0, 0) {}
+    explicit Token(TokenType type)
+        : type(type), start(0), length(0), location(0, 0) {}
 
     static TokenType isKeyword(std::string_view string);
 
