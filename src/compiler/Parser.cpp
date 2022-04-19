@@ -54,21 +54,6 @@ CompoundStatement *Parser::compound() {
         }
     }
 
-    for (int i = 0; i < compoundStatement->declaration_names.size(); ++i) {
-        for (int j = i + 1; j < compoundStatement->declaration_names.size();
-             ++j) {
-            if (compoundStatement->declaration_names[i].first ==
-                compoundStatement->declaration_names[j].first) {
-                std::string error_msg = "Found a duplicate declaration '";
-                error_msg += compoundStatement->declaration_names[i].first;
-                error_msg += "'.";
-                this->throwError(
-                    error_msg.c_str(),
-                    compoundStatement->declaration_names[j].second->location);
-            }
-        }
-    }
-
     current_compound = old_compound;
 
     return compoundStatement;
@@ -320,13 +305,7 @@ Parser::enumDeclaration(const std::vector<TokenType> &qualifiers) {
     auto cases = enumCases();
     advance(TokenType::BRACE_CLOSE, "The enum body must be closed.");
 
-    auto declaration =
-        this->makeDeclaration<EnumDeclaration>(enum_name, cases, qualifiers);
-    if (should_check_duplicates) {
-        current_compound->declaration_names.emplace_back(enum_name,
-                                                         declaration);
-    }
-    return declaration;
+    return this->makeDeclaration<EnumDeclaration>(enum_name, cases, qualifiers);
 }
 
 std::vector<EnumCase *> Parser::enumCases() {
@@ -389,27 +368,17 @@ AST *Parser::functionDeclaration(const std::vector<TokenType> &qualifiers) {
         auto function_body = this->compound();
         advance(TokenType::BRACE_CLOSE, "Function's body must be closed.");
 
-        auto declaration = this->makeDeclaration<FunctionDeclaration>(
+        return this->makeDeclaration<FunctionDeclaration>(
             qualifiers, return_type, function_name, function_arguments,
             function_body, template_);
-        if (should_check_duplicates) {
-            current_compound->declaration_names.emplace_back(function_name,
-                                                             declaration);
-        }
-        return declaration;
     }
 
     if (template_) {
         this->throwError("Functions without a body can't have a template!");
     }
 
-    auto declaration = this->makeDeclaration<FunctionDeclaration>(
+    return this->makeDeclaration<FunctionDeclaration>(
         qualifiers, return_type, function_name, function_arguments);
-    if (should_check_duplicates) {
-        current_compound->declaration_names.emplace_back(function_name,
-                                                         declaration);
-    }
-    return declaration;
 }
 
 AST *Parser::variableDeclaration(const std::vector<TokenType> &qualifiers,
@@ -439,13 +408,8 @@ AST *Parser::variableDeclaration(const std::vector<TokenType> &qualifiers,
         this->throwError("Uninitialized variable or constant declaration.");
     }
 
-    auto declaration = this->makeDeclaration<VariableDeclaration>(
+    return this->makeDeclaration<VariableDeclaration>(
         variable_name, variable_type, variable_value, qualifiers, is_let);
-    if (should_check_duplicates) {
-        current_compound->declaration_names.emplace_back(variable_name,
-                                                         declaration);
-    }
-    return declaration;
 }
 
 RangeBasedForLoop *Parser::rangeBasedForLoop() {

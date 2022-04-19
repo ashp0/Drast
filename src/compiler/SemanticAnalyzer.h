@@ -8,31 +8,16 @@
 #include "AST.h"
 #include "Error.h"
 #include "LookupTable.h"
+#include "Types.h"
 #include <iostream>
 #include <utility>
 #include <vector>
-
-class ExpressionType {
-  public:
-    enum Type {
-        NUMBER,
-        BOOL,
-        STRING,
-        NIL,
-        TYPE, // a user defined struct
-    } type;
-
-    std::string_view type_literal; // if it's a user defined type
-
-    ExpressionType(std::string_view type_literal)
-        : type_literal(type_literal), type(TYPE) {}
-    ExpressionType(Type type) : type(type) {}
-};
 
 class SemanticAnalyzer {
   private:
     CompoundStatement *main;
     std::vector<CompoundStatement *> compounds = {};
+    std::vector<SemanticAnalyzerExpressionTypes> compound_declarations = {};
     size_t compound_index = 0; // the current compound statement
 
     AST *current_statement;
@@ -41,7 +26,7 @@ class SemanticAnalyzer {
 
   public:
     SemanticAnalyzer(CompoundStatement *ast, Error error)
-        : main(ast), error(std::move(error)), current_statement(ast) {}
+        : main(ast), error(std::move(error)) {}
 
     void analyze();
 
@@ -54,25 +39,30 @@ class SemanticAnalyzer {
 
     bool variableDeclaration(VariableDeclaration *ast);
 
-    ExpressionType analyzeExpression(AST *expression);
+    SemanticAnalyzerExpressionTypes analyzeExpression(AST *expression);
 
-    ExpressionType analyzeBinaryExpression(BinaryExpression *expression);
+    SemanticAnalyzerExpressionTypes
+    analyzeBinaryExpression(BinaryExpression *expression);
 
-    ExpressionType analyzeGroupingExpression(GroupingExpression *expression);
+    SemanticAnalyzerExpressionTypes
+    analyzeGroupingExpression(GroupingExpression *expression);
 
-    ExpressionType analyzeUnaryExpression(UnaryExpression *expression);
+    SemanticAnalyzerExpressionTypes
+    analyzeUnaryExpression(UnaryExpression *expression);
 
-    ExpressionType analyzeLiteralExpression(LiteralExpression *expression);
+    SemanticAnalyzerExpressionTypes
+    analyzeLiteralExpression(LiteralExpression *expression);
 
-    void checkIfTypesMatch(ExpressionType lhs, ExpressionType rhs);
+    VariableDeclaration *locateVariable(std::string_view name);
+
+    void checkIfTypesMatch(SemanticAnalyzerExpressionTypes lhs,
+                           SemanticAnalyzerExpressionTypes rhs);
 
     void warning(const std::string &message);
 
     void addError(const std::string &message);
 
     void addError(const std::string &message, AST *ast);
-
-    VariableDeclaration *findVariable(std::string_view name);
 
     CompoundStatement *currentCompound();
 };

@@ -17,6 +17,13 @@ bool SemanticAnalyzer::compoundStatement(CompoundStatement *ast) {
         this->statement(statement);
     }
 
+    auto duplicate = ast->searchForDuplicates();
+    if (duplicate) {
+        addError("Duplicate declaration: " +
+                     std::string(duplicate.value().first),
+                 duplicate.value().second);
+    }
+
     return false;
 }
 
@@ -31,6 +38,9 @@ bool SemanticAnalyzer::statement(AST *statement) {
     case ASTType::BINARY_EXPRESSION:
         analyzeExpression(statement);
         return true;
+    case ASTType::VARIABLE_DECLARATION:
+        return variableDeclaration(
+            dynamic_cast<VariableDeclaration *>(statement));
     default:
         return false;
     }
@@ -41,7 +51,17 @@ bool SemanticAnalyzer::importStatement(ImportStatement *ast) {
     return true;
 }
 
-ExpressionType SemanticAnalyzer::analyzeExpression(AST *expression) {
+bool SemanticAnalyzer::variableDeclaration(VariableDeclaration *ast) {
+    if (ast->value) {
+        auto value = analyzeExpression(ast->value.value());
+    }
+
+    currentCompound()->declarations.emplace_back(ast->name, ast);
+    return false;
+}
+
+SemanticAnalyzerExpressionTypes
+SemanticAnalyzer::analyzeExpression(AST *expression) {
     switch (expression->type) {
     case ASTType::BINARY_EXPRESSION:
         return analyzeBinaryExpression(
@@ -61,67 +81,78 @@ ExpressionType SemanticAnalyzer::analyzeExpression(AST *expression) {
     }
 }
 
-ExpressionType
+SemanticAnalyzerExpressionTypes
 SemanticAnalyzer::analyzeBinaryExpression(BinaryExpression *expression) {
-    ExpressionType left_type = analyzeExpression(expression->left);
-    ExpressionType right_type = analyzeExpression(expression->right);
+    auto left_type = analyzeExpression(expression->left);
+    auto right_type = analyzeExpression(expression->right);
     checkIfTypesMatch(left_type, right_type);
 
     return left_type;
 }
 
-ExpressionType
+SemanticAnalyzerExpressionTypes
 SemanticAnalyzer::analyzeGroupingExpression(GroupingExpression *expression) {
     return analyzeExpression(expression->expr);
 }
 
-ExpressionType
+SemanticAnalyzerExpressionTypes
 SemanticAnalyzer::analyzeUnaryExpression(UnaryExpression *expression) {
     auto expr_type = analyzeExpression(expression->expr);
-    if (expr_type.type != ExpressionType::NUMBER) {
+    if (expr_type.type != SemanticAnalyzerExpressionTypes::NUMBER) {
         addError("Operand must be of type integer", current_statement);
     }
 
     return expr_type;
 }
 
-ExpressionType
+SemanticAnalyzerExpressionTypes
 SemanticAnalyzer::analyzeLiteralExpression(LiteralExpression *expression) {
-    ExpressionType::Type type = ExpressionType::NUMBER;
-    if (expression->literal_type == TokenType::V_INT ||
-        expression->literal_type == TokenType::V_FLOAT ||
-        expression->literal_type == TokenType::V_BINARY ||
-        expression->literal_type == TokenType::V_HEX ||
-        expression->literal_type == TokenType::V_OCTAL ||
-        expression->literal_type == TokenType::V_CHAR) {
-        goto end;
-    } else if (expression->literal_type == TokenType::V_STRING ||
-               expression->literal_type == TokenType::V_MULTILINE_STRING) {
-        type = ExpressionType::STRING;
-    } else if (expression->literal_type == TokenType::TRUE ||
-               expression->literal_type == TokenType::FALSE) {
-        type = ExpressionType::BOOL;
-    } else if (expression->literal_type == TokenType::NIL) {
-        type = ExpressionType::NIL;
-    } else if (expression->literal_type == TokenType::IDENTIFIER) {
-        auto var = findVariable(expression->value);
-        if (var != nullptr) {
-            if (var->value) {
-                type = analyzeExpression(var->value.value()).type;
-            } else {
-                addError("Variable is not initialized", var);
-                type = ExpressionType::TYPE;
-            }
-        }
-    } else {
-        addError("Invalid literal type", current_statement);
+    auto type = SemanticAnalyzerExpressionTypes::NUMBER;
+    switch (expression->literal_type) {
+    case TokenType::V_INT:
+    case TokenType::V_FLOAT:
+    case TokenType::V_BINARY:
+    case TokenType::V_HEX:
+    case TokenType::V_OCTAL:
+    case TokenType::V_CHAR:
+        break;
+    case TokenType::V_STRING:
+    case TokenType::V_MULTILINE_STRING:
+        type = SemanticAnalyzerExpressionTypes::STRING;
+        break;
+    case TokenType::TRUE:
+    case TokenType::FALSE:
+        type = SemanticAnalyzerExpressionTypes::BOOL;
+        break;
+    case TokenType::NIL:
+        type = SemanticAnalyzerExpressionTypes::NIL;
+        break;
+    case TokenType::IDENTIFIER: {
+        auto variable = locateVariable(expression->value);
+        type = analyzeExpression(variable->value.value()).type;
+        return {type, variable};
     }
-end:
+    default:
+        addError("Invalid literal type", current_statement);
+        break;
+    }
     return {type};
 }
 
-void SemanticAnalyzer::checkIfTypesMatch(ExpressionType lhs,
-                                         ExpressionType rhs) {
+VariableDeclaration *SemanticAnalyzer::locateVariable(std::string_view name) {
+    for (auto i = compound_index; i >= 0; i--) {
+        auto compound = compounds[i];
+        auto var = compound->declarations.find(name);
+        if (var != compound->declarations.end()) {
+            return dynamic_cast<VariableDeclaration *>(var->second);
+        }
+    }
+
+    return nullptr;
+}
+
+void SemanticAnalyzer::checkIfTypesMatch(SemanticAnalyzerExpressionTypes lhs,
+                                         SemanticAnalyzerExpressionTypes rhs) {
     if (lhs.type != rhs.type) {
         addError("Operands must be of same type", current_statement);
     }
@@ -137,23 +168,6 @@ void SemanticAnalyzer::addError(const std::string &message) {
 
 void SemanticAnalyzer::addError(const std::string &message, AST *ast) {
     error.addError(message, ast->location);
-}
-
-VariableDeclaration *SemanticAnalyzer::findVariable(std::string_view name) {
-    for (auto &compound : this->compounds) {
-        for (auto &declaration_name : compound->declaration_names) {
-            if (declaration_name.second->type ==
-                ASTType::VARIABLE_DECLARATION) {
-                if (declaration_name.first == name) {
-                    return dynamic_cast<VariableDeclaration *>(
-                        declaration_name.second);
-                }
-            }
-        }
-    }
-
-    addError("Cannot find variable named: " + std::string(name));
-    return nullptr;
 }
 
 CompoundStatement *SemanticAnalyzer::currentCompound() {

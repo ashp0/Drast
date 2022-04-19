@@ -41,6 +41,20 @@ template <typename Key, typename Value> class LookupTable {
     }
 
     size_t size() const { return _container.size(); }
+
+    void push_back(const lookup_value &value) {
+        _container.push_back(value);
+        std::sort(_container.begin(), _container.end());
+    }
+
+    void emplace_back(const Key &key, const Value &value) {
+        _container.emplace_back(key, value);
+        std::sort(_container.begin(), _container.end());
+    }
+
+    const lookup_value &operator[](size_t index) const {
+        return _container[index];
+    }
 };
 
 #endif // DRAST_LOOKUPTABLE_H

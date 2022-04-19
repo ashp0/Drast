@@ -13,6 +13,32 @@
 #include <utility>
 #include <vector>
 
+class SemanticAnalyzerExpressionTypes {
+  private:
+    using AST = class AST;
+
+  public:
+    enum Type {
+        NUMBER,
+        BOOL,
+        STRING,
+        NIL,
+        TYPE, // a user defined struct
+    } type;
+
+    std::string_view type_literal; // if it's a user defined type
+    AST *type_node;                // the original node that represents the type
+
+    SemanticAnalyzerExpressionTypes(std::string_view type_literal,
+                                    AST *type_node)
+        : type_literal(type_literal), type(TYPE), type_node(type_node) {}
+
+    SemanticAnalyzerExpressionTypes(Type type, AST *type_node)
+        : type(type), type_node(type_node) {}
+
+    SemanticAnalyzerExpressionTypes(Type type) : type(type) {}
+};
+
 enum class ASTType {
     COMPOUND, // { ... }
 
@@ -88,7 +114,7 @@ class CompoundStatement : public AST {
   public:
     std::vector<AST *> statements;
     std::optional<FirstClassFunction *> first_class_function;
-    std::vector<std::pair<std::string_view, AST *>> declaration_names;
+    LookupTable<std::string_view, AST *> declarations = {};
 
   public:
     CompoundStatement(std::vector<AST *> &statements, Location &location)
@@ -98,6 +124,8 @@ class CompoundStatement : public AST {
         : AST(ASTType::COMPOUND, location) {}
 
     std::string toString() override;
+
+    std::optional<std::pair<std::string_view, AST *>> searchForDuplicates();
 };
 
 class ImportStatement : public AST {

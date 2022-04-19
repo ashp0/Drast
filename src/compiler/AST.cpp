@@ -46,6 +46,55 @@ std::string CompoundStatement::toString() {
     compound += "}";
     return compound;
 }
+
+std::optional<std::pair<std::string_view, AST *>>
+CompoundStatement::searchForDuplicates() {
+    for (int i = 0; i < this->declarations.size(); i++) {
+        auto &declaration = this->declarations[i];
+        if (declaration.second->type == ASTType::VARIABLE_DECLARATION) {
+            for (int j = i + 1; j < this->declarations.size(); j++) {
+                auto &declaration2 = this->declarations[j];
+                if (declaration2.second->type ==
+                    ASTType::VARIABLE_DECLARATION) {
+                    if (declaration.first == declaration2.first) {
+                        return declaration2;
+                    }
+                }
+            }
+        } else if (declaration.second->type == ASTType::FUNCTION_DECLARATION) {
+            for (int j = i + 1; j < this->declarations.size(); j++) {
+                auto &declaration2 = this->declarations[j];
+                if (declaration2.second->type ==
+                    ASTType::FUNCTION_DECLARATION) {
+                    if (declaration.first == declaration2.first) {
+                        return declaration2;
+                    }
+                }
+            }
+        } else if (declaration.second->type == ASTType::ENUM_DECLARATION) {
+            for (int j = i + 1; j < this->declarations.size(); j++) {
+                auto &declaration2 = this->declarations[j];
+                if (declaration2.second->type == ASTType::ENUM_DECLARATION) {
+                    if (declaration.first == declaration2.first) {
+                        return declaration2;
+                    }
+                }
+            }
+        } else if (declaration.second->type == ASTType::STRUCT_DECLARATION) {
+            for (int j = i + 1; j < this->declarations.size(); j++) {
+                auto &declaration2 = this->declarations[j];
+                if (declaration2.second->type == ASTType::STRUCT_DECLARATION) {
+                    if (declaration.first == declaration2.first) {
+                        return declaration2;
+                    }
+                }
+            }
+        }
+    }
+
+    return std::nullopt;
+}
+
 std::string ImportStatement::toString() {
     std::string import("import ");
     import += this->module_name;
