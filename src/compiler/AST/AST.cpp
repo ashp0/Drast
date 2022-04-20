@@ -4,9 +4,11 @@
 
 #include "AST.h"
 
+namespace drast::AST {
+
 #define PRINT_QUALIFIERS(type)                                                 \
     for (auto &qualifier : this->qualifiers) {                                 \
-        type += tokenTypeAsLiteral(qualifier);                                 \
+        type += lexer::tokenTypeAsLiteral(qualifier);                          \
         type += " ";                                                           \
     }
 
@@ -47,7 +49,7 @@ std::string CompoundStatement::toString() {
     return compound;
 }
 
-std::optional<std::pair<std::string_view, AST *>>
+std::optional<std::pair<std::string_view, Node *>>
 CompoundStatement::searchForDuplicates() {
     for (int i = 0; i < this->declarations.size(); i++) {
         auto &declaration = this->declarations[i];
@@ -358,12 +360,12 @@ std::string If::toString() {
     if_ += ") ";
     if_ += this->if_body->toString();
 
-    for (int i = 0; i < this->else_if_bodies.size(); i++) {
+    for (const auto &else_if : this->else_if_bodies) {
         if_ += " else if ";
         if_ += "(";
-        if_ += else_if_conditions[i]->toString();
+        if_ += else_if->toString();
         if_ += ") ";
-        if_ += else_if_bodies[i]->toString();
+        if_ += else_if->toString();
     }
 
     if (this->else_body) {
@@ -443,7 +445,7 @@ std::string BinaryExpression::toString() {
     std::string binary_expression;
     binary_expression += this->left->toString();
     binary_expression += " ";
-    binary_expression += tokenTypeAsLiteral(this->op);
+    binary_expression += lexer::tokenTypeAsLiteral(this->op);
     binary_expression += " ";
     binary_expression += this->right->toString();
 
@@ -466,7 +468,7 @@ std::string TryExpression::toString() {
 
 std::string UnaryExpression::toString() {
     std::string unary_expression;
-    unary_expression += tokenTypeAsLiteral(this->op);
+    unary_expression += lexer::tokenTypeAsLiteral(this->op);
     unary_expression += this->expr->toString();
     return unary_expression;
 }
@@ -483,7 +485,7 @@ std::string TernaryExpression::toString() {
 
 std::string LiteralExpression::toString() {
     std::string literal_expression;
-    if (literal_type == TokenType::V_MULTILINE_STRING) {
+    if (literal_type == lexer::TokenType::V_MULTILINE_STRING) {
         literal_expression += "\"\"\"";
     }
     if (string_value) {
@@ -491,7 +493,7 @@ std::string LiteralExpression::toString() {
     } else {
         literal_expression += this->value;
     }
-    if (literal_type == TokenType::V_MULTILINE_STRING) {
+    if (literal_type == lexer::TokenType::V_MULTILINE_STRING) {
         literal_expression += "\"\"\"";
     }
 
@@ -590,7 +592,7 @@ std::string TemplateDeclaration::toString() {
     template_declaration += "@(";
 
     for (auto &argument : this->arguments) {
-        template_declaration += tokenTypeAsLiteral(argument->type);
+        template_declaration += lexer::tokenTypeAsLiteral(argument->type);
         template_declaration += " ";
         template_declaration += argument->name;
         template_declaration += ", ";
@@ -668,7 +670,7 @@ std::string OperatorOverload::toString() {
     operator_overload += " :: ";
 
     for (auto &operator_ : operators) {
-        operator_overload += tokenTypeAsLiteral(operator_);
+        operator_overload += lexer::tokenTypeAsLiteral(operator_);
         operator_overload += "|";
     }
 
@@ -733,3 +735,5 @@ std::string ForceUnwrapExpression::toString() {
 
     return force_unwrap_expression;
 }
+
+} // namespace drast::AST

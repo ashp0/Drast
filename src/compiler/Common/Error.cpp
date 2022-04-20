@@ -15,12 +15,12 @@ static std::string getNthLine(const std::string &str, size_t lines) {
 }
 
 static void print_line(const std::string &str, const Location &location) {
-    std::cout << getNthLine(str, location.line) << std::endl;
+    std::cout << getNthLine(str, location.line) << '\n';
 
     for (int i = 0; i < location.column - 1; i++) {
         std::cout << "-";
     }
-    std::cout << "^" << std::endl;
+    std::cout << "^" << '\n';
 }
 
 void Error::addError(const char *msg, Location location) {
@@ -50,12 +50,12 @@ void Error::addWarning(const std::string &msg, Location location) {
 void Error::displayMessages() {
     for (auto const &warning_message : warning_messages) {
         displayMessage(warning_message, true);
-        std::cout << std::endl;
+        std::cout << '\n';
     }
 
     for (auto const &error_message : error_messages) {
         displayMessage(error_message, false);
-        std::cout << std::endl;
+        std::cout << '\n';
     }
 
     exit(-1);
@@ -69,7 +69,7 @@ void Error::displayMessage(const std::pair<std::string, Location> &message,
         std::cout << "Error: ";
     }
     std::cout << file_name << ":" << message.second.line << ":"
-              << message.second.column << ": " << message.first << std::endl;
+              << message.second.column << ": " << message.first << '\n';
 
     print_line(buffer, message.second);
 }

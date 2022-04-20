@@ -4,8 +4,8 @@
 
 import io
 
-int :: main(int argc, string[] argv) {
-    float result = 0
+func main(argc: i32, argv: string[]): i32 {
+    f32 result = 0.0
 
     getInput("Type your first number\n")
     float firstNumber = readFloat()

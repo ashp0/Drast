@@ -4,6 +4,8 @@
 
 #include "Token.h"
 
+namespace drast::lexer {
+
 const LookupTable<std::string_view, TokenType> keywords = {
     {"struct", TokenType::STRUCT},
     {"self", TokenType::SELF},
@@ -320,3 +322,5 @@ TokenType Token::isKeyword(std::string_view string) {
 
     return it == keywords.end() ? TokenType::IDENTIFIER : it->second;
 }
+
+} // namespace drast::lexer

@@ -4,8 +4,11 @@
 
 import io
 
-var test = "test"
-test += "ing"
+var test = ("test" + "40") * "30"
+test234 += "ing"
+
+var test2 = 0.50
+test2 += "1.0"
 
 extern func printf(fmt: string, ... args)
 

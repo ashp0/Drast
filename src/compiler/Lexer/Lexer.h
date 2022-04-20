@@ -5,13 +5,15 @@
 #ifndef DRAST_LEXER_H
 #define DRAST_LEXER_H
 
-#include "Error.h"
+#include "../Common/Error.h"
+#include "../Common/Types.h"
+#include "../Utils/Utils.h"
 #include "Token.h"
-#include "Types.h"
-#include "Utils.h"
 #include <fstream>
 #include <iostream>
 #include <vector>
+
+namespace drast::lexer {
 
 class Lexer {
   private:
@@ -83,5 +85,7 @@ class Lexer {
         return this->file_buffer[this->buffer_index];
     }
 };
+
+} // namespace drast::lexer
 
 #endif // DRAST_LEXER_H

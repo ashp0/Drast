@@ -4,10 +4,12 @@
 
 #include "Lexer.h"
 
+namespace drast::lexer {
+
 Lexer::Lexer(std::string &file_name, Error &error)
     : error(error), location(1, 1) {
 
-    readFile(file_name, file_buffer);
+    utils::readFile(file_name, file_buffer);
     error.buffer = file_buffer;
 }
 
@@ -25,7 +27,7 @@ void Lexer::lex() {
     //        if (token.type == TokenType::NEW_LINE) {
     //
     //        } else {
-    //            std::cout << token.toString(this->file_buffer) << std::endl;
+    //            std::cout << token.toString(this->file_buffer) << '\n';
     //        }
     //    }
     this->tokens.push_back(returnToken(TokenType::T_EOF));
@@ -292,7 +294,7 @@ Token Lexer::identifier() {
 
     do {
         this->advance();
-    } while (isAlphaNumeric(this->current()));
+    } while (utils::isAlphaNumeric(this->current()));
 
     uint32_t length = this->buffer_index - this->start;
 
@@ -306,21 +308,21 @@ Token Lexer::hexadecimal() {
     advance();
 
     return lexWhile(TokenType::V_HEX,
-                    [this]() { return isHexadecimal(this->current()); });
+                    [this]() { return utils::isHexadecimal(this->current()); });
 }
 
 Token Lexer::octal() {
     advance();
 
     return lexWhile(TokenType::V_OCTAL,
-                    [this]() { return isOctal(this->current()); });
+                    [this]() { return utils::isOctal(this->current()); });
 }
 
 Token Lexer::binary() {
     advance();
 
     return lexWhile(TokenType::V_BINARY,
-                    [this]() { return isBinary(this->current()); });
+                    [this]() { return utils::isBinary(this->current()); });
 }
 
 Token Lexer::number() {
@@ -339,7 +341,7 @@ Token Lexer::number() {
     }
 
     bool is_float = false;
-    while (isNumber(this->current())) {
+    while (utils::isNumber(this->current())) {
         if (this->current() == '\n') {
             break;
         }
@@ -352,7 +354,7 @@ Token Lexer::number() {
             is_float = true;
 
             this->advance();
-            if (!isdigit(this->current())) {
+            if (!utils::isNumber(this->current())) {
                 return this->throwError("Invalid number");
             }
         }
@@ -560,3 +562,5 @@ Token Lexer::throwError(const std::string &message, Location &loc) {
     advanceLineComment();
     return this->getToken();
 }
+
+} // namespace drast::lexer

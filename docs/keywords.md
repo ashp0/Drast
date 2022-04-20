@@ -1,3 +1,3 @@
 # Keywords
 
-[Keywords](../src/compiler/Token.h)
+[Keywords](../src/compiler/Lexer/Token.h)
