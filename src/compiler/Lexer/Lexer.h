@@ -56,23 +56,25 @@ class Lexer {
 
     Token multilineString();
 
-    Token returnToken(size_t trim, TokenType type);
-
     Token returnToken(TokenType type, bool without_advance = false);
 
-    bool equalAndAdvance();
+    constexpr bool equalAndAdvance();
 
     void advanceWhitespace();
 
     void advanceLineComment();
 
-    void advanceBlockComment();
+    void advanceMultilineComment();
+
+    constexpr void advanceLine();
 
     void advance();
 
+    void advance(size_t offset);
+
     void evaluateEscapeSequence();
 
-    char peek(size_t offset = 1);
+    constexpr char peek(size_t offset = 1);
 
     template <typename predicate>
     Token lexWhile(TokenType type, predicate &&pred);
@@ -81,9 +83,7 @@ class Lexer {
 
     Token throwError(const std::string &message, Location &loc);
 
-    [[nodiscard]] char &current() {
-        return this->file_buffer[this->buffer_index];
-    }
+    constexpr char &current() { return this->file_buffer[this->buffer_index]; }
 };
 
 } // namespace drast::lexer

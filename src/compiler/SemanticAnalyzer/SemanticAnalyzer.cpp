@@ -7,23 +7,32 @@
 namespace drast::semanticAnalyzer {
 
 void SemanticAnalyzer::analyze() {
-    analyzeCompoundStatement(dynamic_cast<AST::CompoundStatement *>(root));
+    analyzeCompoundStatement(dynamic_cast<AST::Compound *>(root));
 }
 
-void SemanticAnalyzer::analyzeCompoundStatement(
-    AST::CompoundStatement *compound) {
+void SemanticAnalyzer::analyzeCompoundStatement(AST::Compound *compound) {
     for (auto &statement : compound->statements) {
         analyzeStatement(statement);
+    }
+
+    auto dup = compound->searchForDuplicateVariables();
+    if (dup) {
+        std::cout << "Duplicate variable found: " << dup->first << std::endl;
+        exit(1);
     }
 }
 
 void SemanticAnalyzer::analyzeStatement(AST::Node *statement) {
-    // TODO: Check if there are some declarations that are not allowed to be top level
+    // TODO: Check if there are some variables that are not allowed to be top
+    // level
     switch (statement->type) {
     case AST::ASTType::VARIABLE_DECLARATION:
         analyzeVariableDeclaration(
             dynamic_cast<AST::VariableDeclaration *>(statement));
         break;
+    default:
+        std::cout << "Unable to analyze statement: " << std::endl;
+        exit(1);
     }
 }
 
@@ -33,13 +42,8 @@ void SemanticAnalyzer::analyzeFunctionDeclaration(
 void SemanticAnalyzer::analyzeVariableDeclaration(
     AST::VariableDeclaration *variable) {
     std::cout << "Analyzing variable declaration" << '\n';
-    // var: int a = 5;
-    // var a = 5;
 
-    lexer::TokenType type;
-    if (variable->value) {
-        type = analyzeExpression(variable->value.value());
-    }
+    currentCompound()->variables.emplace_back(variable->name, variable);
 }
 
 lexer::TokenType SemanticAnalyzer::analyzeExpression(AST::Node *expression) {

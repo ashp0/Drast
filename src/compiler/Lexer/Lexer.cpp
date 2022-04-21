@@ -4,6 +4,71 @@
 
 #include "Lexer.h"
 
+#define ALPHA                                                                  \
+    case 'a':                                                                  \
+    case 'b':                                                                  \
+    case 'c':                                                                  \
+    case 'd':                                                                  \
+    case 'e':                                                                  \
+    case 'f':                                                                  \
+    case 'g':                                                                  \
+    case 'h':                                                                  \
+    case 'i':                                                                  \
+    case 'j':                                                                  \
+    case 'k':                                                                  \
+    case 'l':                                                                  \
+    case 'm':                                                                  \
+    case 'n':                                                                  \
+    case 'o':                                                                  \
+    case 'p':                                                                  \
+    case 'q':                                                                  \
+    case 'r':                                                                  \
+    case 's':                                                                  \
+    case 't':                                                                  \
+    case 'u':                                                                  \
+    case 'v':                                                                  \
+    case 'w':                                                                  \
+    case 'x':                                                                  \
+    case 'y':                                                                  \
+    case 'z':                                                                  \
+    case 'A':                                                                  \
+    case 'B':                                                                  \
+    case 'C':                                                                  \
+    case 'D':                                                                  \
+    case 'E':                                                                  \
+    case 'F':                                                                  \
+    case 'G':                                                                  \
+    case 'H':                                                                  \
+    case 'I':                                                                  \
+    case 'J':                                                                  \
+    case 'K':                                                                  \
+    case 'L':                                                                  \
+    case 'M':                                                                  \
+    case 'N':                                                                  \
+    case 'O':                                                                  \
+    case 'P':                                                                  \
+    case 'Q':                                                                  \
+    case 'R':                                                                  \
+    case 'S':                                                                  \
+    case 'T':                                                                  \
+    case 'U':                                                                  \
+    case 'V':                                                                  \
+    case 'W':                                                                  \
+    case 'X':                                                                  \
+    case 'Y':                                                                  \
+    case 'Z'
+#define DIGIT                                                                  \
+    case '0':                                                                  \
+    case '1':                                                                  \
+    case '2':                                                                  \
+    case '3':                                                                  \
+    case '4':                                                                  \
+    case '5':                                                                  \
+    case '6':                                                                  \
+    case '7':                                                                  \
+    case '8':                                                                  \
+    case '9'
+
 namespace drast::lexer {
 
 Lexer::Lexer(std::string &file_name, Error &error)
@@ -23,86 +88,22 @@ void Lexer::lex() {
         error.displayMessages();
     }
 
-    //    for (auto &token : tokens) {
-    //        if (token.type == TokenType::NEW_LINE) {
-    //
-    //        } else {
-    //            std::cout << token.toString(this->file_buffer) << '\n';
-    //        }
-    //    }
+    for (auto &token : tokens) {
+        if (token.type != TokenType::NEW_LINE) {
+            std::cout << token.toString(this->file_buffer) << '\n';
+        }
+    }
     this->tokens.push_back(returnToken(TokenType::T_EOF));
 }
 
 Token Lexer::getToken() {
     this->advanceWhitespace();
-
     this->start = this->buffer_index;
 
     switch (this->current()) {
-    case 'a':
-    case 'b':
-    case 'c':
-    case 'd':
-    case 'e':
-    case 'f':
-    case 'g':
-    case 'h':
-    case 'i':
-    case 'j':
-    case 'k':
-    case 'l':
-    case 'm':
-    case 'n':
-    case 'o':
-    case 'p':
-    case 'q':
-    case 'r':
-    case 's':
-    case 't':
-    case 'u':
-    case 'v':
-    case 'w':
-    case 'x':
-    case 'y':
-    case 'z':
-    case 'A':
-    case 'B':
-    case 'C':
-    case 'D':
-    case 'E':
-    case 'F':
-    case 'G':
-    case 'H':
-    case 'I':
-    case 'J':
-    case 'K':
-    case 'L':
-    case 'M':
-    case 'N':
-    case 'O':
-    case 'P':
-    case 'Q':
-    case 'R':
-    case 'S':
-    case 'T':
-    case 'U':
-    case 'V':
-    case 'W':
-    case 'X':
-    case 'Y':
-    case 'Z':
-    case '_':
+    ALPHA:
         return this->identifier();
-    case '0':
-    case '1':
-    case '2':
-    case '3':
-    case '4':
-    case '5':
-    case '6':
-    case '7':
-    case '8':
-    case '9':
+    DIGIT:
         return this->number();
     case '"':
         return this->string();
@@ -119,6 +120,7 @@ Token Lexer::getToken() {
 
 Token Lexer::lexOperator() {
     TokenType type;
+    auto next = peek();
 
     switch (this->current()) {
     case '?': {
@@ -126,7 +128,7 @@ Token Lexer::lexOperator() {
         break;
     }
     case '<': {
-        if (this->peek() == '<') {
+        if (next == '<') {
             this->advance();
             type = equalAndAdvance() ? TokenType::BITWISE_SHIFT_LEFT_EQUAL
                                      : TokenType::BITWISE_SHIFT_LEFT;
@@ -137,7 +139,7 @@ Token Lexer::lexOperator() {
         break;
     }
     case '>': {
-        if (this->peek() == '>') {
+        if (next == '>') {
             this->advance();
             type = equalAndAdvance() ? TokenType::BITWISE_SHIFT_RIGHT_EQUAL
                                      : TokenType::BITWISE_SHIFT_RIGHT;
@@ -171,13 +173,14 @@ Token Lexer::lexOperator() {
         break;
     }
     case '/': {
-        if (this->peek() == '/') {
+        switch (next) {
+        case '/':
             this->advanceLineComment();
-            return this->getToken();
-        } else if (this->peek() == '*') {
-            this->advanceBlockComment();
-            return this->getToken();
-        } else {
+            return getToken();
+        case '*':
+            this->advanceMultilineComment();
+            return getToken();
+        default:
             type = equalAndAdvance() ? TokenType::OPERATOR_DIV_EQUAL
                                      : TokenType::OPERATOR_DIV;
         }
@@ -190,7 +193,7 @@ Token Lexer::lexOperator() {
     }
 
     case '&': {
-        if (peek() == '&') {
+        if (next == '&') {
             this->advance();
             type = equalAndAdvance() ? TokenType::BITWISE_AND_AND_EQUAL
                                      : TokenType::BITWISE_AND_AND;
@@ -201,7 +204,7 @@ Token Lexer::lexOperator() {
         break;
     }
     case '|': {
-        if (peek() == '|') {
+        if (next == '|') {
             this->advance();
             type = equalAndAdvance() ? TokenType::BITWISE_PIPE_PIPE_EQUAL
                                      : TokenType::BITWISE_PIPE_PIPE;
@@ -221,7 +224,7 @@ Token Lexer::lexOperator() {
         break;
     }
     case ':': {
-        if (peek() == ':') {
+        if (next == ':') {
             this->advance();
             type = TokenType::DOUBLE_COLON;
         } else {
@@ -292,9 +295,9 @@ Token Lexer::lexOperator() {
 Token Lexer::identifier() {
     this->start = this->buffer_index;
 
-    do {
+    while (utils::isAlphaNumeric(this->current())) {
         this->advance();
-    } while (utils::isAlphaNumeric(this->current()));
+    }
 
     uint32_t length = this->buffer_index - this->start;
 
@@ -331,12 +334,16 @@ Token Lexer::number() {
     // Check for other numbers
     if (this->current() == '0') {
         advance();
-        if (this->current() == 'x' || this->current() == 'X') {
-            return this->hexadecimal();
-        } else if (this->current() == 'b' || this->current() == 'B') {
-            return this->binary();
-        } else if (this->current() == 'o' || this->current() == 'O') {
-            return this->octal();
+        switch (this->current()) {
+        case 'x':
+        case 'X':
+            return hexadecimal();
+        case 'b':
+        case 'B':
+            return binary();
+        case 'o':
+        case 'O':
+            return octal();
         }
     }
 
@@ -350,7 +357,6 @@ Token Lexer::number() {
             if (is_float) {
                 return this->throwError("Invalid number");
             }
-
             is_float = true;
 
             this->advance();
@@ -372,75 +378,70 @@ Token Lexer::string() {
     }
 
     while (this->current() != '"') {
-        if (this->current() == '\n') {
-            return this->throwError(
-                R"(Multiline string not supported, use """ instead)");
-        }
-        if (this->current() == '\0') {
+        switch (this->current()) {
+        case '\n':
+        case '\0':
             return this->throwError("Unterminated string literal");
-        }
-        this->advance();
-
-        if (this->current() == '\\') {
+        case '\\':
             this->advance();
             evaluateEscapeSequence();
+            continue;
+        default:
+            break;
         }
+        this->advance();
     }
 
+end:
     return returnToken(TokenType::V_STRING);
 }
 
 Token Lexer::character() {
     this->advance();
 
-    if (this->current() == '\\') {
+    switch (this->current()) {
+    case '\\':
         this->advance();
         evaluateEscapeSequence();
-    } else {
-        if (this->current() == '\'') {
-            return this->throwError("Empty character");
-        }
-        this->advance();
+        break;
+    case '\'':
+        return this->throwError("Empty character");
+    case '\0':
+        return this->throwError("Unterminated character");
     }
-
-    if (this->current() != '\'') {
-        return this->throwError("Expected '");
-    }
+    this->advance();
 
     return returnToken(TokenType::V_CHAR);
 }
 
 Token Lexer::multilineString() {
-    this->buffer_index += 2;
-    this->start = this->buffer_index;
+    advance(2);
 
 loop:
     // Run a loop until we find three of the string character
     while (this->current() != '"') {
-        if (this->current() == '\0') {
+        switch (this->current()) {
+        case '\0':
             return this->throwError("Unterminated string literal");
+        case '\n':
+            advanceLine();
+            break;
+        case '\\':
+            advance();
+            evaluateEscapeSequence();
+        default:
+            break;
         }
         this->advance();
-
-        if (this->current() == '\\') {
-            this->advance();
-            evaluateEscapeSequence();
-        }
     }
 
     if (this->peek() == '"' && this->peek(2) == '"') {
-        return returnToken(3, TokenType::V_MULTILINE_STRING);
+        advance(3);
+        return returnToken(TokenType::V_MULTILINE_STRING, true);
     } else {
         advance();
         goto loop;
     }
-}
-
-Token Lexer::returnToken(size_t trim, TokenType type) {
-    auto return_token = Token(type, this->start,
-                              this->buffer_index - this->start, this->location);
-    this->buffer_index += trim;
-    return return_token;
 }
 
 Token Lexer::returnToken(TokenType type, bool without_advance) {
@@ -454,7 +455,7 @@ Token Lexer::returnToken(TokenType type, bool without_advance) {
     return return_token;
 }
 
-bool Lexer::equalAndAdvance() {
+constexpr bool Lexer::equalAndAdvance() {
     if (this->peek() == '=') {
         advance();
         return true;
@@ -466,8 +467,7 @@ void Lexer::advanceWhitespace() {
     while (isspace(this->current())) {
         if (this->current() == '\n') {
             this->tokens.push_back(returnToken(TokenType::NEW_LINE, true));
-            this->location.line += 1;
-            this->location.column = 0;
+            advanceLine();
         }
         if (this->current() == '\0') {
             break;
@@ -485,27 +485,42 @@ void Lexer::advanceLineComment() {
     }
 }
 
-void Lexer::advanceBlockComment() {
-    advance();
-    advance();
+void Lexer::advanceMultilineComment() {
+    advance(2);
     auto comment_start = this->location;
     while (this->current() != '*' || this->peek() != '/') {
-        if (this->current() == '\0') {
+        switch (this->current()) {
+        case '\0':
             this->throwError("Unterminated block comment.", comment_start);
             return;
-        }
-        if (this->current() == '/' && this->peek() == '*') {
-            this->advanceBlockComment();
+        case '/':
+            if (peek() == '*')
+                advanceMultilineComment();
+        case '\n':
+            advanceLine();
+            break;
+        default:
+            break;
         }
         this->advance();
     }
-    this->advance();
-    this->advance();
+    advance(2);
+}
+
+constexpr void Lexer::advanceLine() {
+    this->location.line += 1;
+    this->location.column = 0;
 }
 
 void Lexer::advance() {
     this->location.column += 1;
     this->buffer_index += 1;
+    this->current() = this->file_buffer[this->buffer_index];
+}
+
+void Lexer::advance(size_t offset) {
+    this->location.column += offset;
+    this->buffer_index += offset;
     this->current() = this->file_buffer[this->buffer_index];
 }
 
@@ -520,6 +535,7 @@ void Lexer::evaluateEscapeSequence() {
     case 't':
     case 'v':
     case 'x':
+    case '\'':
         advance();
         return;
     default:
@@ -528,24 +544,21 @@ void Lexer::evaluateEscapeSequence() {
     }
 }
 
-char Lexer::peek(size_t offset) {
+constexpr char Lexer::peek(size_t offset) {
     return this->file_buffer[this->buffer_index + offset];
 }
 
 template <typename predicate>
 Token Lexer::lexWhile(TokenType type, predicate &&pred) {
     while (pred()) {
-        if (this->current() == '\0') {
-            break;
+        switch (this->current()) {
+        case '\0':
+        case '\n':
+            goto end;
         }
-
-        this->advance();
-
-        if (this->current() == '\n') {
-            break;
-        }
+        advance();
     }
-
+end:
     return this->returnToken(type, true);
 }
 

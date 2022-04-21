@@ -6,16 +6,16 @@
 
 namespace drast::parser {
 
-AST::CompoundStatement *Parser::parse() {
+AST::Compound *Parser::parse() {
     auto compound = this->compound();
 
-    //    std::cout << compound->toString() << '\n';
+    std::cout << compound->toString() << '\n';
 
     return compound;
 }
 
-AST::CompoundStatement *Parser::compound() {
-    auto compoundStatement = this->makeDeclaration<AST::CompoundStatement>();
+AST::Compound *Parser::compound() {
+    auto compoundStatement = this->makeDeclaration<AST::Compound>();
     auto old_compound = current_compound;
     current_compound = compoundStatement;
 
@@ -132,7 +132,7 @@ AST::Node *Parser::statement() {
     exit(-1);
 }
 
-AST::ImportStatement *Parser::import() {
+AST::Import *Parser::import() {
     advance(lexer::TokenType::IMPORT);
 
     std::string_view import_path;
@@ -150,7 +150,7 @@ AST::ImportStatement *Parser::import() {
             "Expected a string literal or a library name after import.");
     }
 
-    return this->makeDeclaration<AST::ImportStatement>(import_path, is_library);
+    return this->makeDeclaration<AST::Import>(import_path, is_library);
 }
 
 AST::StructDeclaration *
@@ -568,8 +568,8 @@ AST::If *Parser::ifStatement() {
     auto if_body_and_statement = this->ifElseStatements();
 
     std::vector<AST::Node *> elseif_conditions = {};
-    std::vector<AST::CompoundStatement *> elseif_bodies = {};
-    std::optional<AST::CompoundStatement *> else_body = std::nullopt;
+    std::vector<AST::Compound *> elseif_bodies = {};
+    std::optional<AST::Compound *> else_body = std::nullopt;
 
     while (advanceIf(lexer::TokenType::ELSE)) {
         if (advanceIf(lexer::TokenType::IF)) {
@@ -592,7 +592,7 @@ AST::If *Parser::ifStatement() {
         elseif_conditions, elseif_bodies, else_body);
 }
 
-std::pair<AST::Node *, AST::CompoundStatement *> Parser::ifElseStatements() {
+std::pair<AST::Node *, AST::Compound *> Parser::ifElseStatements() {
     advance(lexer::TokenType::PARENS_OPEN,
             "Expected a expression after a if or else statement.");
     auto condition = this->expression();
@@ -691,7 +691,7 @@ AST::SwitchCase *Parser::switchCase() {
 
     advance(lexer::TokenType::COLON, "Expected a ':' after the switch case.");
 
-    auto *case_body = this->makeDeclaration<AST::CompoundStatement>();
+    auto *case_body = this->makeDeclaration<AST::Compound>();
 
     advanceLines();
     while (this->current().type != lexer::TokenType::CASE &&
@@ -830,9 +830,8 @@ std::vector<AST::Node *> Parser::functionCallArguments() {
             advance(lexer::TokenType::COLON);
             auto argument_value = this->expression();
 
-            auto argument =
-                this->makeDeclaration<AST::FunctionCallNameBasedArgument>(
-                    argument_name, argument_value);
+            auto argument = this->makeDeclaration<AST::FunctionArgumentName>(
+                argument_name, argument_value);
 
             argument_can_have_unnamed_arguments = false;
             arguments.push_back(argument);
@@ -872,12 +871,12 @@ AST::Node *Parser::token() {
 AST::TemplateDeclaration *Parser::templateDeclaration() {
     advance(lexer::TokenType::AT);
     advance(lexer::TokenType::PARENS_OPEN,
-            "Expected a '(' when using template declarations.");
+            "Expected a '(' when using template variables.");
 
     auto arguments = templateArguments();
 
     advance(lexer::TokenType::PARENS_CLOSE,
-            "Expected a ')' when using template declarations.");
+            "Expected a ')' when using template variables.");
 
     return this->makeDeclaration<AST::TemplateDeclaration>(arguments);
 }

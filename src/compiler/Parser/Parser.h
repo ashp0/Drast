@@ -26,20 +26,20 @@ class Parser {
     bool inside_function_body = false; // myFunction(!{return true})
     bool is_parsing_struct = false;
     bool should_check_duplicates = true;
-    AST::CompoundStatement *current_compound = nullptr;
+    AST::Compound *current_compound = nullptr;
 
   public:
     Parser(std::string &file_name, lexer::Lexer &lexer, Error error)
         : lexer(lexer), error(std::move(error)) {}
 
-    AST::CompoundStatement *parse();
+    AST::Compound *parse();
 
   private: /* Parser functions */
-    AST::CompoundStatement *compound();
+    AST::Compound *compound();
 
     AST::Node *statement();
 
-    AST::ImportStatement *import();
+    AST::Import *import();
 
     AST::StructDeclaration *
     structDeclaration(const std::vector<lexer::TokenType> &qualifiers = {});
@@ -76,7 +76,7 @@ class Parser {
 
     AST::If *ifStatement();
 
-    std::pair<AST::Node *, AST::CompoundStatement *> ifElseStatements();
+    std::pair<AST::Node *, AST::Compound *> ifElseStatements();
 
     AST::ASM *inlineAssembly();
 

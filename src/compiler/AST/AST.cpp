@@ -18,7 +18,7 @@ uint32_t indent = 0;
     for (int i = 0; i < indent; i++)                                           \
         (type) += "\t";
 
-std::string CompoundStatement::toString() {
+std::string Compound::toString() {
     std::string compound;
     if (this->first_class_function) {
         compound += "!";
@@ -49,47 +49,14 @@ std::string CompoundStatement::toString() {
     return compound;
 }
 
-std::optional<std::pair<std::string_view, Node *>>
-CompoundStatement::searchForDuplicates() {
-    for (int i = 0; i < this->declarations.size(); i++) {
-        auto &declaration = this->declarations[i];
-        if (declaration.second->type == ASTType::VARIABLE_DECLARATION) {
-            for (int j = i + 1; j < this->declarations.size(); j++) {
-                auto &declaration2 = this->declarations[j];
-                if (declaration2.second->type ==
-                    ASTType::VARIABLE_DECLARATION) {
-                    if (declaration.first == declaration2.first) {
-                        return declaration2;
-                    }
-                }
-            }
-        } else if (declaration.second->type == ASTType::FUNCTION_DECLARATION) {
-            for (int j = i + 1; j < this->declarations.size(); j++) {
-                auto &declaration2 = this->declarations[j];
-                if (declaration2.second->type ==
-                    ASTType::FUNCTION_DECLARATION) {
-                    if (declaration.first == declaration2.first) {
-                        return declaration2;
-                    }
-                }
-            }
-        } else if (declaration.second->type == ASTType::ENUM_DECLARATION) {
-            for (int j = i + 1; j < this->declarations.size(); j++) {
-                auto &declaration2 = this->declarations[j];
-                if (declaration2.second->type == ASTType::ENUM_DECLARATION) {
-                    if (declaration.first == declaration2.first) {
-                        return declaration2;
-                    }
-                }
-            }
-        } else if (declaration.second->type == ASTType::STRUCT_DECLARATION) {
-            for (int j = i + 1; j < this->declarations.size(); j++) {
-                auto &declaration2 = this->declarations[j];
-                if (declaration2.second->type == ASTType::STRUCT_DECLARATION) {
-                    if (declaration.first == declaration2.first) {
-                        return declaration2;
-                    }
-                }
+std::optional<std::pair<std::string_view, VariableDeclaration *>>
+Compound::searchForDuplicateVariables() {
+    for (int i = 0; i < this->variables.size(); i++) {
+        auto &declaration = this->variables[i];
+        for (int j = i + 1; j < this->variables.size(); j++) {
+            auto &declaration2 = this->variables[j];
+            if (declaration.first == declaration2.first) {
+                return declaration2;
             }
         }
     }
@@ -97,7 +64,7 @@ CompoundStatement::searchForDuplicates() {
     return std::nullopt;
 }
 
-std::string ImportStatement::toString() {
+std::string Import::toString() {
     std::string import("import ");
     import += this->module_name;
     return import;
@@ -195,7 +162,7 @@ std::string FunctionCall::toString() {
     return function_call;
 }
 
-std::string FunctionCallNameBasedArgument::toString() {
+std::string FunctionArgumentName::toString() {
     std::string function_call_name_based_argument;
     function_call_name_based_argument += this->name;
     function_call_name_based_argument += ": ";
@@ -485,16 +452,10 @@ std::string TernaryExpression::toString() {
 
 std::string LiteralExpression::toString() {
     std::string literal_expression;
-    if (literal_type == lexer::TokenType::V_MULTILINE_STRING) {
-        literal_expression += "\"\"\"";
-    }
     if (string_value) {
         literal_expression += string_value.value();
     } else {
         literal_expression += this->value;
-    }
-    if (literal_type == lexer::TokenType::V_MULTILINE_STRING) {
-        literal_expression += "\"\"\"";
     }
 
     return literal_expression;

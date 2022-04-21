@@ -21,7 +21,9 @@ class SemanticAnalyzer {
     AST::Node *root;
 
     // All the other compound and the current compound index
-    std::vector<AST::Node *> compound_stmts;
+    // This will be used to check for variable definitions, it will start from
+    // the current index, and then loop until it reaches the root statement
+    std::vector<AST::Compound *> compound_stmts;
     size_t current_compound_index = 0;
 
     // The parent declaration ( struct )
@@ -37,12 +39,12 @@ class SemanticAnalyzer {
     Error error;
 
   public:
-    SemanticAnalyzer(AST::CompoundStatement *root, Error error)
+    SemanticAnalyzer(AST::Compound *root, Error error)
         : root(root), error(std::move(error)) {}
 
     void analyze();
 
-    void analyzeCompoundStatement(AST::CompoundStatement *compound);
+    void analyzeCompoundStatement(AST::Compound *compound);
 
     void analyzeStatement(AST::Node *statement);
 
@@ -66,6 +68,10 @@ class SemanticAnalyzer {
     // If it encounters an error, it will show an error
     lexer::TokenType determineType(lexer::TokenType type,
                                    lexer::TokenType type2);
+
+    constexpr AST::Compound *currentCompound() const {
+        return compound_stmts[current_compound_index];
+    }
 };
 
 } // namespace drast::semanticAnalyzer

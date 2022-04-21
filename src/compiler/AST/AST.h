@@ -110,36 +110,41 @@ class Node {
     virtual std::string toString() = 0;
 };
 
-class CompoundStatement : public Node {
+class Compound : public Node {
   private:
     using FirstClassFunction = class FirstClassFunction;
+    using VariableDeclaration = class VariableDeclaration;
+    using FunctionDeclaration = class FunctionDeclaration;
 
   public:
     std::vector<Node *> statements;
     std::optional<FirstClassFunction *> first_class_function;
-    LookupTable<std::string_view, Node *> declarations = {};
+    LookupTable<std::string_view, VariableDeclaration *> variables = {};
+    LookupTable<std::string_view, FunctionDeclaration *> function_declarations =
+        {};
 
   public:
-    CompoundStatement(std::vector<Node *> &statements, Location &location)
+    Compound(std::vector<Node *> &statements, Location &location)
         : Node(ASTType::COMPOUND, location), statements(std::move(statements)) {
     }
 
-    explicit CompoundStatement(Location &location)
-        : Node(ASTType::COMPOUND, location) {}
+    explicit Compound(Location &location) : Node(ASTType::COMPOUND, location) {}
 
     std::string toString() override;
 
-    std::optional<std::pair<std::string_view, Node *>> searchForDuplicates();
+    std::optional<std::pair<std::string_view, VariableDeclaration *>>
+    searchForDuplicateVariables();
+
+    bool checkFunctions();
 };
 
-class ImportStatement : public Node {
+class Import : public Node {
   public:
     std::string_view module_name;
     bool is_library;
 
   public:
-    ImportStatement(std::string_view module_name, bool is_library,
-                    Location location)
+    Import(std::string_view module_name, bool is_library, Location location)
         : Node(ASTType::IMPORT_STATEMENT, location), module_name(module_name),
           is_library(is_library) {}
 
@@ -156,14 +161,14 @@ class FunctionDeclaration : public Node {
     std::optional<Node *> return_type;
     std::string_view name;
     std::vector<FunctionArgument *> arguments;
-    std::optional<CompoundStatement *> body = std::nullopt;
+    std::optional<Compound *> body = std::nullopt;
     std::optional<TemplateDeclaration *> template_declaration = std::nullopt;
 
   public:
     FunctionDeclaration(
         std::vector<lexer::TokenType> qualifiers,
         std::optional<Node *> return_type, std::string_view name,
-        std::vector<FunctionArgument *> arguments, CompoundStatement *body,
+        std::vector<FunctionArgument *> arguments, Compound *body,
         std::optional<TemplateDeclaration *> template_declaration,
         Location location)
         : Node(ASTType::FUNCTION_DECLARATION, location),
@@ -223,14 +228,14 @@ class FunctionCall : public Node {
     std::string toString() override;
 };
 
-class FunctionCallNameBasedArgument : public Node {
+class FunctionArgumentName : public Node {
   public:
     std::string_view name;
     Node *expression;
 
   public:
-    FunctionCallNameBasedArgument(std::string_view name, Node *expression,
-                                  Location location)
+    FunctionArgumentName(std::string_view name, Node *expression,
+                         Location location)
         : Node(ASTType::FUNCTION_CALL_NAME_BASED_ARGUMENT, location),
           name(name), expression(expression) {}
 
@@ -265,15 +270,14 @@ class StructDeclaration : public Node {
 
   public:
     std::string_view name;
-    CompoundStatement *body;
+    Compound *body;
     std::vector<lexer::TokenType> qualifiers;
     std::optional<TemplateDeclaration *> template_declaration;
     bool is_union = false;
 
   public:
     StructDeclaration(std::string_view name,
-                      std::vector<lexer::TokenType> qualifiers,
-                      CompoundStatement *body,
+                      std::vector<lexer::TokenType> qualifiers, Compound *body,
                       std::optional<TemplateDeclaration *> template_declaration,
                       bool is_union, Location location)
         : Node(ASTType::STRUCT_DECLARATION, location), name(name), body(body),
@@ -331,15 +335,15 @@ class StructInitializerCall : public Node {
 class StructInitializerDeclaration : public Node {
   public:
     std::optional<std::vector<FunctionArgument *>> arguments = std::nullopt;
-    CompoundStatement *body;
+    Compound *body;
 
   public:
     StructInitializerDeclaration(std::vector<FunctionArgument *> arguments,
-                                 CompoundStatement *body, Location location)
+                                 Compound *body, Location location)
         : Node(ASTType::STRUCT_INITIALIZER_DECLARATION, location),
           arguments(std::move(arguments)), body(body) {}
 
-    StructInitializerDeclaration(CompoundStatement *body, Location location)
+    StructInitializerDeclaration(Compound *body, Location location)
         : Node(ASTType::STRUCT_INITIALIZER_DECLARATION, location), body(body) {}
 
     std::string toString() override;
@@ -411,11 +415,11 @@ class ForLoop : public Node {
     Node *second_statement;
     Node *third_statement;
 
-    CompoundStatement *body;
+    Compound *body;
 
   public:
     ForLoop(Node *first_statement, Node *second_statement,
-            Node *third_statement, CompoundStatement *body, Location location)
+            Node *third_statement, Compound *body, Location location)
         : Node(ASTType::FOR, location), first_statement(first_statement),
           second_statement(second_statement), third_statement(third_statement),
           body(body) {}
@@ -429,11 +433,11 @@ class RangeBasedForLoop : public Node {
     Node *name2;
     std::optional<Node *> for_index;
 
-    CompoundStatement *body;
+    Compound *body;
 
   public:
     RangeBasedForLoop(std::string_view name, Node *name2,
-                      std::optional<Node *> for_index, CompoundStatement *body,
+                      std::optional<Node *> for_index, Compound *body,
                       Location location)
         : Node(ASTType::RANGE_BASED_FOR, location), name(name), name2(name2),
           for_index(for_index), body(body) {}
@@ -444,10 +448,10 @@ class RangeBasedForLoop : public Node {
 class WhileLoop : public Node {
   public:
     Node *expression;
-    CompoundStatement *body;
+    Compound *body;
 
   public:
-    WhileLoop(Node *expression, CompoundStatement *body, Location location)
+    WhileLoop(Node *expression, Compound *body, Location location)
         : Node(ASTType::WHILE, location), expression(expression), body(body) {}
 
     std::string toString() override;
@@ -470,18 +474,18 @@ class Return : public Node {
 class If : public Node {
   public:
     Node *if_condition;
-    CompoundStatement *if_body;
+    Compound *if_body;
 
     std::vector<Node *> else_if_conditions = {};
-    std::vector<CompoundStatement *> else_if_bodies = {};
+    std::vector<Compound *> else_if_bodies = {};
 
-    std::optional<CompoundStatement *> else_body = std::nullopt;
+    std::optional<Compound *> else_body = std::nullopt;
 
   public:
-    If(Node *if_condition, CompoundStatement *if_body,
+    If(Node *if_condition, Compound *if_body,
        std::vector<Node *> else_if_conditions,
-       std::vector<CompoundStatement *> else_if_bodies,
-       std::optional<CompoundStatement *> else_body, Location location)
+       std::vector<Compound *> else_if_bodies,
+       std::optional<Compound *> else_body, Location location)
         : Node(ASTType::IF, location), if_condition(if_condition),
           if_body(if_body), else_if_conditions(std::move(else_if_conditions)),
           else_if_bodies(std::move(else_if_bodies)), else_body(else_body){};
@@ -533,16 +537,16 @@ class SwitchStatement : public Node {
 class SwitchCase : public Node {
   public:
     std::optional<Node *> expression = std::nullopt; // case 40
-    CompoundStatement *body;
+    Compound *body;
     bool is_case; // could be default
 
   public:
-    SwitchCase(Node *expression, CompoundStatement *body, bool is_case,
+    SwitchCase(Node *expression, Compound *body, bool is_case,
                Location location)
         : Node(ASTType::SWITCH_CASE, location), expression(expression),
           body(body), is_case(is_case) {}
 
-    SwitchCase(CompoundStatement *body, bool is_case, Location location)
+    SwitchCase(Compound *body, bool is_case, Location location)
         : Node(ASTType::SWITCH_CASE, location), body(body), is_case(is_case) {}
 
     std::string toString() override;
@@ -710,12 +714,12 @@ class FirstClassFunction : public Node {
 
 class DoCatchStatement : public Node {
   public:
-    CompoundStatement *do_body;
-    CompoundStatement *catch_body;
+    Compound *do_body;
+    Compound *catch_body;
     std::optional<Node *> catch_expression;
 
   public:
-    DoCatchStatement(CompoundStatement *do_body, CompoundStatement *catch_body,
+    DoCatchStatement(Compound *do_body, Compound *catch_body,
                      std::optional<Node *> catch_expression, Location location)
         : Node(ASTType::DO_CATCH, location), do_body(do_body),
           catch_body(catch_body), catch_expression(catch_expression){};
@@ -745,12 +749,12 @@ class OperatorOverload : public Node {
     Node *return_type;
     std::vector<lexer::TokenType> operators;
     std::vector<FunctionArgument *> arguments;
-    CompoundStatement *body;
+    Compound *body;
 
   public:
     OperatorOverload(Node *return_type, std::vector<lexer::TokenType> operators,
-                     std::vector<FunctionArgument *> arguments,
-                     CompoundStatement *body, Location location)
+                     std::vector<FunctionArgument *> arguments, Compound *body,
+                     Location location)
         : Node(ASTType::OPERATOR_OVERLOAD, location), return_type(return_type),
           operators(std::move(operators)), arguments(std::move(arguments)),
           body(body) {}
