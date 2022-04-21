@@ -8,31 +8,42 @@ namespace drast::semanticAnalyzer {
 
 void SemanticAnalyzer::analyze() {
     analyzeCompoundStatement(dynamic_cast<AST::Compound *>(root));
+
+    if (encountered_error) {
+        error.displayMessages();
+    }
 }
 
 void SemanticAnalyzer::analyzeCompoundStatement(AST::Compound *compound) {
+    current_compound_index += 1;
+    compound_stmts.push_back(compound);
     for (auto &statement : compound->statements) {
         analyzeStatement(statement);
     }
 
     auto dup = compound->searchForDuplicateVariables();
     if (dup) {
-        std::cout << "Duplicate variable found: " << dup->first << std::endl;
-        exit(1);
+        throwError("Duplicate Variable Found: " + std::string(dup->first),
+                   dup->second->location);
     }
 }
 
 void SemanticAnalyzer::analyzeStatement(AST::Node *statement) {
-    // TODO: Check if there are some variables that are not allowed to be top
-    // level
+    // TODO: Check if there are some tokens that are not allowed to be top level
+    this->current_statement = statement;
     switch (statement->type) {
     case AST::ASTType::VARIABLE_DECLARATION:
         analyzeVariableDeclaration(
             dynamic_cast<AST::VariableDeclaration *>(statement));
         break;
+    case AST::ASTType::BINARY_EXPRESSION:
+        analyzeBinaryExpression(
+            dynamic_cast<AST::BinaryExpression *>(statement));
+        break;
     default:
-        std::cout << "Unable to analyze statement: " << std::endl;
-        exit(1);
+        //        std::cout << "Unable to analyze statement: " <<
+        //        statement->toString() << std::endl;
+        break;
     }
 }
 
@@ -41,12 +52,14 @@ void SemanticAnalyzer::analyzeFunctionDeclaration(
 
 void SemanticAnalyzer::analyzeVariableDeclaration(
     AST::VariableDeclaration *variable) {
-    std::cout << "Analyzing variable declaration" << '\n';
+
+    auto type = analyzeExpression(variable->value.value());
+    variable->sema_type = type;
 
     currentCompound()->variables.emplace_back(variable->name, variable);
 }
 
-lexer::TokenType SemanticAnalyzer::analyzeExpression(AST::Node *expression) {
+AST::SemaTypes SemanticAnalyzer::analyzeExpression(AST::Node *expression) {
     switch (expression->type) {
     case AST::ASTType::BINARY_EXPRESSION:
         return analyzeBinaryExpression(
@@ -66,37 +79,66 @@ lexer::TokenType SemanticAnalyzer::analyzeExpression(AST::Node *expression) {
     }
 }
 
-lexer::TokenType
+AST::SemaTypes
 SemanticAnalyzer::analyzeBinaryExpression(AST::BinaryExpression *expression) {
     auto left_type = analyzeExpression(expression->left);
     auto right_type = analyzeExpression(expression->right);
-    if (left_type == right_type) {
+    if (left_type.type == right_type.type) {
         return left_type;
     } else {
-        std::cout << "Invalid Expression" << '\n';
-        exit(-1);
+        throwError("Invalid Expression, types are not equal");
+        ;
+        return left_type;
     }
 }
 
-lexer::TokenType SemanticAnalyzer::analyzeGroupingExpression(
+AST::SemaTypes SemanticAnalyzer::analyzeGroupingExpression(
     AST::GroupingExpression *expression) {
     return analyzeExpression(expression->expr);
 }
 
-lexer::TokenType
+AST::SemaTypes
 SemanticAnalyzer::analyzeUnaryExpression(AST::UnaryExpression *expression) {
     auto expr_type = analyzeExpression(expression->expr);
-    if (expr_type != lexer::TokenType::V_INT) {
-        std::cout << "Operand must be of type integer" << '\n';
-        exit(-1);
+    if (expr_type.type != AST::SemaTypes::INT) {
+        throwError("Operand must be of type integer");
     }
 
     return expr_type;
 }
 
-lexer::TokenType
+AST::SemaTypes
 SemanticAnalyzer::analyzeLiteralExpression(AST::LiteralExpression *expression) {
-    return expression->literal_type;
+    if (expression->literal_type == lexer::TokenType::IDENTIFIER) {
+        auto variable = findVariable(expression->value);
+        return variable->sema_type.value();
+    }
+    return {AST::TokenTypeToSemaType(expression->literal_type)};
+}
+
+AST::VariableDeclaration *
+SemanticAnalyzer::findVariable(std::string_view name) {
+    for (auto i = current_compound_index; i > 0; i--) {
+        auto compound = compound_stmts[i - 1];
+        auto var = compound->findVariable(name);
+        if (var) {
+            return var.value();
+        }
+    }
+
+    throwError("Undefined Variable Definition: " + std::string(name) + "\n");
+    return nullptr;
+}
+
+void SemanticAnalyzer::throwError(const std::string &message) {
+    encountered_error = true;
+    error.addError(message, this->current_statement->location);
+}
+
+void SemanticAnalyzer::throwError(const std::string &message,
+                                  Location &location) {
+    encountered_error = true;
+    error.addError(message, location);
 }
 
 } // namespace drast::semanticAnalyzer

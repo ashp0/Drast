@@ -348,22 +348,27 @@ Token Lexer::number() {
     }
 
     bool is_float = false;
+
+loop:
     while (utils::isNumber(this->current())) {
         if (this->current() == '\n') {
             break;
         }
         this->advance();
-        if (this->current() == '.') {
-            if (is_float) {
-                return this->throwError("Invalid number");
-            }
-            is_float = true;
+    }
 
-            this->advance();
-            if (!utils::isNumber(this->current())) {
-                return this->throwError("Invalid number");
-            }
+    if (this->current() == '.') {
+        if (is_float) {
+            return this->throwError("Invalid number");
         }
+        is_float = true;
+
+        this->advance();
+        if (!utils::isNumber(this->current())) {
+            return this->throwError("Invalid number");
+        }
+
+        goto loop;
     }
 
     return this->returnToken(is_float ? TokenType::V_FLOAT : TokenType::V_INT,

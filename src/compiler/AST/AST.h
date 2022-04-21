@@ -15,7 +15,7 @@
 
 namespace drast::AST {
 
-class SemanticAnalyzerExpressionTypes {
+class SemaTypes {
   private:
     using AST = class Node;
 
@@ -32,15 +32,36 @@ class SemanticAnalyzerExpressionTypes {
     std::string_view type_literal; // if it's a user defined type
     AST *type_node;                // the original node that represents the type
 
-    SemanticAnalyzerExpressionTypes(std::string_view type_literal,
-                                    AST *type_node)
+    SemaTypes(std::string_view type_literal, AST *type_node)
         : type_literal(type_literal), type(TYPE), type_node(type_node) {}
 
-    SemanticAnalyzerExpressionTypes(Type type, AST *type_node)
-        : type(type), type_node(type_node) {}
+    SemaTypes(Type type, AST *type_node) : type(type), type_node(type_node) {}
 
-    SemanticAnalyzerExpressionTypes(Type type) : type(type) {}
+    SemaTypes(Type type) : type(type) {}
 };
+
+constexpr SemaTypes::Type TokenTypeToSemaType(lexer::TokenType token) {
+    switch (token) {
+    case lexer::TokenType::V_INT:
+        return SemaTypes::INT;
+
+    case lexer::TokenType::V_FLOAT:
+        return SemaTypes::FLOAT;
+
+    case lexer::TokenType::TRUE:
+    case lexer::TokenType::FALSE:
+        return SemaTypes::BOOL;
+
+    case lexer::TokenType::V_STRING:
+        return SemaTypes::STRING;
+
+    case lexer::TokenType::NIL:
+        return SemaTypes::NIL;
+
+    default:
+        return SemaTypes::TYPE;
+    }
+}
 
 enum class ASTType {
     COMPOUND, // { ... }
@@ -134,6 +155,8 @@ class Compound : public Node {
 
     std::optional<std::pair<std::string_view, VariableDeclaration *>>
     searchForDuplicateVariables();
+
+    std::optional<VariableDeclaration *> findVariable(std::string_view name);
 
     bool checkFunctions();
 };
@@ -397,6 +420,10 @@ class VariableDeclaration : public Node {
     std::optional<Node *> value = std::nullopt;
     std::vector<lexer::TokenType> qualifiers;
     bool is_let;
+
+    // the semantic analyzer will give a variable a type.
+    // via type inferring
+    std::optional<SemaTypes> sema_type = std::nullopt;
 
   public:
     VariableDeclaration(std::string_view name, std::optional<Node *> type,

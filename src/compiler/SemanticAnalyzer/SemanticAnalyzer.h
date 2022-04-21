@@ -37,6 +37,7 @@ class SemanticAnalyzer {
 
     // The error module
     Error error;
+    bool encountered_error = false;
 
   public:
     SemanticAnalyzer(AST::Compound *root, Error error)
@@ -52,17 +53,18 @@ class SemanticAnalyzer {
 
     void analyzeVariableDeclaration(AST::VariableDeclaration *variable);
 
-    lexer::TokenType analyzeExpression(AST::Node *expression);
+    AST::SemaTypes analyzeExpression(AST::Node *expression);
 
-    lexer::TokenType analyzeBinaryExpression(AST::BinaryExpression *expression);
+    AST::SemaTypes analyzeBinaryExpression(AST::BinaryExpression *expression);
 
-    lexer::TokenType
+    AST::SemaTypes
     analyzeGroupingExpression(AST::GroupingExpression *expression);
 
-    lexer::TokenType analyzeUnaryExpression(AST::UnaryExpression *expression);
+    AST::SemaTypes analyzeUnaryExpression(AST::UnaryExpression *expression);
 
-    lexer::TokenType
-    analyzeLiteralExpression(AST::LiteralExpression *expression);
+    AST::SemaTypes analyzeLiteralExpression(AST::LiteralExpression *expression);
+
+    AST::VariableDeclaration *findVariable(std::string_view name);
 
     // Checks what type of expression it should be
     // If it encounters an error, it will show an error
@@ -70,8 +72,12 @@ class SemanticAnalyzer {
                                    lexer::TokenType type2);
 
     constexpr AST::Compound *currentCompound() const {
-        return compound_stmts[current_compound_index];
+        return compound_stmts[current_compound_index - 1];
     }
+
+    void throwError(const std::string &message);
+
+    void throwError(const std::string &message, Location &location);
 };
 
 } // namespace drast::semanticAnalyzer

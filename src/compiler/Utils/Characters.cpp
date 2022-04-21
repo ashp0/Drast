@@ -17,7 +17,7 @@ bool isOctal(char c) {
 
 bool isBinary(char c) { return (c == '0' || c == '1') || c == '_'; }
 
-bool isNumber(char c) { return (c >= '0' && c <= '9') || c == '_' || c == '.'; }
+bool isNumber(char c) { return (c >= '0' && c <= '9') || c == '_'; }
 
 bool isAlphaNumeric(char c) {
     return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||

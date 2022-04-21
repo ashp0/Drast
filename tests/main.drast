@@ -2,13 +2,13 @@
 // Drast Programming Language Tests
 //
 
-import io
+//import io
 
 var test = ("test" + "40") * "30"
-test234 += "ing"
+test += "ing"
 
 var test2 = 0.50
-test2 += "1.0"
+test2 += 69.420
 
 extern func printf(fmt: string, ... args)
 

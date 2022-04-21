@@ -64,6 +64,17 @@ Compound::searchForDuplicateVariables() {
     return std::nullopt;
 }
 
+std::optional<VariableDeclaration *>
+Compound::findVariable(std::string_view name) {
+    for (auto &variable : this->variables) {
+        if (variable.first == name) {
+            return variable.second;
+        }
+    }
+
+    return std::nullopt;
+}
+
 std::string Import::toString() {
     std::string import("import ");
     import += this->module_name;
