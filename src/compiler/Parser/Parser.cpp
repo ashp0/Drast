@@ -18,6 +18,7 @@
 //
 // Contributed by:
 //  - Ashwin Paudel <ashwonixer123@gmail.com>
+//  - Reece Wong <waveecho58@gmail.com>
 //
 // =============================================================================
 
@@ -289,7 +290,7 @@ Parser::functionDeclaration(const std::vector<lexer::TokenType> &qualifiers) {
     if (advanceIf(lexer::TokenType::BRACE_OPEN)) {
         auto function_body = this->compound();
         advance(lexer::TokenType::BRACE_CLOSE,
-                "Function's body must be closed.");
+                "The function's body must be closed.");
 
         return this->makeDeclaration<AST::FunctionDeclaration>(
             qualifiers, return_type, function_name, function_arguments,
@@ -297,7 +298,7 @@ Parser::functionDeclaration(const std::vector<lexer::TokenType> &qualifiers) {
     }
 
     if (template_) {
-        this->throwError("Functions without a body can't have a template!");
+        this->throwError("Functions without a body can't have a template.");
     }
 
     return this->makeDeclaration<AST::FunctionDeclaration>(
@@ -782,7 +783,7 @@ AST::Node *Parser::arrayAccess() {
     // myVariable[40]
     auto variable_name =
         getAndAdvance(lexer::TokenType::IDENTIFIER,
-                      "Expecteda  identifier after array access.");
+                      "Expected a identifier after array access.");
     advance(lexer::TokenType::SQUARE_OPEN);
     auto inside = this->expression();
     advance(lexer::TokenType::SQUARE_CLOSE,
@@ -845,7 +846,7 @@ std::vector<AST::Node *> Parser::functionCallArguments() {
             auto argument_name =
                 getAndAdvance(lexer::TokenType::IDENTIFIER,
                               "Expected a identifier after using a name based "
-                              "argument style");
+                              "argument style.");
             advance(lexer::TokenType::COLON);
             auto argument_value = this->expression();
 
@@ -858,7 +859,7 @@ std::vector<AST::Node *> Parser::functionCallArguments() {
         argument_expression:
             if (!argument_can_have_unnamed_arguments) {
                 throwError("Cannot use unnamed arguments after "
-                           "using a named argument");
+                           "using a named argument.");
             }
             arguments.push_back(this->expression());
         }
