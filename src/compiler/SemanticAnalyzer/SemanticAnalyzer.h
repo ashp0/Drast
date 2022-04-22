@@ -1,6 +1,25 @@
 //
+// SemanticAnalyzer.h
 // Created by Ashwin Paudel on 2022-04-10.
 //
+// =============================================================================
+//
+// Contributed by:
+//  - Ashwin Paudel <ashwonixer123@gmail.com>
+//
+// =============================================================================
+///
+/// \file
+/// This file contains the declaration of the SemanticAnalyzer class. Which is
+/// used to check the correctness of the syntax tree.
+///
+// =============================================================================
+//
+// Copyright (c) 2022, Drast Programming Language Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be found
+// in the LICENSE file.
+//
+// =============================================================================
 
 #ifndef DRAST_SEMANTIC_ANALYZER_H
 #define DRAST_SEMANTIC_ANALYZER_H

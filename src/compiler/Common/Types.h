@@ -1,6 +1,25 @@
 //
+// Types.h
 // Created by Ashwin Paudel on 2022-03-24.
 //
+// =============================================================================
+//
+// Contributed by:
+//  - Ashwin Paudel <ashwonixer123@gmail.com>
+//
+// =============================================================================
+///
+/// \file
+/// This file contains the declaration of the variety of structs and classes,
+/// which is used by the many classes.
+///
+// =============================================================================
+//
+// Copyright (c) 2022, Drast Programming Language Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be found
+// in the LICENSE file.
+//
+// =============================================================================
 
 #ifndef DRAST_TYPES_H
 #define DRAST_TYPES_H

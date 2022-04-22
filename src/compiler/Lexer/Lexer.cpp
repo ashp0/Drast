@@ -1,6 +1,25 @@
 //
+// Lexer.cpp
 // Created by Ashwin Paudel on 2022-03-20.
 //
+// =============================================================================
+//
+// Contributed by:
+//  - Ashwin Paudel <ashwonixer123@gmail.com>
+//
+// =============================================================================
+///
+/// \file
+/// This file contains the declaration of the Lexer, which is the
+/// responsible for lexing the input file.
+///
+// =============================================================================
+//
+// Copyright (c) 2022, Drast Programming Language Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be found
+// in the LICENSE file.
+//
+// =============================================================================
 
 #include "Lexer.h"
 
@@ -154,7 +173,6 @@ Token Lexer::identifier() {
     }
 
     uint32_t length = buffer_index - start;
-
     std::string_view identifier(file_buffer.data() + start, length);
 
     TokenType type1 = Token::isKeyword(identifier);
@@ -205,9 +223,6 @@ Token Lexer::number() {
 
 loop:
     while (utils::isNumber(current())) {
-        if (current() == '\n') {
-            break;
-        }
         advance();
     }
 
@@ -286,6 +301,7 @@ loop:
         case '\\':
             advance();
             evaluateEscapeSequence();
+            continue;
         default:
             break;
         }
@@ -301,9 +317,9 @@ loop:
     }
 }
 
-inline Token Lexer::createOperator(TokenType type) { return returnToken(type); }
+Token Lexer::createOperator(TokenType type) { return returnToken(type); }
 
-inline Token Lexer::createOperator(TokenType type, TokenType type2) {
+Token Lexer::createOperator(TokenType type, TokenType type2) {
     if (peek() == '=') {
         advance();
         return returnToken(type2);
@@ -311,7 +327,7 @@ inline Token Lexer::createOperator(TokenType type, TokenType type2) {
     return returnToken(type);
 }
 
-inline Token Lexer::returnToken(TokenType type, bool without_advance) {
+Token Lexer::returnToken(TokenType type, bool without_advance) {
     auto return_token = Token(type, start, buffer_index - start, location);
     if (!without_advance) {
         advance();
@@ -321,20 +337,17 @@ inline Token Lexer::returnToken(TokenType type, bool without_advance) {
     return return_token;
 }
 
-inline void Lexer::advanceWhitespace() {
-    while (isspace(current())) {
+void Lexer::advanceWhitespace() {
+    while (utils::isWhitespace(current())) {
         if (current() == '\n') {
             tokens.push_back(returnToken(TokenType::NEW_LINE, true));
             advanceLine();
-        }
-        if (current() == '\0') {
-            break;
         }
         advance();
     }
 }
 
-inline void Lexer::advanceLineComment() {
+void Lexer::advanceLineComment() {
     while (current() != '\n') {
         if (current() == '\0') {
             break;
@@ -343,10 +356,10 @@ inline void Lexer::advanceLineComment() {
     }
 }
 
-inline void Lexer::advanceMultilineComment() {
+void Lexer::advanceMultilineComment() {
     advance(2);
     auto comment_start = location;
-    while (current() != '*' || peek() != '/') {
+    while (current() != '*' && peek() != '/') {
         switch (current()) {
         case '\0':
             throwError("Unterminated block comment.", comment_start);
@@ -354,6 +367,7 @@ inline void Lexer::advanceMultilineComment() {
         case '/':
             if (peek() == '*')
                 advanceMultilineComment();
+            break;
         case '\n':
             advanceLine();
             break;
@@ -365,7 +379,7 @@ inline void Lexer::advanceMultilineComment() {
     advance(2);
 }
 
-inline void Lexer::advanceLine() {
+void Lexer::advanceLine() {
     location.line += 1;
     location.column = 0;
 }
@@ -393,6 +407,7 @@ void Lexer::evaluateEscapeSequence() {
     case 'x':
     case '\'':
     case '\\':
+    case '"':
         advance();
         return;
     default:
@@ -400,8 +415,6 @@ void Lexer::evaluateEscapeSequence() {
         break;
     }
 }
-
-char Lexer::peek(size_t offset) { return file_buffer[buffer_index + offset]; }
 
 Token Lexer::lexWhile(TokenType type, bool (*predicate)(char)) {
     while (predicate(current())) {

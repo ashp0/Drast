@@ -1,6 +1,25 @@
 //
+// LookupTable.h
 // Created by Ashwin Paudel on 2022-04-18.
 //
+// =============================================================================
+//
+// Contributed by:
+//  - Ashwin Paudel <ashwonixer123@gmail.com>
+//
+// =============================================================================
+///
+/// \file
+/// This file contains the declaration of the Error class. Which is used by the
+/// Token class as a container for the keywords.
+///
+// =============================================================================
+//
+// Copyright (c) 2022, Drast Programming Language Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be found
+// in the LICENSE file.
+//
+// =============================================================================
 
 #ifndef DRAST_LOOKUPTABLE_H
 #define DRAST_LOOKUPTABLE_H
