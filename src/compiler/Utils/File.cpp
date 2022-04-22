@@ -5,7 +5,7 @@
 #include "Utils.h"
 
 namespace drast::utils {
-void readFile(std::string &file_name, std::string &file_buffer) {
+void readFile(const std::string &file_name, std::string &file_buffer) {
     FILE *fp;
     char *line = nullptr;
     size_t length = 0;

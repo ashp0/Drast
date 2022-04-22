@@ -120,7 +120,7 @@ AST::Node *Parser::statement() {
         return this->expression();
     case lexer::TokenType::NEW_LINE:
         this->throwError(
-            "Error with parsing '\\n', please create a Github issue.");
+            "Error with parsing '\n', please create a Github issue.");
         return nullptr;
     case lexer::TokenType::T_EOF:
         return nullptr;

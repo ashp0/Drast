@@ -20,7 +20,7 @@ bool isNumber(char c);
 
 bool isAlphaNumeric(char c);
 
-void readFile(std::string &file_name, std::string &file_buffer);
+void readFile(const std::string &file_name, std::string &file_buffer);
 } // namespace drast::utils
 
 #endif // DRAST_UTILS_H

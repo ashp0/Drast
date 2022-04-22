@@ -166,9 +166,9 @@ class Parser {
     std::string_view getAndAdvance(lexer::TokenType type,
                                    const char *message = "");
 
-    lexer::Token &current() { return lexer.tokens[index]; }
+    constexpr inline lexer::Token &current() { return lexer.tokens[index]; }
 
-    lexer::Token &peek() { return lexer.tokens[index + 1]; }
+    constexpr inline lexer::Token &peek() { return lexer.tokens[index + 1]; }
 
     template <class ast_type, class... Args>
     ast_type *makeDeclaration(Args &&...args);

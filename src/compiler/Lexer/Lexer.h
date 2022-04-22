@@ -31,15 +31,13 @@ class Lexer {
     std::vector<Token> tokens;
 
   public:
-    Lexer(std::string &file_name, Error &error);
+    Lexer(const std::string &file_name, const Error &error);
 
     void lex();
 
     Token getToken();
 
   private:
-    Token lexOperator();
-
     Token identifier();
 
     Token hexadecimal();
@@ -56,9 +54,11 @@ class Lexer {
 
     Token multilineString();
 
-    Token returnToken(TokenType type, bool without_advance = false);
+    Token createOperator(TokenType type);
 
-    constexpr bool equalAndAdvance();
+    Token createOperator(TokenType type, TokenType type2);
+
+    Token returnToken(TokenType type, bool without_advance = false);
 
     void advanceWhitespace();
 
@@ -66,24 +66,25 @@ class Lexer {
 
     void advanceMultilineComment();
 
-    constexpr void advanceLine();
+    void advanceLine();
 
-    void advance();
+    inline void advance();
 
-    void advance(size_t offset);
+    inline void advance(size_t offset);
 
     void evaluateEscapeSequence();
 
-    constexpr char peek(size_t offset = 1);
+    inline char peek(size_t offset = 1);
 
-    template <typename predicate>
-    Token lexWhile(TokenType type, predicate &&pred);
+    Token lexWhile(TokenType type, bool (*predicate)(char));
 
     Token throwError(const std::string &message);
 
-    Token throwError(const std::string &message, Location &loc);
+    Token throwError(const std::string &message, const Location &loc);
 
-    constexpr char &current() { return this->file_buffer[this->buffer_index]; }
+    inline const char &current() const {
+        return this->file_buffer[this->buffer_index];
+    }
 };
 
 } // namespace drast::lexer

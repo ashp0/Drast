@@ -2,7 +2,7 @@
 // Drast Programming Language Tests
 //
 
-//import io
+import io
 
 var test = ("test" + "40") * "30"
 test += "ing"
