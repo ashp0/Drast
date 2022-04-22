@@ -3,11 +3,6 @@
 // Created by Ashwin Paudel on 2022-04-17.
 //
 // =============================================================================
-//
-// Contributed by:
-//  - Ashwin Paudel <ashwonixer123@gmail.com>
-//
-// =============================================================================
 ///
 /// \file
 /// This file contains the declaration of the Error class. Which is used by the
@@ -18,6 +13,11 @@
 // Copyright (c) 2022, Drast Programming Language Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be found
 // in the LICENSE file.
+//
+// =============================================================================
+//
+// Contributed by:
+//  - Ashwin Paudel <ashwonixer123@gmail.com>
 //
 // =============================================================================
 

@@ -3,11 +3,6 @@
 // Created by Ashwin Paudel on 2022-03-20.
 //
 // =============================================================================
-//
-// Contributed by:
-//  - Ashwin Paudel <ashwonixer123@gmail.com>
-//
-// =============================================================================
 ///
 /// \file
 /// This file contains the declaration of the Lexer, which is the
@@ -18,6 +13,11 @@
 // Copyright (c) 2022, Drast Programming Language Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be found
 // in the LICENSE file.
+//
+// =============================================================================
+//
+// Contributed by:
+//  - Ashwin Paudel <ashwonixer123@gmail.com>
 //
 // =============================================================================
 

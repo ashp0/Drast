@@ -4,14 +4,14 @@
 //
 // =============================================================================
 //
-// Contributed by:
-//  - Ashwin Paudel <ashwonixer123@gmail.com>
-//
-// =============================================================================
-//
 // Copyright (c) 2022, Drast Programming Language Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be found
 // in the LICENSE file.
+//
+// =============================================================================
+//
+// Contributed by:
+//  - Ashwin Paudel <ashwonixer123@gmail.com>
 //
 // =============================================================================
 
