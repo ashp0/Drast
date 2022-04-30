@@ -20,9 +20,8 @@
 //  - Ashwin Paudel <ashwonixer123@gmail.com>
 //
 // =============================================================================
-
-#ifndef DRAST_SEMANTIC_ANALYZER_H
-#define DRAST_SEMANTIC_ANALYZER_H
+#ifndef DRAST_COMPILER_SEMANTICANALYZER_SEMANTICANALYZER_H
+#define DRAST_COMPILER_SEMANTICANALYZER_SEMANTICANALYZER_H
 
 #include "../AST/AST.h"
 #include "../Common/Error.h"
@@ -101,4 +100,4 @@ class SemanticAnalyzer {
 
 } // namespace drast::semanticAnalyzer
 
-#endif // DRAST_SEMANTIC_ANALYZER_H
+#endif // DRAST_COMPILER_SEMANTICANALYZER_SEMANTICANALYZER_H

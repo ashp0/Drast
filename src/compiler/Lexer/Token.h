@@ -21,8 +21,8 @@
 //
 // =============================================================================
 
-#ifndef DRAST_TOKEN_H
-#define DRAST_TOKEN_H
+#ifndef DRAST_COMPILER_LEXER_TOKEN_H
+#define DRAST_COMPILER_LEXER_TOKEN_H
 
 #include "../Common/LookupTable.h"
 #include "../Common/Types.h"
@@ -209,4 +209,4 @@ class Token {
 
 } // namespace drast::lexer
 
-#endif // DRAST_TOKEN_H
+#endif // DRAST_COMPILER_LEXER_TOKEN_H

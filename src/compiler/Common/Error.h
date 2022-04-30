@@ -21,8 +21,8 @@
 //
 // =============================================================================
 
-#ifndef DRAST_ERROR_H
-#define DRAST_ERROR_H
+#ifndef DRAST_COMPILER_COMMON_ERROR_H
+#define DRAST_COMPILER_COMMON_ERROR_H
 
 #include "Types.h"
 #include <iostream>
@@ -51,4 +51,4 @@ struct Error {
                         bool is_warning);
 };
 
-#endif // DRAST_ERROR_H
+#endif // DRAST_COMPILER_COMMON_ERROR_H

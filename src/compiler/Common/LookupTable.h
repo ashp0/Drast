@@ -21,8 +21,8 @@
 //
 // =============================================================================
 
-#ifndef DRAST_LOOKUPTABLE_H
-#define DRAST_LOOKUPTABLE_H
+#ifndef DRAST_COMPILER_COMMON_LOOKUPTABLE_H
+#define DRAST_COMPILER_COMMON_LOOKUPTABLE_H
 
 #include <algorithm>
 #include <utility>
@@ -76,4 +76,4 @@ template <typename Key, typename Value> class LookupTable {
     }
 };
 
-#endif // DRAST_LOOKUPTABLE_H
+#endif // DRAST_COMPILER_COMMON_LOOKUPTABLE_H

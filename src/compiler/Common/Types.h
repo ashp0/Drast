@@ -21,8 +21,8 @@
 //
 // =============================================================================
 
-#ifndef DRAST_TYPES_H
-#define DRAST_TYPES_H
+#ifndef DRAST_COMPILER_COMMON_TYPES_H
+#define DRAST_COMPILER_COMMON_TYPES_H
 
 #include <string>
 
@@ -38,4 +38,4 @@ struct Location {
     }
 };
 
-#endif // DRAST_TYPES_H
+#endif // DRAST_COMPILER_COMMON_TYPES_H

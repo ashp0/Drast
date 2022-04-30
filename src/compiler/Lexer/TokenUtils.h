@@ -21,8 +21,8 @@
 //
 // =============================================================================
 
-#ifndef DRAST_TOKENUTILS_H
-#define DRAST_TOKENUTILS_H
+#ifndef DRAST_COMPILER_LEXER_TOKENUTILS_H
+#define DRAST_COMPILER_LEXER_TOKENUTILS_H
 
 #include "Token.h"
 
@@ -292,4 +292,4 @@ constexpr bool isComparativeOperator(TokenType type) {
 
 } // namespace drast::lexer
 
-#endif // DRAST_TOKENUTILS_H
+#endif // DRAST_COMPILER_LEXER_TOKENUTILS_H

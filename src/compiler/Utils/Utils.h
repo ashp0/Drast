@@ -21,8 +21,8 @@
 //
 // =============================================================================
 
-#ifndef DRAST_UTILS_H
-#define DRAST_UTILS_H
+#ifndef DRAST_COMPILER_UTILS_UTILS_H
+#define DRAST_COMPILER_UTILS_UTILS_H
 
 #include <iostream>
 #include <sstream>
@@ -44,4 +44,4 @@ bool isWhitespace(char c);
 void readFile(const std::string &file_name, std::string &file_buffer);
 } // namespace drast::utils
 
-#endif // DRAST_UTILS_H
+#endif // DRAST_COMPILER_UTILS_UTILS_H

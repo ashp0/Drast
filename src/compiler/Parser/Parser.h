@@ -21,8 +21,8 @@
 //
 // =============================================================================
 
-#ifndef DRAST_PARSER_H
-#define DRAST_PARSER_H
+#ifndef DRAST_COMPILER_PARSER_PARSER_H
+#define DRAST_COMPILER_PARSER_PARSER_H
 
 #include "../AST/AST.h"
 #include "../Lexer/Lexer.h"
@@ -206,4 +206,4 @@ class Parser {
 
 } // namespace drast::parser
 
-#endif // DRAST_PARSER_H
+#endif // DRAST_COMPILER_PARSER_PARSER_H

@@ -21,8 +21,8 @@
 //
 // =============================================================================
 
-#ifndef DRAST_AST_H
-#define DRAST_AST_H
+#ifndef DRAST_COMPILER_AST_AST_H
+#define DRAST_COMPILER_AST_AST_H
 
 #include "../Common/LookupTable.h"
 #include "../Common/Types.h"
@@ -868,4 +868,4 @@ class ForceUnwrapExpression : public Node {
 
 } // namespace drast::AST
 
-#endif // DRAST_AST_H
+#endif // DRAST_COMPILER_AST_AST_H
