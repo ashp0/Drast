@@ -6,6 +6,7 @@ import io
 
 var test = ("test" + "40") * "30"
 test += "ing"
+test += 40 // Error: Invalid Expression, types are not equal
 
 var test2 = 0.50
 test2 += 69.420

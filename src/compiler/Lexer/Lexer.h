@@ -21,8 +21,8 @@
 //
 // =============================================================================
 
-#ifndef DRAST_LEXER_H
-#define DRAST_LEXER_H
+#ifndef DRAST_COMPILER_LEXER_LEXER_H
+#define DRAST_COMPILER_LEXER_LEXER_H
 
 #include "../Common/Error.h"
 #include "../Common/Types.h"
@@ -37,7 +37,6 @@ namespace drast::lexer {
 class Lexer {
   private:
     Error error;
-    bool did_encounter_error = false;
 
     Location location;
 
@@ -47,12 +46,9 @@ class Lexer {
     uint32_t buffer_index = 0;
 
   public:
-    std::vector<Token> tokens;
-
-  public:
     Lexer(const std::string &file_name, const Error &error);
 
-    void lex();
+    bool did_encounter_error = false;
 
     Token getToken();
 
@@ -110,4 +106,4 @@ class Lexer {
 
 } // namespace drast::lexer
 
-#endif // DRAST_LEXER_H
+#endif // DRAST_COMPILER_LEXER_LEXER_H

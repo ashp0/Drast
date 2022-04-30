@@ -142,9 +142,10 @@ class Node {
     Location location;
     ASTType type;
 
+    virtual ~Node() = default;
+
   protected:
     Node(ASTType type, Location &location) : location(location), type(type) {}
-    virtual ~Node() = default;
 
   public:
     virtual std::string toString() = 0;
@@ -167,6 +168,8 @@ class Compound : public Node {
     Compound(std::vector<Node *> &statements, Location &location)
         : Node(ASTType::COMPOUND, location), statements(std::move(statements)) {
     }
+
+    void addStatement(Node *statement) { statements.push_back(statement); }
 
     explicit Compound(Location &location) : Node(ASTType::COMPOUND, location) {}
 

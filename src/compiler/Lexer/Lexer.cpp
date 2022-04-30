@@ -32,29 +32,32 @@ Lexer::Lexer(const std::string &file_name, const Error &error)
     error.buffer = file_buffer;
 }
 
-void Lexer::lex() {
-    for (auto token = getToken(); token.type != TokenType::T_EOF;
-         token = getToken()) {
-        tokens.push_back(token);
-    }
-
-    if (did_encounter_error) {
-        error.displayMessages();
-    }
-
-    //    for (auto &token : tokens) {
-    //        if (token.type != TokenType::NEW_LINE) {
-    //            std::cout << token.toString(file_buffer) << '\n';
-    //        }
-    //    }
-    tokens.push_back(returnToken(TokenType::T_EOF));
-}
+// void Lexer::lex() {
+//     for (auto token = getToken(); token.type != TokenType::T_EOF;
+//          token = getToken()) {
+//         tokens.push_back(token);
+//     }
+//
+//     if (did_encounter_error) {
+//         error.displayMessages();
+//     }
+//
+//     for (auto &token : tokens) {
+//         if (token.type != TokenType::NEW_LINE) {
+//             std::cout << token.toString(file_buffer) << '\n';
+//         }
+//     }
+//     tokens.push_back(returnToken(TokenType::T_EOF));
+// }
 
 Token Lexer::getToken() {
     advanceWhitespace();
     start = buffer_index;
 
     switch (current()) {
+    case '\n':
+        advanceLine();
+        return returnToken(TokenType::NEW_LINE);
     case 'a' ... 'z':
     case 'A' ... 'Z':
         return identifier();
@@ -338,11 +341,8 @@ Token Lexer::returnToken(TokenType type, bool without_advance) {
 }
 
 void Lexer::advanceWhitespace() {
+    // this doesn't skip whitespace, since it's handled in the switch case
     while (utils::isWhitespace(current())) {
-        if (current() == '\n') {
-            tokens.push_back(returnToken(TokenType::NEW_LINE, true));
-            advanceLine();
-        }
         advance();
     }
 }

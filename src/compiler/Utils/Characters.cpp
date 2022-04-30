@@ -44,6 +44,6 @@ bool isAlphaNumeric(char c) {
 }
 
 bool isWhitespace(char c) {
-    return c == ' ' || c == '\t' || c == '\n' || c == '\r';
+    return c == ' ' || c == '\t' /*|| c == '\n' || c == '\r'*/;
 }
 } // namespace drast::utils

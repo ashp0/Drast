@@ -59,7 +59,7 @@ class SemanticAnalyzer {
     bool encountered_error = false;
 
   public:
-    SemanticAnalyzer(AST::Compound *root, Error error)
+    SemanticAnalyzer(AST::Node *root, Error error)
         : root(root), error(std::move(error)) {}
 
     void analyze();

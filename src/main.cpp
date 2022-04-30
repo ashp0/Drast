@@ -25,11 +25,11 @@ int main(int argc, const char *argv[]) {
 
     Error error = {.file_name = argv[1], .buffer = file_name};
     drast::lexer::Lexer lexer(file_name, error);
-    lexer.lex();
+    //    lexer.lex();
 
     std::cout << "----------------------------------" << std::endl;
 
-    drast::parser::Parser parser(file_name, lexer, error);
+    drast::parser::Parser parser(lexer, error);
     auto ast_tree = parser.parse();
 
     std::cout << "----------------------------------" << std::endl;

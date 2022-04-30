@@ -24,12 +24,9 @@
 #include "Parser.h"
 
 namespace drast::parser {
-
-AST::Compound *Parser::parse() {
+AST::Node *Parser::parse() {
     auto compound = this->compound();
-
-    std::cout << compound->toString() << '\n';
-
+    std::cout << compound->toString() << std::endl;
     return compound;
 }
 
@@ -289,7 +286,7 @@ Parser::functionDeclaration(const std::vector<lexer::TokenType> &qualifiers) {
     if (advanceIf(lexer::TokenType::BRACE_OPEN)) {
         auto function_body = this->compound();
         advance(lexer::TokenType::BRACE_CLOSE,
-                "Function's body must be closed.");
+                "The function's body must be closed.");
 
         return this->makeDeclaration<AST::FunctionDeclaration>(
             qualifiers, return_type, function_name, function_arguments,
@@ -297,7 +294,7 @@ Parser::functionDeclaration(const std::vector<lexer::TokenType> &qualifiers) {
     }
 
     if (template_) {
-        this->throwError("Functions without a body can't have a template!");
+        this->throwError("Functions without a body can't have a template.");
     }
 
     return this->makeDeclaration<AST::FunctionDeclaration>(
@@ -782,7 +779,7 @@ AST::Node *Parser::arrayAccess() {
     // myVariable[40]
     auto variable_name =
         getAndAdvance(lexer::TokenType::IDENTIFIER,
-                      "Expecteda  identifier after array access.");
+                      "Expected a identifier after array access.");
     advance(lexer::TokenType::SQUARE_OPEN);
     auto inside = this->expression();
     advance(lexer::TokenType::SQUARE_CLOSE,
@@ -845,7 +842,7 @@ std::vector<AST::Node *> Parser::functionCallArguments() {
             auto argument_name =
                 getAndAdvance(lexer::TokenType::IDENTIFIER,
                               "Expected a identifier after using a name based "
-                              "argument style");
+                              "argument style.");
             advance(lexer::TokenType::COLON);
             auto argument_value = this->expression();
 
@@ -858,7 +855,7 @@ std::vector<AST::Node *> Parser::functionCallArguments() {
         argument_expression:
             if (!argument_can_have_unnamed_arguments) {
                 throwError("Cannot use unnamed arguments after "
-                           "using a named argument");
+                           "using a named argument.");
             }
             arguments.push_back(this->expression());
         }
@@ -1331,35 +1328,36 @@ std::vector<lexer::TokenType> Parser::getQualifiers() {
     return modifiers;
 }
 
-void Parser::advance() { this->index += 1; }
-
-void Parser::reverse() { this->index -= 1; }
-
-void Parser::advance(lexer::TokenType type, const char *error_message) {
-    if (this->current().type == type) {
-        this->advance();
-    } else {
-        //        std::cout << lexer::tokenTypeAsLiteral(this->current().type)
-        //                  << " :: " << lexer::tokenTypeAsLiteral(type)
-        //                  << " :: " << this->current().location.toString() <<
-        //                  '\n';
-        this->throwError(error_message);
+void Parser::advance() {
+    if (lexer.did_encounter_error) {
+        error.displayMessages();
     }
+    tokens.push_back(lexer.getToken());
+    index++;
 }
 
-bool Parser::advanceIf(lexer::TokenType type) {
-    if (this->current().type == type) {
-        this->advance();
-        return true;
-    }
+inline void Parser::reverse() { index -= 1; }
 
-    return false;
+void Parser::advance(lexer::TokenType type, const char *message) {
+    if (current().type != type) {
+        throwError(message);
+    }
+    advance();
 }
 
 void Parser::advanceLines() {
     while (this->current().type == lexer::TokenType::NEW_LINE) {
         advance();
     }
+}
+
+bool Parser::advanceIf(lexer::TokenType type) {
+    if (current().type == type) {
+        advance();
+        return true;
+    }
+
+    return false;
 }
 
 lexer::TokenType Parser::getAndAdvanceType() {

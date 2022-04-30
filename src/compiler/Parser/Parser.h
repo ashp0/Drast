@@ -28,6 +28,8 @@
 #include "../Lexer/Lexer.h"
 #include "../Lexer/Token.h"
 #include "../Lexer/TokenUtils.h"
+#include <iostream>
+#include <iterator>
 #include <map>
 #include <utility>
 #include <vector>
@@ -36,24 +38,29 @@ namespace drast::parser {
 
 class Parser {
   private:
-    lexer::Lexer lexer;
-    Error error;
-
+    lexer::Lexer &lexer;
     size_t index = 0;
+
+    Error &error;
+    bool did_encounter_error = false;
 
     bool parses_goto_labels = true;
     bool inside_function_body = false; // myFunction(!{return true})
     bool is_parsing_struct = false;
     bool should_check_duplicates = true;
+
+    std::vector<lexer::Token> tokens;
     AST::Compound *current_compound = nullptr;
 
   public:
-    Parser(std::string &file_name, lexer::Lexer &lexer, Error error)
-        : lexer(lexer), error(std::move(error)) {}
+    Parser(lexer::Lexer &lexer, Error &error) : lexer(lexer), error(error) {
+        tokens.push_back(lexer.getToken());
+        tokens.push_back(lexer.getToken());
+    }
 
-    AST::Compound *parse();
+    AST::Node *parse();
 
-  private: /* Parser functions */
+  private:
     AST::Compound *compound();
 
     AST::Node *statement();
@@ -167,16 +174,20 @@ class Parser {
 
     std::vector<lexer::TokenType> getQualifiers();
 
-  private: /* Utilities */
+  private:
     void advance();
 
-    void reverse();
+    inline void reverse();
 
-    void advance(lexer::TokenType type, const char *error_message = "");
+    void advance(lexer::TokenType type, const char *message = "");
 
-    bool advanceIf(lexer::TokenType type);
+    inline lexer::Token &peek() { return tokens[index + 1]; }
+
+    inline lexer::Token &current() { return tokens[index]; }
 
     void advanceLines();
+
+    bool advanceIf(lexer::TokenType type);
 
     lexer::TokenType getAndAdvanceType();
 
@@ -184,10 +195,6 @@ class Parser {
 
     std::string_view getAndAdvance(lexer::TokenType type,
                                    const char *message = "");
-
-    constexpr inline lexer::Token &current() { return lexer.tokens[index]; }
-
-    constexpr inline lexer::Token &peek() { return lexer.tokens[index + 1]; }
 
     template <class ast_type, class... Args>
     ast_type *makeDeclaration(Args &&...args);
