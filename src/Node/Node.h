@@ -95,7 +95,7 @@ public:
 
 class Import final : public Node {
 public:
-    const std::string module_name;
+    std::string module_name;
     bool is_library = false;
 public:
     Import(std::string module_name, Location location) : Node(NodeType::IMPORT, location),
@@ -118,8 +118,7 @@ public:
     std::vector<VariableDeclaration *> variables;
     std::vector<FunctionDeclaration *> functions;
 public:
-    explicit StructDeclaration(Location location) : Node(NodeType::STRUCT_DECLARATION, location),
-                                                    name(std::move(name)) {}
+    explicit StructDeclaration(Location location) : Node(NodeType::STRUCT_DECLARATION, location) {}
 
     [[nodiscard]] std::string toString() const override;
 
@@ -147,15 +146,10 @@ public:
 
 class EnumDeclaration final : public Node {
 public:
-    const std::string name;
+    std::string name;
     std::vector<std::string> cases;
 public:
-    EnumDeclaration(std::string &name, Location location) : Node(NodeType::ENUM_DECLARATION, location),
-                                                            name(std::move(name)) {
-        for (auto &case_: this->cases) {
-            std::transform(case_.begin(), case_.end(), case_.begin(), ::toupper);
-        }
-    }
+    explicit EnumDeclaration(Location location) : Node(NodeType::ENUM_DECLARATION, location) {}
 
     [[nodiscard]] std::string toString() const override;
 
@@ -168,7 +162,7 @@ public:
     std::string from_enum;
 public:
     EnumDot(std::string &enum_name, Location location) : Node(NodeType::ENUM_DOT, location),
-                                                         case_name(std::move(enum_name)) {
+                                                         case_name(enum_name) {
         std::transform(this->case_name.begin(), this->case_name.end(), this->case_name.begin(), ::toupper);
     }
 
@@ -185,7 +179,7 @@ public:
     Block *block = nullptr;
     bool is_struct_function = false;
 public:
-    FunctionDeclaration(Location location) : Node(NodeType::FUNCTION_DECLARATION, location) {}
+    explicit FunctionDeclaration(Location location) : Node(NodeType::FUNCTION_DECLARATION, location) {}
 
     [[nodiscard]] std::string toString() const override;
 
@@ -197,7 +191,7 @@ public:
     std::string name;
     TypeNode *arg_type = nullptr;
 public:
-    Argument(Location location) : Node(NodeType::ARGUMENT, location) {}
+    explicit Argument(Location location) : Node(NodeType::ARGUMENT, location) {}
 
     [[nodiscard]] std::string toString() const override;
 
@@ -262,9 +256,9 @@ class ConstantDeclaration final : public Node {
 public:
     std::string const_name;
     std::optional<TypeNode *> const_type = std::nullopt;
-    Expression *value;
+    Expression *value = nullptr;
 public:
-    ConstantDeclaration(Location location) : Node(NodeType::CONSTANT_DECLARATION, location) {}
+    explicit ConstantDeclaration(Location location) : Node(NodeType::CONSTANT_DECLARATION, location) {}
 
     [[nodiscard]] std::string toString() const override;
 
@@ -279,8 +273,7 @@ public:
 
 public:
     VariableDeclaration(std::string variable_name, Expression *expr, Location location) : Node(
-            NodeType::VARIABLE_DECLARATION, location), variable_name(std::move(
-            variable_name)), expr(expr) {}
+            NodeType::VARIABLE_DECLARATION, location), variable_name(std::move(variable_name)), expr(expr) {}
 
     VariableDeclaration(std::string variable_name, TypeNode *variable_type, Location location) : Node(
             NodeType::VARIABLE_DECLARATION, location), variable_name(std::move(variable_name)), variable_type(
@@ -295,7 +288,7 @@ class ReturnStatement final : public Node {
 public:
     Expression *expr = nullptr;
 public:
-    ReturnStatement(Location location) : Node(NodeType::RETURN_STATEMENT, location) {}
+    explicit ReturnStatement(Location location) : Node(NodeType::RETURN_STATEMENT, location) {}
 
     [[nodiscard]] std::string toString() const override;
 
@@ -403,7 +396,7 @@ class Array final : public Node {
 public:
     std::vector<Expression *> items;
 public:
-    Array(Location location) : Node(NodeType::ARRAY, location) {}
+    explicit Array(Location location) : Node(NodeType::ARRAY, location) {}
 
     [[nodiscard]] std::string toString() const override;
 

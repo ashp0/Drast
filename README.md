@@ -10,7 +10,7 @@
 
 _A drastic change in programming_
 
-[Docs](docs/docs.md) | [TODO](TODO.md)
+[Docs](docs/import.md) | [TODO](TODO.md)
 
 </div>
 
@@ -30,7 +30,8 @@ All examples are located in [`examples`](https://github.com/Malvion/drast/tree/m
 
 Want to contribute to drast? First, read
 the [`CONTRIBUTING.md`](https://github.com/Malvion/drast/blob/master/CONTRIBUTING.md)
-and [`CODE_OF_CONDUCT.md`](https://github.com/Malvion/drast/blob/master/CODE_OF_CONDUCT.md). Then fork drast, add in your
+and [`CODE_OF_CONDUCT.md`](https://github.com/Malvion/drast/blob/master/CODE_OF_CONDUCT.md). Then fork drast, add in
+your
 own amazing changes, the open up a pull request!
 
 ## Building

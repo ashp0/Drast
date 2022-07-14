@@ -24,12 +24,12 @@
 - [ ] Type Checker
     - [ ] Struct initializer
     - [ ] Check Expressions
-      - [ ] If member of struct exists
-      - [ ] If operator is valid
+        - [ ] If member of struct exists
+        - [ ] If operator is valid
     - [ ] Struct Variable Members
 - [ ] Code Generation
-  - [ ] Automatically convert `.` operator into C-Style function
-  - [ ] Fix imports
+    - [ ] Automatically convert `.` operator into C-Style function
+    - [ ] Fix imports
 - [ ] Improvements to the CLI
 - [ ] Built-in Library
 - [ ] Self Compile

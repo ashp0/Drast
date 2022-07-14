@@ -195,14 +195,14 @@ StructDeclaration *Parser::parseStruct() {
 }
 
 EnumDeclaration *Parser::parseEnum() {
+    auto enum_declaration = new EnumDeclaration(current().location);
+
     advance(); // enum
     check(TokenType::LV_IDENTIFIER, "Expected identifier after enum declaration");
-    auto name = current().literal.value();
+    enum_declaration->name = current().literal.value();
     advance();
     consume(TokenType::COLON, "Expected ':'");
     advanceLines();
-
-    auto enum_declaration = new EnumDeclaration(name, current().location);
 
     indent += 1;
 
