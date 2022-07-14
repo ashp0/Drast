@@ -1,32 +1,33 @@
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.22)
 project(drast)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 17)
 
-set(SOURCES
-        src/compiler/Lexer/Lexer.h
-        src/compiler/Lexer/Lexer.cpp
-        src/compiler/Lexer/Token.h
-        src/compiler/Lexer/TokenUtils.h
-        src/compiler/Lexer/Token.cpp
+add_executable(drast
+        src/main.cpp
 
-        src/compiler/Parser/Parser.h
-        src/compiler/Parser/Parser.cpp
+        # ArgsParser
+        src/ArgsParser/ArgsParser.cpp
+        src/ArgsParser/ArgsParser.h
 
-        src/compiler/AST/AST.h
-        src/compiler/AST/AST.cpp
+        # Common
+        src/Common/Location.h
+        src/Common/Report.h
 
-        src/compiler/SemanticAnalyzer/SemanticAnalyzer.h
-        src/compiler/SemanticAnalyzer/SemanticAnalyzer.cpp
+        # Config
+        src/Config/Config.cpp
+        src/Config/Config.h
 
-        src/compiler/Utils/Utils.h
-        src/compiler/Utils/Characters.cpp
-        src/compiler/Utils/File.cpp
+        # Lexer
+        src/Lexer/Lexer.cpp
+        src/Lexer/Lexer.h
+        src/Lexer/Token.cpp
+        src/Lexer/Token.h
 
-        src/compiler/Common/Error.cpp
-        src/compiler/Common/Error.h
-        src/compiler/Common/LookupTable.h
+        # Node
+        src/Node/Node.cpp
+        src/Node/Node.h
 
-        src/main.cpp)
-
-add_executable(drast ${SOURCES})
+        # Parser
+        src/Parser/Parser.cpp
+        src/Parser/Parser.h)

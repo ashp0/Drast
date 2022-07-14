@@ -1,49 +1,35 @@
 # TODO
 
-- [x] Lexing
-    - [x] Multiline string
-    - [ ] Unicode Support?
+- [ ] Lexing
+    - [ ] Unicode Support
 - [x] Parsing
     - [x] Import Statements
     - [x] Function Declaration
-    - [x] Parsing Expression
-    - [x] Variables
+    - [x] Parsing Expressions
+    - [x] Variables & Constants
     - [x] Return Statement
-    - [x] ASM
     - [x] Enums
-    - [x] If, Else, Else If
+    - [x] If, Elif, Else
     - [x] Struct
-    - [x] Goto
-    - [x] Switch, break, case, default
+    - [ ] Goto
+    - [ ] Switch, break, case, default
     - [x] For, While, Continue, Break
-    - [x] Do Catch Try
     - [x] Casting
-    - [x] New lines as semicolons instead of just parsing
-    - [x] Support for array's, array index referencing, array operator overloading
-    - [x] Typeof and Any operator
-    - [x] ternary operator
-    - [x] `for (dog in dogs) |int index| { ... }`
-    - [x] Functions which throw an exception must use `!` instead of `?` as their type
-    - [x] Functions with default parameters
-    - [x] Named arguments in function calls
-    - [x] Unions
-    - [x] Index in range based for loop
-    - [x] Better Error Messages
-    - [x] myVariable ?? 57.0
-- [ ] Semantic Analyzer
-    - [ ] Duplicate Variable and Functions
-    - [ ] Duplicate Struct Initializers
+    - [ ] Support for array's, array index referencing, array operator overloading
+    - [ ] Typeof and Any operator
+    - [ ] ternary operator
+    - [ ] Functions with default parameters
+    - [ ] Named arguments in function calls
+    - [ ] Unions
+- [ ] Type Checker
+    - [ ] Struct initializer
     - [ ] Check Expressions
-    - [ ] Struct initializers
-    - [ ] Check if self.xxx is an actual member in the struct
-    - [ ] Variable Assignments
-    - [ ] Function Calls
-    - [ ] Return Statement
-    - [ ] If Statements
-    - [ ] Alias Types
+      - [ ] If member of struct exists
+      - [ ] If operator is valid
     - [ ] Struct Variable Members
-- [ ] Optimizations? ( Might not do this stage since LLVM does this )
 - [ ] Code Generation
+  - [ ] Automatically convert `.` operator into C-Style function
+  - [ ] Fix imports
 - [ ] Improvements to the CLI
-- [ ] Standard Library
+- [ ] Built-in Library
 - [ ] Self Compile

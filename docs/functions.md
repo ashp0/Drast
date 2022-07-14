@@ -1,30 +1,25 @@
 # Functions
 
-Functions must be defined as camelCase
+## Declaring functions
 
-`myFunction`,
-`myFunction2`,
-`printHelloWorld`,
+Functions are declared with the fn keyword, following a name, a list of arguments and optionally a type.
 
-## Define a function
-
-```C
-int :: main(int argc, string[] argv) {
-    int variable = 40
-    print("Hello World! $(variable)\n")
-    
-    return 0
-}
+```
+fn multiply(first: float, second: float) -> float:
+    return first * second
 ```
 
-## Call a function
+## Calling functions
 
-```C
-int :: add(int a, int b) {
-    return a + b
-}
+Function calls are similar as in most programming language
 
-add(1, 2) // Note, functions must be called inside a scope
+```
+fn main(argc: int, argv: [string]):
+    return multiply(50, 0)
 ```
 
-## Optional Functions (TODO)
+## FAQ
+
+### Name style
+
+It is a good exercise to use CamelCase when declaring enums normally. However, there are sometimes exceptions. 

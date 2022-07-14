@@ -1,9 +1,0 @@
-//
-// Drast Standard Library
-//
-
-private extern void :: puts(char *s)
-
-void :: print(string format, ...) {
-
-}

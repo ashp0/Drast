@@ -1,9 +1,0 @@
-//
-// Drast Programming Language Tests
-//
-
-typealias test = 40 + 20
-
-func main(): i32 {
-    print(test)
-}

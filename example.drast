@@ -1,0 +1,101 @@
+//
+// Drast Programming Language
+//
+
+import "file.drast"
+import std
+
+enum Operator:
+	add
+	subtract
+	multiply
+	divide
+
+
+struct Person:
+	name: string
+	age: int
+	grade: int
+
+	fn .str() -> string:
+		return name + " Age(" + age + ") Grade(" + grade + ')'
+
+enum PersonAge:
+	youngster
+	teenager
+	parent
+	old
+
+fn main(argc: int, argv: [string]) -> int:
+	let helloWorld := "Hello World"
+	mathTest := 50 + 40 + 30 * -40 + 90 + 50 * (30 * 50) * 20 + 90
+	typeTest: int = 50
+	charTest := 'A'
+	otherTest := 50 == 30
+
+	names := ["John", "Alex", "Jacob"]
+
+	for name in names:
+		std.print("Hello, " + myString + "!")
+
+	for i in (0..names.count).byOp(2, '*'):
+		std.print(i)
+
+	for i in (0..names.count).by(2):
+		std.print(i)
+
+	myStrings1.sort()
+
+	typeTest += 30
+	typeTest -= 30
+	typeTest *= 30
+	typeTest /= 30
+	typeTest = typeTest + 40
+	typeTest = typeTest - 40
+
+	boolType: bool = true
+
+	while charTest == 'A':
+		charTest = 'B'
+		if charTest == 'C':
+			charTest = 'D'
+			break
+
+
+	// for i in myStringArray:
+	std.print(i)
+
+	johnDoe := Person("John Doe", 18, 12)
+	std.print(johnDoe).xy.hello()
+
+	fn nestedFunctionTest() -> float:
+		let helloWorld := "Hello World"
+		mathTest := 50 + 40 + 30 * -40 + 90 + 50 * (30 * 50) * 20 + 90
+		typeTest: int = 50
+		charTest: char = 'A'
+		otherTest := 50 == 30
+
+		fn nestedFunctionTest2() -> string:
+			let helloWorld := "Hello World"
+			mathTest := 50 + 40 + 30 * -40 + 90 + 50 * (30 * 50) * 20 + 90
+			typeTest: int = 50
+			charTest := 'A'
+			otherTest := 50 == 30
+
+			return helloWorld
+
+		if charTest == 'A':
+			charTest = 'B'
+		elif charTest == 'B':
+			charTest = 'C'
+		elif charTest == 'C':
+			charTest = 'D'
+		else:
+			charTest = 'Z'
+
+	testFloat := 25.6
+
+	return 0
+
+let byeWorld: string = "Bye World"
+byWorld: string = "By world"

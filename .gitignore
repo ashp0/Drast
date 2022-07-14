@@ -6,4 +6,3 @@ cmake-build-debug
 .idea
 *.xcodeproj
 venv
-tests/1GB.drast

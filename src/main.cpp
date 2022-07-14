@@ -1,44 +1,45 @@
-//
-// main.cpp
-// Created by Ashwin Paudel on 2022-03-20.
-//
-// =============================================================================
-//
-// Copyright (c) 2022, Drast Programming Language Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be found
-// in the LICENSE file.
-//
-// =============================================================================
-//
-// Contributed by:
-//  - Ashwin Paudel <ashwonixer123@gmail.com>
-//
-// =============================================================================
-
-#include "compiler/Lexer/Lexer.h"
-#include "compiler/Parser/Parser.h"
-#include "compiler/SemanticAnalyzer/SemanticAnalyzer.h"
 #include <iostream>
+#include <fstream>
+#include "Lexer/Lexer.h"
+#include "ArgsParser/ArgsParser.h"
+#include "Config/Config.h"
+#include "Parser/Parser.h"
 
-int main(int argc, const char *argv[]) {
-    std::string file_name = argv[1];
+int main(int argc, char **argv) {
+    if (argc < 2) {
+        std::cout << "Invalid argument count" << std::endl;
+        exit(EXIT_FAILURE);
+    }
 
-    Error error = {.file_name = argv[1], .buffer = file_name};
-    drast::lexer::Lexer lexer(file_name, error);
-    //    lexer.lex();
+    ArgsParser argsParser(argc, argv);
+    argsParser.parseArguments();
 
-    std::cout << "----------------------------------" << std::endl;
+    const auto source = ([&]() -> std::string {
+        try {
+            std::ifstream in(Config::shared()->filename, std::ios::in);
+            in.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+            return std::string{std::istreambuf_iterator<char>{in},
+                               std::istreambuf_iterator<char>{}};
+        } catch (std::exception &e) {
+            throw std::runtime_error("Couldn't open input source file.");
+        }
+    })();
 
-    drast::parser::Parser parser(lexer, error);
-    auto ast_tree = parser.parse();
+    Lexer lexer(source);
+    Parser parser(lexer);
+    parser.parse();
+    if (Config::shared()->showsLexerOutput) {
+        for (const auto &token: parser.tokens) {
+            std::cout << Config::shared()->filename << ":" << token.location.line << ":"
+                      << token.location.column << ": " << token.toString() << std::endl;
+        }
+    }
 
-    std::cout << "----------------------------------" << std::endl;
 
-    drast::semanticAnalyzer::SemanticAnalyzer semantic_analyzer(ast_tree,
-                                                                error);
-    semantic_analyzer.analyze();
-
-    std::cout << "----------------------------------" << std::endl;
+    std::cout << parser.root->generate();
+    std::cout << "\n-----------------------------------------------------\n\n\n";
+    std::cout << parser.root->toString();
 
     return 0;
 }
+

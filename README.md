@@ -10,9 +10,6 @@
 
 _A drastic change in programming_
 
-Drast is a general-purpose language written in cpp20, meant to be a more modern version of C, while still maintaining
-its simplicity.
-
 [Docs](docs/docs.md) | [TODO](TODO.md)
 
 </div>
@@ -21,9 +18,8 @@ its simplicity.
 
 ## Features
 
-- **Super Simple and Easy to learn syntax** - Similar to Rust, Go, Kotlin and Swift
+- **Super Simple and Easy to learn syntax** - Similar to python's humanly syntax while being as fast as C
 - **Semi-Object Oriented** - No need to learn all the OOP concepts
-- **Templates** - Use the same syntax to create different types of objects
 - More to come...
 
 ## Example
@@ -34,7 +30,7 @@ All examples are located in [`examples`](https://github.com/Malvion/drast/tree/m
 
 Want to contribute to drast? First, read
 the [`CONTRIBUTING.md`](https://github.com/Malvion/drast/blob/master/CONTRIBUTING.md)
-and [`CODE_OF_CONDUCT`](https://github.com/Malvion/drast/blob/master/CODE_OF_CONDUCT.md). Then fork drast, add in your
+and [`CODE_OF_CONDUCT.md`](https://github.com/Malvion/drast/blob/master/CODE_OF_CONDUCT.md). Then fork drast, add in your
 own amazing changes, the open up a pull request!
 
 ## Building
@@ -47,7 +43,7 @@ Before you start building Drast, you must install these dependencies listed belo
 - macOS: `brew install cmake`
 - Linux: `sudo apt install git cmake`
 
-Run the following command after the required dependencies are install:
+Run the following command after the required dependencies are installed:
 
 ```batch
 git clone --recursive https://github.com/Malvion/drast
