@@ -18,7 +18,7 @@ _A drastic change in programming_
 
 ## Features
 
-- **Super Simple and Easy to learn syntax** - Similar to python's humanly syntax while being as fast as C
+- **Super Simple and Easy to learn syntax** - Similar to Python's humanly syntax whilst being as fast as C
 - **Semi-Object Oriented** - No need to learn all the OOP concepts
 - More to come...
 
@@ -30,12 +30,11 @@ All examples are located in [`examples`](https://github.com/Malvion/drast/tree/m
 
 Want to contribute to drast? First, read
 the [`CONTRIBUTING.md`](https://github.com/Malvion/drast/blob/master/CONTRIBUTING.md)
-and [`CODE_OF_CONDUCT.md`](https://github.com/Malvion/drast/blob/master/CODE_OF_CONDUCT.md). Then fork drast, add in your
-own amazing changes, the open up a pull request!
+and [`CODE_OF_CONDUCT.md`](https://github.com/Malvion/drast/blob/master/CODE_OF_CONDUCT.md). Then fork drast, add in your amazing changes, the open up a pull request!
 
 ## Building
 
-Drast is built in a similar manner for Windows, macOS, and Linux.
+Drast is built similarly for Windows, macOS, and Linux.
 
 Before you start building Drast, you must install these dependencies listed below:
 
@@ -66,4 +65,4 @@ the 'Issues' tab!
 
 ## Contact us
 
-If you want to contact the developers of drast, please join our [discord server](https://discord.com/invite/ZbmHzNmzPH)
+If you want to contact the developers of drast, please join our [Discord server](https://discord.com/invite/ZbmHzNmzPH)
