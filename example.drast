@@ -2,7 +2,7 @@
 // Drast Programming Language
 //
 
-import "file.drast"
+import "tests/StructTests.drast"
 import std
 
 enum Operator:
@@ -18,7 +18,7 @@ struct Person:
 	grade: int
 
 	fn .str() -> string:
-		return name + " Age(" + age + ") Grade(" + grade + ')'
+		return self.name + " Age(" + age + ") Grade(" + grade + ')'
 
 enum PersonAge:
 	youngster

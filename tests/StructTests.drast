@@ -1,0 +1,16 @@
+import std
+
+struct Person:
+	name: string
+	age: int
+	hobby: string
+
+	fn .str() -> string:
+		return "Person"
+
+	fn changeName(newName: string):
+		name = newName
+
+fn main(argc: int, argv: [string]) -> int:
+	person := Person("John", 25, "Coding")
+	printf("Hello World")

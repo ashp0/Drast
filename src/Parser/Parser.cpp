@@ -569,7 +569,9 @@ Expression *Parser::parseDot() {
 
 Expression *Parser::parsePrimary() {
     Expression *expr;
-    if (isPrimaryType(current().type)) {
+    if (current().type == TokenType::SELF) {
+        return parseLiteralTokenType();
+    } else if (isPrimaryType(current().type)) {
         expr = new Literal(current().type, current().literal.value(), current().location);
         advance();
     } else if (advanceIf(TokenType::PARENS_OPEN)) {

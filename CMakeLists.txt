@@ -11,6 +11,7 @@ add_executable(drast
         src/ArgsParser/ArgsParser.h
 
         # Common
+        src/Common/FileUtils.h
         src/Common/Location.h
         src/Common/Report.h
 
@@ -30,4 +31,8 @@ add_executable(drast
 
         # Parser
         src/Parser/Parser.cpp
-        src/Parser/Parser.h)
+        src/Parser/Parser.h
+
+        # TypeCheck
+        src/TypeCheck/TypeChecker.cpp
+        src/TypeCheck/TypeChecker.h)

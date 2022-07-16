@@ -1,9 +1,10 @@
 #include <iostream>
 #include <fstream>
-#include "Lexer/Lexer.h"
 #include "ArgsParser/ArgsParser.h"
 #include "Config/Config.h"
+#include "Lexer/Lexer.h"
 #include "Parser/Parser.h"
+#include "TypeCheck/TypeChecker.h"
 
 int main(int argc, char **argv) {
     if (argc < 2) {
@@ -35,6 +36,9 @@ int main(int argc, char **argv) {
         }
     }
 
+    TypeChecker typeChecker(parser.root);
+
+    typeChecker.check();
 
     std::cout << parser.root->generate();
     std::cout << "\n-----------------------------------------------------\n\n\n";

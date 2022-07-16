@@ -61,7 +61,7 @@ std::string Import::toString() const {
 }
 
 std::string Import::generate() const {
-    return "#include (TODO)";
+    return "#include " + module_name;
 }
 
 std::string StructDeclaration::toString() const {
@@ -127,16 +127,12 @@ std::string StructDeclaration::generate() const {
     indent -= 1;
 
     ADVANCE_TAB
-    result += "}\n\n";
+    result += "};\n\n";
 
     for (auto &function: functions) {
-        auto temp = function->name;
-
-        function->name = "__" + name + "__" + temp + "__" + (function->is_struct_function ? "__built_in_struct__" : "");
-
+        function->name = function->mangled_name;
         result += function->generate();
-
-        function->name = temp;
+        result += "\n\n";
     }
 
     return result;
@@ -630,6 +626,12 @@ std::string TypeNode::toString() const {
 
 std::string TypeNode::generate() const {
     std::string result;
+
+    if (node_type == TokenType::STRUCT) {
+        result += "struct " + identifier_name.value() + "*";
+        return result;
+    }
+
     if (identifier_name) {
         result += identifier_name.value();
     } else {

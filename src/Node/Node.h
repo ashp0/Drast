@@ -139,6 +139,11 @@ public:
                                                                               identifier_name(identifier_name),
                                                                               is_array(is_array) {}
 
+    TypeNode(TokenType node_type, std::string identifier_name, Location location) : Node(NodeType::TYPE, location),
+                                                                                    node_type(node_type),
+                                                                                    identifier_name(identifier_name
+                                                                                    ) {}
+
     [[nodiscard]] std::string toString() const override;
 
     [[nodiscard]] std::string generate() const override;
@@ -174,6 +179,7 @@ public:
 class FunctionDeclaration final : public Node {
 public:
     std::string name;
+    std::string mangled_name;
     std::vector<Argument *> arguments;
     std::optional<TypeNode *> return_type;
     Block *block = nullptr;
@@ -380,7 +386,7 @@ public:
 class Literal final : public Node {
 public:
     TokenType literal_type;
-    const std::string literal_value;
+    std::string literal_value;
 public:
     Literal(TokenType literal_type, std::string literal_value, Location location) : Node(NodeType::LITERAL, location),
                                                                                     literal_type(literal_type),
