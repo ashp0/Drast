@@ -22,7 +22,11 @@ std::string Compound::toString() const {
 std::string Compound::generate() const {
     std::string result;
     for (const auto &stmt: statements) {
-        result += stmt->generate() + "\n\n";
+        result += stmt->generate();
+        if (stmt->type == NodeType::VARIABLE_DECLARATION) {
+            result += ";";
+        }
+        result += "\n\n";
     }
     return result;
 }
@@ -45,7 +49,11 @@ std::string Block::generate() const {
     for (auto &statement: statements) {
         ADVANCE_TAB
         result += statement->generate();
-        result += ";\n";
+        if (!(statement->type == NodeType::IF_CONDITION || statement->type == NodeType::FUNCTION_DECLARATION ||
+              statement->type == NodeType::WHILE_STATEMENT || statement->type == NodeType::IF_STATEMENT)) {
+            result += ";";
+        }
+        result += "\n";
     }
     indent -= 1;
 
@@ -64,14 +72,19 @@ std::string Import::generate() const {
     return "#include " + module_name;
 }
 
+VariableDeclaration *StructDeclaration::locate_variable(const std::string &variable_name) {
+    for (const auto &item: variables) {
+        if (item->variable_name == variable_name) {
+            return item;
+        }
+    }
+
+    return nullptr;
+}
+
 std::string StructDeclaration::toString() const {
     std::string result = "struct " + name + ":\n";
     indent += 1;
-
-    for (const auto &constant: constants) {
-        ADVANCE_TAB
-        result += constant->toString() + "\n";
-    }
 
     for (const auto &variable: variables) {
         ADVANCE_TAB
@@ -92,10 +105,6 @@ std::string StructDeclaration::generate() const {
     std::string result = "struct " + name + " {\n";
 
     indent += 1;
-    for (const auto &constant: constants) {
-        ADVANCE_TAB
-        result += constant->generate() + ";\n";
-    }
 
     for (const auto &variable: variables) {
         ADVANCE_TAB
@@ -130,8 +139,10 @@ std::string StructDeclaration::generate() const {
     result += "};\n\n";
 
     for (auto &function: functions) {
+        auto temp = function->name;
         function->name = function->mangled_name;
         result += function->generate();
+        function->name = temp;
         result += "\n\n";
     }
 
@@ -159,7 +170,7 @@ std::string EnumDeclaration::generate() const {
 
     indent -= 1;
     ADVANCE_TAB
-    result += "}";
+    result += "};";
 
     return result;
 }
@@ -190,7 +201,11 @@ std::string FunctionDeclaration::toString() const {
     result += ")";
 
     if (return_type) {
-        result += " -> " + return_type.value()->toString();
+        result += " -> ";
+        if (is_constant) {
+            result += "const ";
+        }
+        result += return_type.value()->toString();
     }
 
     result += ":\n";
@@ -201,6 +216,9 @@ std::string FunctionDeclaration::toString() const {
 std::string FunctionDeclaration::generate() const {
     std::string result;
 
+    if (is_constant) {
+        result += "const ";
+    }
     if (return_type) {
         result += return_type.value()->generate();
         result += " ";
@@ -285,7 +303,7 @@ std::string IfCondition::toString() const {
 
 std::string IfCondition::generate() const {
     std::string result = is_if ? "if (" : "else if (";
-    result += expr->toString();
+    result += expr->generate();
     result += ") {\n";
     result += block->generate();
     ADVANCE_TAB
@@ -305,9 +323,9 @@ std::string WhileStatement::toString() const {
 
 std::string WhileStatement::generate() const {
     std::string result = "while (";
-    result += condition->toString();
+    result += condition->generate();
     result += ") {\n";
-    result += body->toString();
+    result += body->generate();
     ADVANCE_TAB
     result += "}\n";
 
@@ -326,37 +344,7 @@ std::string ForLoop::toString() const {
 }
 
 std::string ForLoop::generate() const {
-    return "TODO";
-}
-
-std::string ConstantDeclaration::toString() const {
-    std::string result = "let " + const_name;
-
-    if (const_type) {
-        result += ": ";
-        result += const_type.value()->toString();
-        result += " = ";
-    } else {
-        result += " := ";
-    }
-
-    result += value->toString();
-
-    return result;
-}
-
-std::string ConstantDeclaration::generate() const {
-    std::string result = "const ";
-    if (const_type) {
-        result += const_type.value()->generate();
-        result += " ";
-    }
-
-    result += const_name;
-    result += " = ";
-    result += value->generate();
-
-    return result;
+    return "// Cannot generate for loops: TODO";
 }
 
 std::string VariableDeclaration::toString() const {
@@ -381,12 +369,22 @@ std::string VariableDeclaration::toString() const {
 
 std::string VariableDeclaration::generate() const {
     std::string result;
+    if (is_const) {
+        result += "const ";
+    }
+
     if (variable_type) {
+
         result += variable_type.value()->generate();
         result += " ";
     }
 
     result += variable_name;
+    if (expr) {
+        if (expr.value()->type == NodeType::ARRAY) {
+            result += "[]";
+        }
+    }
     if (expr) {
         result += " = ";
         result += expr.value()->generate();
@@ -485,16 +483,50 @@ std::string Call::toString() const {
 }
 
 std::string Call::generate() const {
-    std::string result = expr->generate();
-    result += "(";
-    for (const auto &argument: arguments) {
-        result += argument->generate();
-        result += ", ";
+    std::string result;
+    if (original_struct) {
+        result += "{\n";
+
+        indent += 1;
+        for (int index = 0; index < original_struct->variables.size(); index++) {
+            ADVANCE_TAB
+            result += ".";
+            result += original_struct->variables.at(index)->variable_name;
+            result += " = ";
+            result += arguments.at(index)->generate();
+            result += ",\n";
+        }
+
+        for (auto &item: original_struct->functions) {
+            ADVANCE_TAB
+            result += ".";
+            result += item->name;
+            result += " = ";
+            result += item->mangled_name;
+            result += ",\n";
+        }
+        indent -= 1;
+
+        if (!arguments.empty()) {
+            result.resize(result.size() - 2);
+        }
+
+        result += '\n';
+
+        ADVANCE_TAB
+        result += "}";
+    } else {
+        result += expr->generate();
+        result += "(";
+        for (const auto &argument: arguments) {
+            result += argument->generate();
+            result += ", ";
+        }
+        if (!arguments.empty()) {
+            result.resize(result.size() - 2);
+        }
+        result += ")";
     }
-    if (!arguments.empty()) {
-        result.resize(result.size() - 2);
-    }
-    result += ")";
 
     return result;
 }
@@ -548,6 +580,10 @@ std::string Literal::generate() const {
         result += literal_value;
         result += "'";
         return result;
+    } else if (literal_type == TokenType::LV_TRUE) {
+        return "1";
+    } else if (literal_type == TokenType::LV_FALSE) {
+        return "0";
     }
 
     return literal_value;
@@ -569,7 +605,7 @@ std::string Array::toString() const {
 }
 
 std::string Array::generate() const {
-    std::string result = "[";
+    std::string result = "{";
     for (const auto &item: items) {
         result += item->generate();
         result += ", ";
@@ -579,7 +615,7 @@ std::string Array::generate() const {
         result.resize(result.size() - 2);
     }
 
-    result += "]";
+    result += "}";
     return result;
 }
 
@@ -604,6 +640,9 @@ std::string LiteralTokenType::toString() const {
 }
 
 std::string LiteralTokenType::generate() const {
+    if (literal_type == TokenType::SELF) {
+        return literal_value;
+    }
     return tokenGenerate(literal_type);
 }
 
@@ -612,8 +651,8 @@ std::string TypeNode::toString() const {
     if (is_array) {
         result += "[";
     }
-    if (identifier_name) {
-        result += identifier_name.value();
+    if (node_type == TokenType::LV_IDENTIFIER) {
+        result += identifier_name;
     } else {
         result += tokenTypeToString(node_type);
     }
@@ -628,16 +667,13 @@ std::string TypeNode::generate() const {
     std::string result;
 
     if (node_type == TokenType::STRUCT) {
-        result += "struct " + identifier_name.value() + "*";
-        return result;
-    }
-
-    if (identifier_name) {
-        result += identifier_name.value();
+        result += "struct ";
+        result += identifier_name;
+    } else if (node_type == TokenType::LV_IDENTIFIER) {
+        result += identifier_name;
     } else {
         result += tokenGenerate(node_type);
     }
-
     if (is_array) {
         result += "*";
     }

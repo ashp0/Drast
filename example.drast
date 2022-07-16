@@ -18,7 +18,8 @@ struct Person:
 	grade: int
 
 	fn .str() -> string:
-		return self.name + " Age(" + age + ") Grade(" + grade + ')'
+		return name
+// return self.name + " Age(" + age + ") Grade(" + grade + ')'
 
 enum PersonAge:
 	youngster
@@ -33,18 +34,16 @@ fn main(argc: int, argv: [string]) -> int:
 	charTest := 'A'
 	otherTest := 50 == 30
 
-	names := ["John", "Alex", "Jacob"]
+	names := ["John", "50", "Jacob"]
 
 	for name in names:
-		std.print("Hello, " + myString + "!")
+		printf("Hello, " + names + "!")
 
 	for i in (0..names.count).byOp(2, '*'):
-		std.print(i)
+		printf(i)
 
 	for i in (0..names.count).by(2):
-		std.print(i)
-
-	myStrings1.sort()
+		printf(i)
 
 	typeTest += 30
 	typeTest -= 30
@@ -62,11 +61,11 @@ fn main(argc: int, argv: [string]) -> int:
 			break
 
 
-	// for i in myStringArray:
-	std.print(i)
+	for i in myStringArray:
+		printf(i)
 
 	johnDoe := Person("John Doe", 18, 12)
-	std.print(johnDoe).xy.hello()
+	printf("%s", johnDoe.str())
 
 	fn nestedFunctionTest() -> float:
 		let helloWorld := "Hello World"
@@ -75,7 +74,7 @@ fn main(argc: int, argv: [string]) -> int:
 		charTest: char = 'A'
 		otherTest := 50 == 30
 
-		fn nestedFunctionTest2() -> string:
+		fn nestedFunctionTest2() -> let string:
 			let helloWorld := "Hello World"
 			mathTest := 50 + 40 + 30 * -40 + 90 + 50 * (30 * 50) * 20 + 90
 			typeTest: int = 50

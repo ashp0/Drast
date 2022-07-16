@@ -41,8 +41,8 @@ int main(int argc, char **argv) {
     typeChecker.check();
 
     std::cout << parser.root->generate();
-    std::cout << "\n-----------------------------------------------------\n\n\n";
-    std::cout << parser.root->toString();
+//    std::cout << "\n-----------------------------------------------------\n\n\n";
+//    std::cout << parser.root->toString();
 
     return 0;
 }

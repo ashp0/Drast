@@ -55,7 +55,7 @@ private: /* Statements */
 
     VariableDeclaration *parseVariable();
 
-    ConstantDeclaration *parseConstant();
+    VariableDeclaration *parseConstant();
 
     VariableDeclaration *parseVariable(const std::string &variable_name);
 

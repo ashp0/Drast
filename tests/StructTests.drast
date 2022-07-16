@@ -1,4 +1,4 @@
-import std
+import stdio
 
 struct Person:
 	name: string
@@ -6,11 +6,13 @@ struct Person:
 	hobby: string
 
 	fn .str() -> string:
-		return "Person"
+		return name
 
 	fn changeName(newName: string):
 		name = newName
 
 fn main(argc: int, argv: [string]) -> int:
-	person := Person("John", 25, "Coding")
-	printf("Hello World")
+	let person := Person("John", 25, "Coding")
+	printf("Hello World, %s", person.str())
+
+	return 0

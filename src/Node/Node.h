@@ -33,6 +33,7 @@ enum class NodeType {
     BLOCK,
     IMPORT,
     STRUCT_DECLARATION,
+    STRUCT_INITIALIZER,
     ENUM_DECLARATION,
     ENUM_DOT,
     FUNCTION_DECLARATION,
@@ -41,7 +42,6 @@ enum class NodeType {
     IF_CONDITION,
     WHILE_STATEMENT,
     FOR_LOOP,
-    CONSTANT_DECLARATION,
     VARIABLE_DECLARATION,
     RETURN_STATEMENT,
     BINARY,
@@ -51,9 +51,11 @@ enum class NodeType {
     CALL,
     GET,
     LITERAL,
+    LITERAL_TOKEN,
     ARRAY,
     GROUPING,
     TYPE,
+    TYPE_INFERRED,
 };
 
 
@@ -114,11 +116,27 @@ class StructDeclaration final : public Node {
 public:
     std::string name;
 
-    std::vector<ConstantDeclaration *> constants;
     std::vector<VariableDeclaration *> variables;
     std::vector<FunctionDeclaration *> functions;
 public:
     explicit StructDeclaration(Location location) : Node(NodeType::STRUCT_DECLARATION, location) {}
+
+    VariableDeclaration *locate_variable(const std::string &variable_name);
+
+    [[nodiscard]] std::string toString() const override;
+
+    [[nodiscard]] std::string generate() const override;
+};
+
+class StructInitializerCall final : public Node {
+public:
+    Expression *expr;
+    std::vector<Expression *> arguments;
+    StructDeclaration *original_struct;
+public:
+    StructInitializerCall(Expression *expr, std::vector<Expression *> arguments, StructDeclaration *original_struct,
+                          Location location) : Node(NodeType::STRUCT_INITIALIZER, location), expr(expr),
+                                               arguments(arguments), original_struct(original_struct) {}
 
     [[nodiscard]] std::string toString() const override;
 
@@ -128,8 +146,8 @@ public:
 class TypeNode final : public Node {
 public:
     TokenType node_type = TokenType::LV_IDENTIFIER;
-    std::optional<std::string> identifier_name = std::nullopt;
-    bool is_array;
+    std::string identifier_name;
+    bool is_array = false;
 
 public:
     TypeNode(TokenType node_type, bool is_array, Location location) : Node(NodeType::TYPE, location),
@@ -143,6 +161,15 @@ public:
                                                                                     node_type(node_type),
                                                                                     identifier_name(identifier_name
                                                                                     ) {}
+
+    TypeNode(TokenType node_type, std::string identifier_name, bool is_array = false) : Node(NodeType::TYPE, {0, 0}),
+                                                                                        node_type(node_type),
+                                                                                        identifier_name(std::move(
+                                                                                                identifier_name)),
+                                                                                        is_array(is_array) {}
+
+    TypeNode(TokenType node_type, bool is_array = false) : Node(NodeType::TYPE, {0, 0}), node_type(node_type),
+                                                           is_array(is_array) {}
 
     [[nodiscard]] std::string toString() const override;
 
@@ -184,6 +211,7 @@ public:
     std::optional<TypeNode *> return_type;
     Block *block = nullptr;
     bool is_struct_function = false;
+    bool is_constant = false;
 public:
     explicit FunctionDeclaration(Location location) : Node(NodeType::FUNCTION_DECLARATION, location) {}
 
@@ -258,24 +286,12 @@ public:
     [[nodiscard]] std::string generate() const override;
 };
 
-class ConstantDeclaration final : public Node {
-public:
-    std::string const_name;
-    std::optional<TypeNode *> const_type = std::nullopt;
-    Expression *value = nullptr;
-public:
-    explicit ConstantDeclaration(Location location) : Node(NodeType::CONSTANT_DECLARATION, location) {}
-
-    [[nodiscard]] std::string toString() const override;
-
-    [[nodiscard]] std::string generate() const override;
-};
-
 class VariableDeclaration final : public Node {
 public:
     const std::string variable_name;
     std::optional<TypeNode *> variable_type = std::nullopt;
     std::optional<Expression *> expr = std::nullopt;
+    bool is_const;
 
 public:
     VariableDeclaration(std::string variable_name, Expression *expr, Location location) : Node(
@@ -361,6 +377,7 @@ class Call final : public Node {
 public:
     Expression *expr;
     std::vector<Expression *> arguments;
+    StructDeclaration *original_struct = nullptr;
 public:
     Call(Expression *expr, Location location) : Node(NodeType::CALL, location),
                                                 expr(expr) {}
@@ -373,7 +390,7 @@ public:
 class Get final : public Node {
 public:
     Expression *expr;
-    const Expression *second;
+    Expression *second;
 public:
     Get(Expression *expr, Expression *second, Location location) : Node(NodeType::GET, location), expr(expr),
                                                                    second(second) {}
@@ -423,8 +440,9 @@ public:
 class LiteralTokenType final : public Node {
 public:
     TokenType literal_type;
+    std::string literal_value;
 public:
-    LiteralTokenType(TokenType literal_type, Location location) : Node(NodeType::LITERAL, location),
+    LiteralTokenType(TokenType literal_type, Location location) : Node(NodeType::LITERAL_TOKEN, location),
                                                                   literal_type(literal_type) {}
 
     [[nodiscard]] std::string toString() const override;

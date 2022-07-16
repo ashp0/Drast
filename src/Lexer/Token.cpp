@@ -239,21 +239,21 @@ std::string tokenGenerate(TokenType type) {
         case TokenType::CHAR:
             return "char";
         case TokenType::BOOL:
-            return "bool";
+            return "int";
         case TokenType::LV_INT:
-            return "lv_int";
+            return "int";
         case TokenType::LV_FLOAT:
-            return "lv_float";
+            return "float";
         case TokenType::LV_STRING:
-            return "lv_string";
+            return "char*";
         case TokenType::LV_CHAR:
-            return "lv_char";
+            return "char";
         case TokenType::LV_TRUE:
-            return "lv_true";
+            return "1";
         case TokenType::LV_FALSE:
-            return "lv_false";
+            return "0";
         case TokenType::LV_IDENTIFIER:
-            return "lv_identifier";
+            return "identifier";
         case TokenType::QUESTION:
             return "?";
         case TokenType::ARROW:

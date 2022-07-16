@@ -126,8 +126,8 @@ void Parser::parseStructStatement(StructDeclaration *struct_declaration) {
             struct_declaration->variables.push_back(parseVariable());
             break;
         case TokenType::LET:
-            variable_initialization = false;
-            struct_declaration->constants.push_back(parseConstant());
+            variable_initialization = true;
+            struct_declaration->variables.push_back(parseConstant());
             break;
         default:
             throw Report("Structs are allowed only variables, constants and functions");
@@ -247,6 +247,9 @@ FunctionDeclaration *Parser::parseFunctionDeclaration() {
 
     if (current().type == TokenType::ARROW) {
         advance();
+        if (advanceIf(TokenType::LET)) {
+            function_declaration->is_constant = true;
+        }
         function_declaration->return_type = parseType();
     }
 
@@ -378,25 +381,16 @@ VariableDeclaration *Parser::parseVariable() {
     throw Report("Was expecting variable", current().location);
 }
 
-ConstantDeclaration *Parser::parseConstant() {
-    auto constant = new ConstantDeclaration(current().location);
+VariableDeclaration *Parser::parseConstant() {
     advance(); // let
 
-    check(TokenType::LV_IDENTIFIER, "Expected identifier after enum declaration");
-    constant->const_name = current().literal.value();
-    advance();
-
-    if (advanceIf(TokenType::DECLARE_EQUAL)) {
-        constant->value = parseExpression();
-    } else if (advanceIf(TokenType::COLON)) {
-        constant->const_type = parseType();
-        consume(TokenType::EQUAL);
-        constant->value = parseExpression();
-    } else {
-        throw Report("Expected ':' or ':=' after constant declaration");
+    auto variable = parseVariable();
+    if (!variable->expr) {
+        throw Report("Constants must be initialized");
     }
+    variable->is_const = true;
 
-    return constant;
+    return variable;
 }
 
 VariableDeclaration *Parser::parseVariable(const std::string &variable_name) {

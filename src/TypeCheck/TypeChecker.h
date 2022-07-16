@@ -29,39 +29,34 @@ public:
 
     void checkFunctionStatement(FunctionDeclaration *function_decl, StructDeclaration *struct_decl = nullptr);
 
+    void checkVariableDeclaration(VariableDeclaration *var_decl, FunctionDeclaration *function_declaration = nullptr,
+                                  StructDeclaration *struct_declaration = nullptr);
+
     void checkBlock(Block *block, FunctionDeclaration *function_declaration,
                     StructDeclaration *struct_declaration = nullptr);
 
-    void checkAssign(Assign *assign, FunctionDeclaration *function_declaration,
-                     StructDeclaration *struct_declaration = nullptr);
+    TypeNode *checkExpression(Expression *expression, FunctionDeclaration *function_declaration,
+                              StructDeclaration *struct_declaration = nullptr);
 
-    void checkExpression(Expression *expression, FunctionDeclaration *function_declaration,
+    TypeNode *checkAssign(Assign *assign, FunctionDeclaration *function_declaration,
+                          StructDeclaration *struct_declaration = nullptr);
+
+    TypeNode *checkBinary(Binary *binary, FunctionDeclaration *function_declaration,
+                          StructDeclaration *struct_declaration = nullptr);
+
+    TypeNode *checkCall(Call *call, FunctionDeclaration *function_declaration,
+                        StructDeclaration *struct_declaration = nullptr);
+
+    TypeNode *
+    checkGet(Get *get, FunctionDeclaration *function_declaration, StructDeclaration *struct_declaration = nullptr);
+
+    TypeNode *checkLiteral(Literal *literal, FunctionDeclaration *function_declaration,
+                           StructDeclaration *struct_declaration = nullptr);
+
+    Node *locateVariable(std::string &variable_name, FunctionDeclaration *function_declaration,
                          StructDeclaration *struct_declaration = nullptr);
 
-    void checkBinary(Binary *binary, FunctionDeclaration *function_declaration,
-                     StructDeclaration *struct_declaration = nullptr);
-
-    void checkLiteral(Literal *literal, FunctionDeclaration *function_declaration,
-                      StructDeclaration *struct_declaration = nullptr);
-
-    bool locateVariable(const std::string &variable_name, FunctionDeclaration *function_declaration,
-                        StructDeclaration *struct_declaration = nullptr);
+    std::pair<bool, Node *> locateDataStructure(std::string &data_structure_name);
 };
-
-class TypeCheckerBlock {
-public:
-    Block *block;
-    FunctionDeclaration *function_decl;
-    bool is_struct = false;
-public:
-    TypeCheckerBlock(Block *block, FunctionDeclaration *function_decl) : block(block), function_decl(function_decl) {}
-
-    TypeCheckerBlock(Block *block, FunctionDeclaration *function_decl, bool is_struct) : block(block),
-                                                                                         function_decl(function_decl),
-                                                                                         is_struct(is_struct) {}
-
-    void checkBody();
-};
-
 
 #endif //DRAST_TYPECHECKER_H
