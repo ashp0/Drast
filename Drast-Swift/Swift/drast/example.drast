@@ -1,0 +1,70 @@
+//
+// Drast Programming Language
+//
+
+/*
+ * $p[0] - The function parameter list
+ * $v[0] - The current scope's variable list
+ * $c[0] - The class's variable list
+ */
+
+/*
+ Automatic Type Conversion
+ 
+ Let's say I have a function
+ 
+ - func add(float, float)
+ 
+ And to get a number, I have to use the getInput() function.
+ But the problem with this is that the getInput() function returns a string value, and I am expecting a float value
+ Instead of typing let value = float(getInput())
+ The compiler will automatically understand it
+ 
+ ```
+ let value = float(getInput())
+ add(10, value)
+ ```
+ 
+ ```
+ // Compiler will automatically convert it based on the initializers in that expected type (float)
+ // If float does not have a init(string), then it will return an error
+ let value = getInput()
+ add(10, value)
+ ```
+ */
+
+import core
+
+func calculate(firstNum: float, op: string, secondNum: float): float {
+    // I do not like how the default case is always in the body of the switch statement, so I have decided to move it out
+    switch op {
+        == "add": $p[1] + $p[3]
+        == "sub": $p[1] - $p[3]
+        == "mul": $p[1] * $p[3]
+        == "div": $p[1] / $p[3]
+    } default {
+        print("Invalid Number!!")
+        return 0
+    }
+}
+
+func main(): int {
+    let firstNum = {
+        print("Type in your first number")
+        getInput()
+    }
+    
+    let op = {
+        print("What type of operation do you wish to do? (add, sub, mul, div): ")
+        getInput()
+    }
+    
+    let secondNum = {
+        print("Type in your second number")
+        getInput()
+    }
+    
+    let output = calculate($v[1], $v[3], $v[2])
+    
+    print("The output value is: " + output)
+}

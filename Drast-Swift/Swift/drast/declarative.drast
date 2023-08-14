@@ -1,0 +1,26 @@
+//
+// Drast Programming Language
+//
+
+
+import core
+import ax.ui
+
+class MainView: View {
+    func ^makeBody(): Body {
+        VGroup {
+            Text("Hello World!")
+                .bold()
+                .spacing()
+            
+            Button()
+                .spacing()
+                .text("Click me!")
+                .action(printHelloWorld())
+        }
+    }
+
+    func printHelloWorld() {
+        print("Hello World!")
+    }
+}
