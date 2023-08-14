@@ -14,6 +14,8 @@ _A drastic change in programming_
 
 </div>
 
+> Project no longer in development
+
 > **NOTE:** Drast is still in its development phase, so expect some bugs and missing features.
 
 ## Features
