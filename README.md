@@ -54,11 +54,3 @@ the 'Issues' tab!
 > **NOTE:** For Windows, in the build directory, there should be a Visual Studio solution file. Double click this file,
 > then build and
 > run.
-
-## Social
-
-- [Our Discord Server](https://discord.gg/ZbmHzNmzPH)
-
-## Contact us
-
-If you want to contact the developers of drast, please join our [Discord server](https://discord.com/invite/ZbmHzNmzPH)
