@@ -1,0 +1,50 @@
+// Issue here: TODO:
+/*
+#include <token>
+#include <parser>
+#include <token>
+#include <parser>
+This should be fixed.
+*/
+
+use token
+use ast
+use 'parser/struct'
+use 'parser/use'
+use 'parser/enum'
+
+// ./build/drastc src/drast\ byhand/parser.drast | sed -n '/void Parser::parseUse/,/skipNewLines/p'
+
+struct Parser
+	private tokens {Token};
+	private current int; // TODO: Support unsigned
+
+impl Parser
+
+	initialize tokens;{Token}
+		self.tokens = tokens
+		self.current = 0
+
+	parse, Program
+		program Program;
+		self.skipNewLines
+		while not self.check .End
+			if self.currentMatch .Use
+				program.uses += self.parseUse
+			elif self.currentMatch .Struct
+				self.parseStruct program false
+			elif self.currentMatch .Enum
+				self.parseEnum program false
+
+	skipNewLines
+		while currentMatches TokenKind.Newline
+			continue
+
+	currentMatch kind;TokenKind, bool
+		if not self.check kind
+			return false
+		self.advance
+		return true
+
+	previous, Token
+		return self.tokens{self.current - 1}

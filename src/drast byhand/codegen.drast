@@ -1,0 +1,48 @@
+struct Codegen
+	private ostringstream out_;
+	private imports {string};
+	private indent = 0
+	private runtimeNeeded = false
+	private noRuntime = false
+	private emittingCallee = false
+
+	/*
+	    // Tracks struct/enum/protocol names → known user types (for ctor disambiguation).
+    std::set<std::string> userTypes_;
+    std::set<std::string> protocolNames_;
+    // Nested enum names: "Outer.Inner" → owned by Outer.
+    std::vector<EnumDecl> nestedEnums_;
+    // Map enumName → fully-qualified C++ name.
+    std::unordered_map<std::string, std::string> enumQualifiedName_;
+    std::unordered_map<std::string, std::set<std::string>> enumVariants_;
+    std::unordered_map<std::string, std::string> variantToEnum_;
+    std::set<std::string> dataEnumNames_;
+    std::unordered_map<std::string, std::unordered_map<std::string, std::vector<StructField>>> dataEnumFields_;
+    std::unordered_map<std::string, std::set<std::string>> boxedStructFields_;
+    std::unordered_map<std::string, std::unordered_map<std::string, std::set<std::string>>> boxedEnumFields_;
+    std::unordered_set<std::string> functionNames_;
+    std::unordered_map<std::string, std::string> functionReturnTypes_;
+
+	*/
+
+	// We need an update, this is simply a linked list.
+	userTypes_ {string}
+	protocolNames_ {string}
+	nestedEnums_ {EnumDecl}
+	enumQualifiedName_ {string, string}
+	enumVariants_ {string, {string}}
+	variantToEnum_ {string, string}
+	dataEnumNames_ {string}
+	dataEnumFields_ {string, {string, {StructField}}}
+	boxedStructFields_ {string, {string}}
+	boxedEnumFields_ {string, {string, {string}}}
+	functionNames_ {string}
+	functionReturnTypes_ {string, string}
+
+impl Codegen
+	setNoRuntime value;bool
+		self.setNoRuntime = value
+
+	emitProgram program;Program, string
+		// Return a string.
+		return "#include <iostream>\n\nint main() {\n    std::cout << \"Hello, world!\" << std::endl;\n    return 0;\n}\n"

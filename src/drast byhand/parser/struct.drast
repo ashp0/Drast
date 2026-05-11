@@ -1,0 +1,51 @@
+use token
+use parser
+
+struct StructDecl
+	name string
+	typeParams {string}
+	fields {StructField}
+	isFilePrivate bool
+	location SourceLocation
+
+impl Parser
+	parseStruct program;~Program isFilePrivate;bool;false
+		nameToken = self.consume .Identifier 'expected struct name'
+		decl StructDecl;
+		decl.name = nameToken.text
+		decl.location = nameToken.location
+		decl.isFilePrivate = isFilePrivate
+
+		if self.currentMatch .Backtick
+			consume .LeftBracket 'expected `[` in struct generics'
+			while not self.check .RightBracket and not self.check .End
+				if self.currentMatch .Comma
+					self.advance
+					continue
+				decl.typeParams += self.consume .Identifier 'expected generic param'.text
+			consume .RightBracket 'expected `]` in struct generics'
+
+		self.consumeStatementEnd
+		self.skipNewLines
+		consume .Indent 'expected indented block after struct header'
+		while not self.check .Dedent and not self.check .End
+			vis = Program.Visibility.Public
+			if self.currentMatch .Preview
+				vis = .Preview
+			elif self.currentMatch .Private
+				vis = .Private
+			elif self.currentMatch .Fileprivate
+				vis = .Fileprivate
+
+			field StructField;
+			nameField = self.consume .Identifier 'expected field name'
+			field.name = nameField.text
+			field.location = nameField.location
+			field.visibility = vis
+			field.type = self.parseType
+			self.currentMatch .Semicolon // Trailing semicolon optional (per syntax: `preview x float;`)
+			decl.fields += field
+			self.consumeStatementEnd
+			self.skipNewLines
+		self.consume .Dedent 'expected end of struct block'
+		program.structs += decl // Make sure this is std::move

@@ -1,0 +1,16 @@
+/*
+Memory management is indeed a crucial concept in C++.
+I am unsure the best practice for this.
+But my goal is for the user to have the best experience possible
+Without ever needing to worry about pointers and stuff
+I also do not want a runtime happening, I want it to be lightweight
+Rather than runtime, everything should be managed at compile-time, just like Rust
+*/
+
+use std
+
+main, int
+	// I am unsure where to go from here.
+	// Should we use shared_ptr or unique_ptr or non-owning_ptr?
+	// Do it the way rust does it if it's possible in C++.
+

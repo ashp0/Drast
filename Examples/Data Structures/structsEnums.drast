@@ -1,0 +1,64 @@
+use std
+
+main, int
+	println 'Hello World'
+
+	myPoint = Point[25 20] // Just like in Nim, object constructors must use brackets.
+	myOtherPoint = Point[;x 25 ;y 20]
+
+	myOtherPoint.rotateAcross .X
+	myPoint.rotateAcross .Y
+
+	return myPoint == myOtherPoint
+
+// By default we will transpile it down to struct
+// However, if you use the private keyword, it will become a class
+struct Point
+	// Read-only variables
+	preview x float; // I don't know if C++ has a read-only var.
+	preview y float;
+
+	private quadrants {Quadrants}
+
+fileprivate enum Quadrants
+	First; Second; Third; Forth;
+
+enum Point.Axis
+	X;
+	Y;
+
+impl Point
+	shift x;float y;float
+		self.x += x
+		self.y += y
+
+		self.updateQuadrants
+
+	rotateAcross axis;Point.Axis
+		if axis == .X
+			self.y *= -1
+		else
+			self.x *= -1
+
+		updateQuadrants
+
+	private updateQuadrants
+		newQuadrants = {Quadrants}
+		if x isgteq 0 and y isgteq 0
+			newQuadrants += .First
+		elif x islt 0 and y isgteq 0
+			newQuadrants += .Second
+		elif x islt 0 and y islt 0
+			newQuadrants += .Third
+		elif x isgteq 0 and y islt 0
+			newQuadrants += .Fourth
+
+		self.quadrants = newQuadrants
+
+impl Point as Comparable
+	operator[==] element1;Point element2;Point
+		return element1.x == element2.x and element1.y == element2.y
+
+	// Alternatively we can have numbered arguments, to save time typing
+	operator[==]
+		return ;1.x == ;2.x and ;1.y == ;2.y

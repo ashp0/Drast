@@ -1,0 +1,53 @@
+use std
+
+words = {'Drast' 'University of Waterloo' 'Awards' 'Studious' 'Intelligence' 'Dedication'}
+
+main, int
+	println 'Here are my thoughts on my future:'
+
+	for word in words
+		print word
+		println ', '
+
+	println 'What are your thoughts?'
+	println 'Type words separated by commas below:'
+
+	userResult = getInput
+
+	println 'Wow! That is amazing! You describe yourself as:'
+	results = parseUserResults userResult
+	for result in results
+		print result
+		println ', '
+
+	return 0
+
+
+// Note: I am unsure whether we should handle arguments alias ourselves or not.
+// Because in C++, we would use &string for input, but I don't want to worry the
+// user with annoying pointer and memory logic.
+// Just write code and it'll work is the vibe here.
+// But for the first pass of the transpiler, we can allow not use alias and pointers.
+// To be explicit about it, one must know these
+// `string = *string // deref
+// ~string = &string // alias
+// string` = string* // pointer
+// I just put ~string because maybe the logic for automatic memory management will be tricky
+// For the first stage of the transpiler, I want it working and able to run properly.
+parseUserResults input;~string, {string}
+	index = 0
+	oldIndex = 0
+	finalIndex = input.length
+
+	returnResult {string};
+
+	while index islt finalIndex
+		c = input{index}
+
+		if c == ','
+			// New word
+			newWord = input.substring oldIndex ;to index
+			returnResult += newWord
+			oldIndex = index
+
+	return returnResult

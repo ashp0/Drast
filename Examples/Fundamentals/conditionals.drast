@@ -1,0 +1,22 @@
+use std
+
+main, int
+	input = getInput 'Type a random number!'
+
+	result int;
+
+	result = input.asInt
+
+	if result == nil
+		print 'Error, that is not a number. Please try again'
+
+	if result islteq 10
+		print 'That's a pretty tiny number'
+	elif result islteq 1000
+		print 'Meh, that's a boring number'
+	elif result islteq 10000
+		print 'Now we're talking!'
+	else
+		print 'Heh my brain cannot comprehend this yikes'
+
+	return 0

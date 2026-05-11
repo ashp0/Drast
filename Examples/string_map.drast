@@ -1,0 +1,20 @@
+use std
+
+main, int
+	text = 'one two one three two one'
+	counts map`[string int] = {}
+	words = text.splitWhitespace
+	for word in words
+		if counts.contains word
+			current = counts.get word 0
+			next = current + 1
+			counts.set word next
+		else
+			counts.set word 1
+	keys = counts.keys
+	for key in keys
+		value = counts.get key 0
+		print key
+		print ': '
+		println value
+	return 0

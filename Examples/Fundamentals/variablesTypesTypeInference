@@ -1,0 +1,14 @@
+use std
+
+myConstant const = 0.25
+
+myUnsetVariable int; // This is the only line of code that requires a semicolon. For unset variables.
+
+main, int
+  number = random.float 0 ;to 100
+  number2 = random.float 0 ;until 100
+
+  result = [number + number2] * myConstant // (expr) and [expr] are interchangable.
+  print result
+
+  return result

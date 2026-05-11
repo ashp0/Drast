@@ -1,0 +1,7 @@
+use std
+use 'math_utils' // ' is for files only. Not using ' is for libraries.
+
+main, int
+	answer = increment 41
+	println answer
+	return 0

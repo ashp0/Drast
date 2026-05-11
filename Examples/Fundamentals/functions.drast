@@ -1,0 +1,101 @@
+use std
+
+main, int
+	println 'Write a number'
+	number = Float[getInput]
+	// or
+	// number = Float getInput[] <- Nim supports that. So we will too.
+
+	myString string;
+	if number
+		myString = convertNumberToString`[Float] number
+
+	myIntegerString int;
+
+	// Can be nil or a value
+	myIntegerString = convertThing1ToThing2`[Int, String] number
+
+
+	println [
+		number,
+		', ',
+		myString,
+		', ',
+		myIntegerString
+	]
+
+
+
+// I do plan on creating a map that has
+// i8 = short short int
+// i16 = short int
+// i32 = int
+// etc...
+
+convertNumberToString`[T] number;T, maybe string
+	return string T
+	// This creates a new string. To cast it is different.
+	// Just write T as string, which returns a `maybe` type. Optional.
+with T as float long float long long float
+
+
+// By the way, writing function argument names is completely optional, just like
+// with C++ I believe. You can call it via
+// convertThing1ToThing2 ;number 25
+// or
+// convertThing1ToThing2 25
+// Generics can be inferred maybe? I am not too familiar with the concept.
+// As I never really design classes, mostly use them.
+// But from their perspective, it would be nice to have inferred types.
+convertThing1ToThing2`[T, U] number;T, maybe U
+	return U[T] // Initialize U with T as arg.
+with T as Convertable, U as Convertable
+
+
+// Other functions
+createPoint x;int;0 y;int;0, tuple Int Int
+	return tuple x y
+
+printNumbers numbers;variadic[int]
+	for number in numbers
+		println number
+
+
+/* Overloading Pt.2
+If this feature can be set up easily, then it would be nice
+To be able to see that there are two similar named functions
+taking arguments that are the exact same
+the only difference is the argument name
+if that is the case, then make argument naming strict.
+*/
+
+// Discard removes the result
+MyArrayRemove at;int, int discard
+	if at isgteq self.count
+		return
+
+	returnElement = self.elements{at}
+
+	// Remove the array logic...
+	return returnElement
+
+MyArrayRemove element;T, T discard
+	result T;
+
+	for element in elements
+		if element == T
+			break
+
+	if result
+		return result
+
+with T as Comparable
+
+
+// As for the discard stuff,
+// Rather than making it a compiler warning, it would be nice to
+// Simply insert `discard` into the respective function when compiler
+// This will be a later feature where the compiler sort of fixes up the code
+// And warnings are not given for easy fixes.
+testFunction, int discard
+	println 'Hello world'

@@ -1,0 +1,25 @@
+use std
+use Arduino.h
+use 'myHeader.h'
+
+ledPin const = 3
+
+setup
+	pinMode ledPin OUTPUT
+
+	Serial.begin 9600
+
+loop
+	Serial.println 'Light on'
+	digitalWrite ledPin HIGH
+	delay 1000
+	Serial.println 'Light off'
+	digitalWrite ledPin LOW
+	delay 1000
+
+	println [
+		'I am testing whether or not we should be using',
+		'Just a single tick for string, or the double ones',
+		'I personally think the single tick is good',
+		'As one does not have to press the shift key, let use refactor everything'
+	]

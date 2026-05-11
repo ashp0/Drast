@@ -1,0 +1,24 @@
+use std
+
+main, int
+	myNumber = 25
+
+	// myPointer = &myNumber
+	myPointer = ~myNumber
+
+	// myDerefNumber = *myPointer
+	myDerefNumber = `myPointer
+
+	// string* someMemory = 0x255C
+	someMemory string` = 0x255C
+
+	myString = 'Ashwin'
+	addLetterA myString
+	print myString
+
+	return 0
+
+
+addLetterA to;~string
+	to += 'A'
+

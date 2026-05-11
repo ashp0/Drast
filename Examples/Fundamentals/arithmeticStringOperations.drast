@@ -1,0 +1,73 @@
+use std
+
+// `file` keyword will only be reserved only during use statements, not elsewhere.
+use file ArduinoAccelerometerSensor.h // Or something?
+
+mySensor = Accelerometer
+
+timePassed = 0
+timeMaximum = 360 // seconds
+
+main, int
+  mySensor.setup
+
+  while true
+    value = mySensor.read
+    Serial.println value
+
+    if timePassed isgte timeMaximum
+      break
+
+    timePassed += 2
+
+    delay 2000
+
+  Serial.println 'Done!'
+
+  /*
+  Note:
+  When you use 'x' and it is one character long,
+  in C++ it will compile to a char 'x'
+  You must type s'x' to compile it to a string "x"
+  */
+
+formattedString x;int y;int z;int time;int, string
+  returnString = 'Data: x('
+  returnString += x
+  returnString += '), y('
+  returnString += y
+  returnString += '), z('
+  returnString += z
+  returnString += '), Time: '
+  returnString += time
+
+  /*
+  Alternatively, we can have comma separated function calls.
+  Since function arguments do not use commas, using a comma means you are calling the function a second time. For example:
+
+  println[
+    'Hello',
+    25
+  ]
+
+  is actually:
+  println['Hello']
+  println[25]
+
+  Applying the same logic:
+
+  returnString string;
+
+  returnString += [
+    'Data: x(',
+    x,
+    '), y(',
+    y,
+    '), z(',
+    z
+    '), Time:',
+    time
+  ]
+  */
+
+  return returnString

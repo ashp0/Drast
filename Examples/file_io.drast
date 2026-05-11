@@ -1,0 +1,7 @@
+use std
+
+main, int
+	path = arg 1
+	text = readFile path
+	println text.lineCount
+	return 0

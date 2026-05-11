@@ -1,0 +1,47 @@
+use token
+use parser
+
+struct UseDecl
+	kind UseDecl.Kind
+	path string
+	isDrastModule bool			 // Resolved by the driver merged before codegen.
+	location SourceLocation
+
+enum UseDecl.Kind
+	Angle
+	Quoted
+
+impl Parser
+	parseUse, UseDecl
+		decl UseDecl;
+		// Note there is an error when transpiling.
+		// It shows this->previous()().location;
+		// Instead of this->previous().location;
+		// TODO: Fix this error.
+		decl.location = self.previous[].location
+
+		if checkKind[.StringLiteral] or checkKind[.CharLiteral]
+			decl.kind = .Quoted
+			decl.path = self.advance[].text
+		else
+			decl.kind = .Angle
+			path string;
+
+			while not self.check .Newline and not self.check .End
+				tok const = self.current
+				if tok.kind == .Identifier or tok.kind == .Dot
+					path += tok.text
+					self.advance
+				else
+					// TODO: Add support for C++ throw statements.
+					// This does not work at all.
+					// throw CompileError 'unexpected token `' + tok.text + '` in use path' + tok.location
+					println 'unexpected token' tok.text 'in use path' tok.location
+
+					// TODO: This doesn't work either. Fix that so it parses as one on the drast_cpp side.
+					println 'unexpected token' + tok.text + 'in use path' + tok.location
+					return
+			decl.path = path
+
+		self.consumeStatementEnd
+		return decl

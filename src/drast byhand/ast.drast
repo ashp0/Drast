@@ -1,0 +1,8 @@
+struct Program
+	declarations {Decl}
+
+enum Program.Visibility
+	Public
+	Preview
+	Private
+	Fileprivate

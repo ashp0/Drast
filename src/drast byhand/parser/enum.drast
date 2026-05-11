@@ -1,0 +1,111 @@
+use token
+use parser
+
+struct StructDecl
+	name string
+	typeParams {string}
+	fields {StructField}
+	isFilePrivate bool
+	location SourceLocation
+
+/*
+void Parser::parseEnum(Program &program, bool isFileprivate) {
+    Token nameTok = consume(TokenKind::Identifier, "expected enum name");
+    std::string fullName = nameTok.text;
+    // Nested enums: `enum Outer.Inner`
+    while (match(TokenKind::Dot)) {
+        fullName += "." +
+            consume(TokenKind::Identifier, "expected nested enum name").text;
+    }
+    EnumDecl decl;
+    decl.name = fullName;
+    decl.location = nameTok.location;
+    decl.isFileprivate = isFileprivate;
+    consumeStatementEnd();
+    skipNewlines();
+    consume(TokenKind::Indent, "expected indented block after enum header");
+    while (!check(TokenKind::Dedent) && !check(TokenKind::End)) {
+        // Allow multiple variants per line, semicolon-separated.
+        while (check(TokenKind::Identifier)) {
+            EnumVariant variant;
+            variant.name = current().text;
+            variant.location = current().location;
+            advance();
+            if (check(TokenKind::Identifier) && peek(1).kind == TokenKind::Semicolon) {
+                while (check(TokenKind::Identifier) && peek(1).kind == TokenKind::Semicolon) {
+                    StructField field;
+                    Token fieldTok = advance();
+                    field.name = fieldTok.text;
+                    field.location = fieldTok.location;
+                    consume(TokenKind::Semicolon, "expected ';' after enum payload field name");
+                    field.type = parseType();
+                    variant.fields.push_back(std::move(field));
+                }
+            } else {
+                // Multi-word variant names like `Golden Retriver` — accept
+                // additional identifiers on the same line until we hit ';' or newline.
+                while (check(TokenKind::Identifier)) {
+                    variant.name += "_" + current().text;
+                    advance();
+                }
+            }
+            decl.variants.push_back(std::move(variant));
+            if (!match(TokenKind::Semicolon)) break;
+        }
+        consumeStatementEnd();
+        skipNewlines();
+    }
+    consume(TokenKind::Dedent, "expected end of enum block");
+    program.enums.push_back(std::move(decl));
+}
+*/
+
+impl Parser
+	// Note: We said we have automatic unique_ptr, why is program not automatically converted into a reference/alias?
+	parseEnum program;~Program isFilePrivate;bool;false
+		nameToken = self.consume .Identifier 'expected enum name'
+		fullName = nameToken.text
+		while self.currentMatch .Dot
+			fullName += '.' + self.consume .Identifier 'expected nested enum name.text'
+
+		decl EnumDecl;
+		decl.name = fullName
+		decl.location = nameToken.location
+		decl.isFilePrivate = isFilePrivate
+
+		self.consumeStatementEnd
+		self.skipNewLines
+		self.consume .Indent 'expected indented block after enum header'
+		while not self.check .Dedent and not self.check .End
+			while self.check .Identifier
+				variant EnumVariant;
+				variant.name = self.current[].text
+				variant.location = self.current[].location
+				self.advance
+				if self.check[.Identifier] and self.peek[1].kind == .Semicolon
+					while self.check .Identifier and self.peek[1].kind == .Semicolon
+						field StructField;
+						fieldTok = self.advance
+						field.name = fieldTok.text
+						field.location = fieldTok.location
+						self.consume .Semicolon 'expected `;` after enum payload field name'
+						field.type = self.parseType
+						variant.fields += field // remember, this must show std::move
+				else
+					// Accept multi-word variant names like `Golden Retriver` — accept
+					// additional identifiers on the same line until we hit ';' or newline.
+					while self.check .Identifier
+						variant.name += '_' + self.current[].text
+						self.advance
+				decl.variants += variant // remember, this must show std::move
+				if not self.currentMatch .Semicolon
+					break
+			self.consumeStatementEnd
+			self.skipNewLines
+		self.consume .Dedent 'expected end of enum block'
+		program.enums += decl // remember, this must show std::move
+
+impl Codegen
+	// Please, I do not like writing the ~ sign constantly, can't Drast do it for me?
+	emitEnum e;~EnumDecl
+		// Work on later

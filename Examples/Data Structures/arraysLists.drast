@@ -1,0 +1,32 @@
+use std
+
+main, int
+	countries = {'Canada' 'America' 'Mexico' 'United Kingdom' 'Russia' 'Australlia'}
+
+	countries += 'Nepal'
+	countries += 'Africa'
+
+	// For functions that support any type and have the same arguments but do
+	// Different functions, we must write down the argument names
+	// Unless if this is a difficult feature to implement, then we can
+	// Just stick to more clear names I guess
+	// so countries.removeAt and countries.removeElement
+	countries.remove ;at 25
+	countries.remove ;element 'Canada'
+
+	// Reference to C++. Though I would in the future try to
+	// Create a custom re-router for these things.
+	// Cause syntax is ugly.
+	// But mixing with C++ would be a nice feature
+	numbers std::linked_list`[int] = {10 20 30}
+
+	numbers.push_back 40
+	numbers.push_front 5
+
+	for n in numbers
+		print [
+			n,
+			', '
+		]
+
+	return 0

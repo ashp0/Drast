@@ -1,0 +1,50 @@
+use std
+
+// I have already presented errors in one of the files somewhere.
+
+// It was in a maybe + [Type] syntax.
+
+// It would be kind of like an optional just like in Swift.
+// I'm sure C++ has options too.
+
+// Now for syntax hmm
+
+main, int
+	myPasscode = chanceUnlock
+
+	// Runtime error if nil
+	// forceUnwrap = myPasscode.forced
+
+	if chanceUnlock
+		println [
+			'Discovered password! Here you go: ',
+			`myPasscode
+		]
+	else
+		println 'Did not discover password.'
+
+	try
+		int x = myPasscode.value
+	catch
+		println [
+			'Could not unlock passcode due to: ',
+			;1 // Error
+		]
+
+	/*
+	Alternatively
+	catch ;error
+		println [
+			'Could not unlock passcode due to: ',
+			error // Error
+		]
+	*/
+
+	return chanceUnlock.valueOr 0000
+
+chanceUnlock, maybe int
+	number = int.random 0 10
+	if number % 2 == 0
+		return 1234
+	else
+		return nil

@@ -1,0 +1,278 @@
+// ─────────────────────────────────────────────────────────────────────
+//  codegen.drast — Drast → C++ emitter
+//
+//  Mirrors src/Codegen.cpp at a structural level: the visitor walks
+//  the merged Program produced by sema, emits #includes for each `use`
+//  declaration, then emits forward decls and definitions for structs,
+//  enums, protocols, impls, and free functions.
+//
+//  Scope of this implementation
+//  ─────────────────────────────
+//  This generator targets a sub-set of Drast — the constructs that
+//  appear in the self-host source itself.  Expressions are not yet
+//  emitted from arena indices; every function body is emitted as a
+//  `return {}` stub so the produced C++ at least typechecks.  The
+//  self-host fixpoint therefore does NOT round-trip byte-for-byte
+//  against drastc.  Closing that gap is future work — the structure
+//  here makes adding statement emission natural.
+// ─────────────────────────────────────────────────────────────────────
+
+use std
+use ast
+use token
+
+// ─────────────────────────────────────────────────────────────────────
+//  CodegenState — accumulator for emitted C++
+// ─────────────────────────────────────────────────────────────────────
+
+struct CodegenState
+	out string                 // accumulated C++ text
+	noRuntime bool             // skip the drast runtime header
+	indent int                 // current indent depth (4 spaces per step)
+
+// Initialise a fresh codegen accumulator.
+newCodegen noRuntime;bool, CodegenState
+	return CodegenState['' noRuntime 0]
+
+// Append one newline-terminated line at the current indent.
+emitLine state;~CodegenState text;string
+	i = 0
+	while i islt state.indent
+		state.out += s'    '
+		i += 1
+	state.out += text
+	state.out += s'\n'
+
+// ─────────────────────────────────────────────────────────────────────
+//  Type rendering — convert a parsed Type into the equivalent C++ text
+// ─────────────────────────────────────────────────────────────────────
+
+// Map a Drast builtin name to its C++ equivalent.  Unknown names pass
+// through unchanged so user-defined types render as themselves.
+builtinCppName name;string, string
+	if name == 'int'
+		return 'int'
+	if name == 'float'
+		return 'float'
+	if name == 'double'
+		return 'double'
+	if name == 'bool'
+		return 'bool'
+	if name == 'char'
+		return 'char'
+	if name == 'void'
+		return 'void'
+	if name == 'string'
+		return 'std::string'
+	if name == 'i8'
+		return 'int8_t'
+	if name == 'i16'
+		return 'int16_t'
+	if name == 'i32'
+		return 'int32_t'
+	if name == 'i64'
+		return 'int64_t'
+	if name == 'u8'
+		return 'uint8_t'
+	if name == 'u16'
+		return 'uint16_t'
+	if name == 'u32'
+		return 'uint32_t'
+	if name == 'u64'
+		return 'uint64_t'
+	if name == 'f32'
+		return 'float'
+	if name == 'f64'
+		return 'double'
+	if name == 'usize'
+		return 'std::size_t'
+	if name == 'isize'
+		return 'std::ptrdiff_t'
+	return name
+
+// Replace any '.' in a name with '::' so nested type paths render as
+// C++ scope qualifiers.  Returns a fresh string.
+qualifyDotted name;string, string
+	out = ''
+	i = 0
+	while i islt name.length
+		ch = name.substring i ;to (i + 1)
+		if ch == s'.'
+			out += s'::'
+		else
+			out += ch
+		i += 1
+	return out
+
+// Render a Type as C++ source.  Handles arrays, maybes, pointer suffixes,
+// and the shared-heap annotation.  Reference markers (`isReference`) are
+// applied at parameter rendering, not here.
+renderType t;Type, string
+	base = builtinCppName (qualifyDotted t.name)
+	i = 0
+	while i islt t.pointerDepth
+		base += s'*'
+		i += 1
+	if t.isArray
+		base = 'std::vector<' + base + s'>'
+	if t.isMaybe
+		base = 'std::optional<' + base + s'>'
+	if t.heapKind == HeapKind.Shared
+		base = 'std::shared_ptr<' + base + s'>'
+
+	return base
+
+// ─────────────────────────────────────────────────────────────────────
+//  Use → #include emission
+// ─────────────────────────────────────────────────────────────────────
+
+emitUses state;~CodegenState program;Program
+	emittedStd = false
+	for u in program.uses
+		if u.isDrastModule
+			continue
+		if u.path == 'no_runtime'
+			continue
+		if u.path == 'std'
+			if not emittedStd
+				emitLine state '#include <iostream>'
+				if state.noRuntime
+					emitLine state '#include <memory>'
+					emitLine state '#include <optional>'
+					emitLine state '#include <string>'
+					emitLine state '#include <vector>'
+				else
+					emitLine state '#include "runtime/drast_runtime.hpp"'
+				emittedStd = true
+			continue
+		if u.kind == UseKind.Angle
+			emitLine state ('#include <' + u.path + s'>')
+		else
+			emitLine state ('#include "' + u.path + s'"')
+
+// ─────────────────────────────────────────────────────────────────────
+//  Forward declarations of user types
+// ─────────────────────────────────────────────────────────────────────
+
+emitForwardDecls state;~CodegenState program;Program
+	for s in program.structs
+		emitLine state ('struct ' + s.name + s';')
+	// Data enums (variants with payloads) become structs; forward
+	// declare them too so cross-references resolve.
+	for e in program.enums
+		anyPayload = false
+		for v in e.variants
+			if v.fields.length isgt 0
+				anyPayload = true
+		if anyPayload
+			emitLine state ('struct ' + e.name + s';')
+
+// ─────────────────────────────────────────────────────────────────────
+//  Enum emission
+//
+//  Plain enums become C++ `enum class` types.  Enums with at least one
+//  variant carrying payload fields become tagged structs with a static
+//  factory per variant — the same layout the C++ codegen produces.
+// ─────────────────────────────────────────────────────────────────────
+
+emitEnum state;~CodegenState e;EnumDecl
+	hasPayload = false
+	for v in e.variants
+		if v.fields.length isgt 0
+			hasPayload = true
+	if hasPayload
+		// Data-carrying enum: emit a payload struct per variant, then
+		// the umbrella struct with a Tag.  Mirrors src/Codegen.cpp's
+		// emitDataEnum.
+		for v in e.variants
+			if v.fields.length isgt 0
+				emitLine state ('struct ' + e.name + s'_' + v.name + s' {')
+				state.indent += 1
+				for f in v.fields
+					emitLine state (renderType f.type + s' ' + f.name + s';')
+				state.indent -= 1
+				emitLine state '};'
+		emitLine state ('struct ' + e.name + s' {')
+		state.indent += 1
+		emitLine state 'enum class Tag {'
+		state.indent += 1
+		for v in e.variants
+			emitLine state (v.name + s',')
+		state.indent -= 1
+		emitLine state '};'
+		emitLine state 'Tag tag;'
+		state.indent -= 1
+		emitLine state '};'
+	else
+		emitLine state ('enum class ' + e.name + s' {')
+		state.indent += 1
+		for v in e.variants
+			emitLine state (v.name + s',')
+		state.indent -= 1
+		emitLine state '};'
+
+// ─────────────────────────────────────────────────────────────────────
+//  Struct emission — emit a default constructor plus all fields
+// ─────────────────────────────────────────────────────────────────────
+
+emitStruct state;~CodegenState s;StructDecl
+	emitLine state ('struct ' + s.name + s' {')
+	state.indent += 1
+	emitLine state (s.name + s'() = default;')
+	for f in s.fields
+		emitLine state (renderType f.type + s' ' + f.name + s';')
+	state.indent -= 1
+	emitLine state '};'
+
+// ─────────────────────────────────────────────────────────────────────
+//  Function emission — header plus stub body
+//
+//  The current parser does not capture function bodies; codegen here
+//  produces signatures and a `return {}` (or empty for void) body, so
+//  the emitted file is a valid C++ translation unit even though it
+//  does not yet replicate the source's runtime behaviour.
+// ─────────────────────────────────────────────────────────────────────
+
+emitFunction state;~CodegenState fn;Function
+	retText = 'void'
+	if fn.hasReturnType
+		retText = renderType fn.returnType
+		if fn.returnIsMaybe
+			retText = 'std::optional<' + retText + s'>'
+	params = ''
+	first = true
+	for p in fn.parameters
+		if not first
+			params += s', '
+		params += renderType p.type
+		params += s' '
+		params += p.name
+		first = false
+	emitLine state (retText + s' ' + fn.name + s'(' + params + s') {')
+	state.indent += 1
+	if retText isne 'void'
+		emitLine state 'return {};'
+	state.indent -= 1
+	emitLine state s'}'
+
+// ─────────────────────────────────────────────────────────────────────
+//  Public entry — emit the full C++ for a Program
+// ─────────────────────────────────────────────────────────────────────
+
+emit program;Program noRuntime;bool, string
+	state = newCodegen noRuntime
+	emitUses state program
+	emitForwardDecls state program
+	for e in program.enums
+		emitEnum state e
+	for s in program.structs
+		emitStruct state s
+	// Free functions: helpers first, then `main`, matching the order
+	// the C++ codegen emits in.
+	for fn in program.functions
+		if fn.name isne 'main'
+			emitFunction state fn
+	for fn in program.functions
+		if fn.name == 'main'
+			emitFunction state fn
+	return state.out

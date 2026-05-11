@@ -1,0 +1,17 @@
+use std
+
+struct Box
+	value int
+
+printBorrowed box;~Box
+	println box.value
+
+main, int
+	stackBox = Box[41]
+	printBorrowed stackBox
+
+	sharedA = @[Box 42]
+	sharedB = sharedA
+	println sharedB.value
+
+	return 0

@@ -1,0 +1,47 @@
+use std
+
+main, int
+	juni = Dog 'Golden Retriver'
+	playMP3 juni.makeSound
+
+	println [
+		'Your ',
+		juni.breed,
+		' is scientifically called \'',
+		juni.getScientificName,
+		',\' isn\'t that interesting!'
+	]
+
+	return 0
+
+protocol Animal
+	makeSound, string
+	getScientificName, string
+
+struct Dog
+	breed Breed;
+
+impl Dog as Animal
+	makeSound, string
+		return 'path/to/audio/file'
+
+	getScientificName, string
+		scientificName string;
+		match self.breed.lowercase
+			'Pitbull'
+				scientificName = 'Canis lupus familiaris'
+			'Golden Retriver'
+				scientificName = 'Canis lupus familiaris' // I did not know they are all the same lol
+			default
+				scientificName = 'Unknown'
+
+		return scientificName
+
+// Embedded enum, so it doesn't mess up the global name scope
+// If that is possible.
+// So other things have to do Dog.Breed
+// While within the Dog scope, it will just be bredSed
+enum Dog.Breed
+	Golden Retriver
+	Labrador
+	Pitbull

@@ -1,0 +1,9 @@
+use std
+
+main, int
+	clearErrors
+	reportError 'structured_errors.drast' 3 7 'first structured error'
+	reportError 'structured_errors.drast' 4 2 'second structured error'
+	emitErrors
+	println errorCount
+	return 0
