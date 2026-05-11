@@ -39,16 +39,16 @@ print("Hello, Drast!")
 ### Arithmetic and output
 
 ```drast
-let a = 5
-let b = 10
-print(a + b)
+a = 5
+b = 10
+print a + b
 ```
 
 ### Conditionals
 
 ```drast
-let value = 7
-if value > 5 {
+value = 7
+if value isgt 5 {
   print("Greater than five")
 } else {
   print("Five or less")
