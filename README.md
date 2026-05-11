@@ -48,11 +48,10 @@ print a + b
 
 ```drast
 value = 7
-if value isgt 5 {
+if value isgt 5
   print 'Greater than five'
-} else {
+else
   print 'Five or less'
-}
 ```
 
 ## Inspiration
