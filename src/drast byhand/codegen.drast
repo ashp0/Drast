@@ -1,48 +1,68 @@
+use ast
+
 struct Codegen
-	private ostringstream out_;
+	private out string;
 	private imports {string};
-	private indent = 0
-	private runtimeNeeded = false
-	private noRuntime = false
-	private emittingCallee = false
+	private indent int;
+	private runtimeNeeded bool;
+	private noRuntime bool;
+	private emittingCallee bool;
 
-	/*
-	    // Tracks struct/enum/protocol names → known user types (for ctor disambiguation).
-    std::set<std::string> userTypes_;
-    std::set<std::string> protocolNames_;
-    // Nested enum names: "Outer.Inner" → owned by Outer.
-    std::vector<EnumDecl> nestedEnums_;
-    // Map enumName → fully-qualified C++ name.
-    std::unordered_map<std::string, std::string> enumQualifiedName_;
-    std::unordered_map<std::string, std::set<std::string>> enumVariants_;
-    std::unordered_map<std::string, std::string> variantToEnum_;
-    std::set<std::string> dataEnumNames_;
-    std::unordered_map<std::string, std::unordered_map<std::string, std::vector<StructField>>> dataEnumFields_;
-    std::unordered_map<std::string, std::set<std::string>> boxedStructFields_;
-    std::unordered_map<std::string, std::unordered_map<std::string, std::set<std::string>>> boxedEnumFields_;
-    std::unordered_set<std::string> functionNames_;
-    std::unordered_map<std::string, std::string> functionReturnTypes_;
-
-	*/
-
-	// We need an update, this is simply a linked list.
-	userTypes_ {string}
-	protocolNames_ {string}
-	nestedEnums_ {EnumDecl}
-	enumQualifiedName_ {string, string}
-	enumVariants_ {string, {string}}
-	variantToEnum_ {string, string}
-	dataEnumNames_ {string}
-	dataEnumFields_ {string, {string, {StructField}}}
-	boxedStructFields_ {string, {string}}
-	boxedEnumFields_ {string, {string, {string}}}
-	functionNames_ {string}
-	functionReturnTypes_ {string, string}
+	private userTypes {string}
+	private protocolNames {string}
+	private nestedEnums {EnumDecl}
+	private dataEnumNames {string}
+	private functionNames {string}
 
 impl Codegen
-	setNoRuntime value;bool
-		self.setNoRuntime = value
+	init
+		self.out = ''
+		self.indent = 0
+		self.runtimeNeeded = false
+		self.noRuntime = false
+		self.emittingCallee = false
 
-	emitProgram program;Program, string
-		// Return a string.
-		return "#include <iostream>\n\nint main() {\n    std::cout << \"Hello, world!\" << std::endl;\n    return 0;\n}\n"
+	deinit
+		self.imports.clear
+		self.userTypes.clear
+		self.protocolNames.clear
+		self.nestedEnums.clear
+		self.dataEnumNames.clear
+		self.functionNames.clear
+
+	setNoRuntime value;bool
+		self.noRuntime = value
+
+	emit program;~Program, string
+		self.emitUses program
+		self.emitMain program
+		return self.out
+
+	private emitUses program;~Program
+		emittedStd = false
+		for useDecl in program.uses
+			if useDecl.isDrastModule
+				continue
+			if useDecl.path == 'std'
+				if not emittedStd
+					self.out += '#include <iostream>\n'
+					if not self.noRuntime
+						self.out += '#include "runtime/drast_runtime.hpp"\n'
+					emittedStd = true
+				continue
+			if useDecl.kind == .Angle
+				self.out += '#include <'
+				self.out += useDecl.path
+				self.out += '>\n'
+			else
+				self.out += '#include "'
+				self.out += useDecl.path
+				self.out += '"\n'
+
+	private emitMain program;~Program
+		self.out += 'int main(int argc, char **argv) {\n'
+		if not self.noRuntime
+			self.out += '    drast::setArgs(argc, argv);\n'
+		self.out += '    drast::print("Hello World!");\n'
+		self.out += '    return 0;\n'
+		self.out += '}\n'

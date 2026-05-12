@@ -44,7 +44,8 @@ bool expressionMentionsRuntime(const Expr *expr) {
     if (!expr) return false;
     if (expr->kind == Expr::Kind::HeapAlloc) return true;
     if (expr->kind == Expr::Kind::Identifier) {
-        if (expr->text == "getInput" || expr->text == "playMP3") return true;
+        if (expr->text == "getInput" || expr->text == "playMP3" ||
+            expr->text == "delegateToV1") return true;
         if (!expr->genericArgs.empty()) return true;
     }
     if (expr->kind == Expr::Kind::FieldAccess) {
@@ -674,10 +675,35 @@ void Codegen::emitStruct(const Program &program, const StructDecl &s) {
         }
     }
 
+    // Skip the auto-generated constructors when the user declares `init` —
+    // the user has taken control of construction.
+    bool hasUserInit = false;
+    {
+        auto userInitIt = methodsByStruct_.find(s.name);
+        if (userInitIt != methodsByStruct_.end()) {
+            for (const MethodRef &ref : userInitIt->second) {
+                if (ref.implIndex >= program.impls.size()) continue;
+                const ImplBlock &impl = program.impls[ref.implIndex];
+                if (ref.methodIndex >= impl.methods.size()) continue;
+                if (impl.methods[ref.methodIndex].name == "init") {
+                    hasUserInit = true;
+                    break;
+                }
+            }
+        }
+    }
+
     std::vector<const StructField *> ctorFields;
     for (const StructField *f : publicFields) ctorFields.push_back(f);
     for (const StructField *f : previewFields) ctorFields.push_back(f);
-    if (!ctorFields.empty()) {
+
+    // If any struct in the program contains an auto-boxed (unique_ptr<>) field,
+    // the program-wide value graph is non-copyable. The auto-generated
+    // all-fields constructors would force copy-construction of unique_ptr,
+    // which doesn't compile. Suppress them everywhere in that case.
+    bool containsAutoBoxed = !boxedStructFields_.empty();
+
+    if (!ctorFields.empty() && !hasUserInit && !containsAutoBoxed) {
         out_ << "    " << s.name << "() = default;\n";
         out_ << "    " << s.name << "(";
         for (size_t i = 0; i < ctorFields.size(); ++i) {
@@ -685,6 +711,12 @@ void Codegen::emitStruct(const Program &program, const StructDecl &s) {
             const StructField *f = ctorFields[i];
             std::string t = typeText(f->type);
             if (s.name == "Dog" && f->type.name == "Breed") t = "std::string";
+            // For auto-boxed fields the parameter type must match the storage
+            // type (unique_ptr<T>); otherwise the constructor would take a
+            // value-typed T which may still be incomplete at this point.
+            if (isAutoBoxedStructField(s.name, f->name)) {
+                t = boxedTypeText(f->type);
+            }
             out_ << t << " " << f->name;
         }
         out_ << ") : ";
@@ -693,8 +725,7 @@ void Codegen::emitStruct(const Program &program, const StructDecl &s) {
             const StructField *f = ctorFields[i];
             std::string storage = f->name + (f->visibility == Visibility::Preview ? "_" : "");
             if (isAutoBoxedStructField(s.name, f->name)) {
-                out_ << storage << "(std::make_unique<" << typeText(f->type)
-                     << ">(std::move(" << f->name << ")))";
+                out_ << storage << "(std::move(" << f->name << "))";
             } else {
                 out_ << storage << "(" << f->name << ")";
             }
@@ -732,6 +763,12 @@ void Codegen::emitStruct(const Program &program, const StructDecl &s) {
     }
     auto methodIt = methodsByStruct_.find(s.name);
     if (methodIt != methodsByStruct_.end()) {
+        // If the field section ended in `private:`, switch to `public:`
+        // before emitting methods so that user methods default to public.
+        bool endedPrivate = !previewFields.empty()
+            ? false
+            : !privateFields.empty();
+        if (endedPrivate) out_ << "  public:\n";
         bool emittedPrivate = false;
         for (const MethodRef &ref : methodIt->second) {
             if (ref.implIndex >= program.impls.size()) continue;
@@ -746,9 +783,17 @@ void Codegen::emitStruct(const Program &program, const StructDecl &s) {
                 out_ << "  public:\n";
                 emittedPrivate = false;
             }
-            out_ << "    " << functionReturnText(m) << " " << m.name
-                 << "(" << parameterListText(m.parameters, /*defaults=*/false)
-                 << ");\n";
+            if (m.name == "init") {
+                out_ << "    " << s.name << "("
+                     << parameterListText(m.parameters, /*defaults=*/false)
+                     << ");\n";
+            } else if (m.name == "deinit") {
+                out_ << "    ~" << s.name << "();\n";
+            } else {
+                out_ << "    " << functionReturnText(m) << " " << m.name
+                     << "(" << parameterListText(m.parameters, /*defaults=*/false)
+                     << ");\n";
+            }
         }
     }
     out_ << "};\n";
@@ -861,17 +906,25 @@ void Codegen::emitMethodDefinition(const Function &fn) {
     }
 
     // Normal method definition: emitted out-of-line with Host:: qualifier.
-    if (fn.returnType) {
-        if (fn.returnIsMaybe) {
-            out_ << "std::optional<" << typeText(*fn.returnType) << ">";
-        } else {
-            out_ << typeText(*fn.returnType);
-        }
+    // `init` and `deinit` are sugar for constructor / destructor.
+    if (fn.name == "init") {
+        out_ << currentImplTarget_ << "::" << currentImplTarget_ << "("
+             << parameterListText(fn.parameters, /*defaults=*/false) << ") {\n";
+    } else if (fn.name == "deinit") {
+        out_ << currentImplTarget_ << "::~" << currentImplTarget_ << "() {\n";
     } else {
-        out_ << "void";
+        if (fn.returnType) {
+            if (fn.returnIsMaybe) {
+                out_ << "std::optional<" << typeText(*fn.returnType) << ">";
+            } else {
+                out_ << typeText(*fn.returnType);
+            }
+        } else {
+            out_ << "void";
+        }
+        out_ << " " << currentImplTarget_ << "::" << fn.name << "("
+             << parameterListText(fn.parameters, /*defaults=*/false) << ") {\n";
     }
-    out_ << " " << currentImplTarget_ << "::" << fn.name << "("
-         << parameterListText(fn.parameters, /*defaults=*/false) << ") {\n";
     indent_++;
     localScopes_.emplace_back();
     localTypeScopes_.emplace_back();
@@ -1000,7 +1053,13 @@ void Codegen::emitTemplatePrefix(const std::vector<std::string> &typeParams) {
 
 void Codegen::emitBlock(const std::vector<StmtPtr> &block) {
     preScanBlockTypeHints(block);
+    // Each block gets its own local scope so that a name first declared in
+    // one if/while branch does not leak into a sibling branch.
+    localScopes_.emplace_back();
+    localTypeScopes_.emplace_back();
     for (const StmtPtr &s : block) emitStmt(*s);
+    localTypeScopes_.pop_back();
+    localScopes_.pop_back();
 }
 
 void Codegen::preScanBlockTypeHints(const std::vector<StmtPtr> &block) {
@@ -1058,11 +1117,12 @@ void Codegen::emitStmt(const Stmt &stmt) {
                                isBuiltinTypeName(stmt.varName) &&
                                !isBuiltinTypeName(stmt.declaredType->name);
             std::string actualName = cStyleTyped ? stmt.declaredType->name : stmt.varName;
-            // Demote redeclaration to assignment if the name is already in scope.
+            // Demote redeclaration to assignment if the name is visible in
+            // any enclosing scope (function or block).
             bool isRedecl = false;
-            if (!localScopes_.empty() &&
-                localScopes_.back().count(actualName)) {
-                isRedecl = true;
+            for (auto it = localScopes_.rbegin();
+                 it != localScopes_.rend(); ++it) {
+                if (it->count(actualName)) { isRedecl = true; break; }
             }
             if (isRedecl) {
                 out_ << actualName;
@@ -1443,7 +1503,8 @@ void Codegen::emitExpr(const Expr &expr) {
                 out_ << (noRuntime_ ? "" : "drast::") << expr.text;
                 if (!emittingCallee_ &&
                     (expr.text == "getInput" || expr.text == "args" ||
-                     expr.text == "errorCount" || expr.text == "hasErrors")) {
+                     expr.text == "errorCount" || expr.text == "hasErrors" ||
+                     expr.text == "delegateToV1")) {
                     out_ << "()";
                 }
                 return;
@@ -1452,7 +1513,14 @@ void Codegen::emitExpr(const Expr &expr) {
                 out_ << expr.text << "()";
                 return;
             }
-            if (!currentImplTarget_.empty()) {
+            // Local variables / parameters take precedence over struct
+            // fields — otherwise a parameter that shadows a field would
+            // emit as `this->field` instead of the parameter name.
+            bool isLocal = false;
+            for (const auto &scope : localScopes_) {
+                if (scope.count(expr.text)) { isLocal = true; break; }
+            }
+            if (!isLocal && !currentImplTarget_.empty()) {
                 auto fields = structFields_.find(currentImplTarget_);
                 if (fields != structFields_.end()) {
                     auto found = fields->second.find(expr.text);
@@ -1833,6 +1901,14 @@ void Codegen::emitCall(const Expr &call) {
             out_ << ".clear()";
             return;
         }
+        if (name == "removeAt" && !call.args.empty()) {
+            out_ << "drast::remove_at(";
+            emitLeft();
+            out_ << ", ";
+            emitExpr(*call.args[0]);
+            out_ << ")";
+            return;
+        }
         if (name == "pop") {
             emitLeft();
             out_ << ".pop_back()";
@@ -2178,11 +2254,17 @@ void Codegen::computeAutoBoxing(const Program &program) {
         return dfs(from);
     };
 
-    // Auto-boxing addition: any value-typed field whose type edge participates
-    // in a type cycle is stored as std::unique_ptr<T> in emitted C++ while the
-    // Drast source continues to use plain T syntax.
+    // Auto-boxing addition: a DIRECT value-typed field (not vector/optional/tuple)
+    // whose type edge participates in a type cycle is stored as
+    // std::unique_ptr<T> in emitted C++ while the Drast source continues to use
+    // plain T syntax. Vector / optional / tuple fields already break cycles via
+    // forward declarations and do not need boxing.
+    auto needsBoxing = [](const Type &t) {
+        return !t.isArray && !t.isMaybe && !t.isTuple;
+    };
     for (const StructDecl &s : program.structs) {
         for (const StructField &field : s.fields) {
+            if (!needsBoxing(field.type)) continue;
             std::vector<std::string> refs;
             collectRefs(field.type, collectRefs, refs);
             for (const std::string &ref : refs) {
@@ -2196,6 +2278,7 @@ void Codegen::computeAutoBoxing(const Program &program) {
     for (const EnumDecl &e : program.enums) {
         for (const EnumVariant &variant : e.variants) {
             for (const StructField &field : variant.fields) {
+                if (!needsBoxing(field.type)) continue;
                 std::vector<std::string> refs;
                 collectRefs(field.type, collectRefs, refs);
                 for (const std::string &ref : refs) {
@@ -2289,6 +2372,14 @@ std::string Codegen::inferExprType(const Expr &expr) const {
             if (expr.text == "values") return "std::vector<int>";
             if (expr.text == "substring" || expr.text == "lowercase" ||
                 expr.text == "trim") return "std::string";
+            // `EnumName.Variant` → enum type
+            if (expr.left && expr.left->kind == Expr::Kind::Identifier) {
+                const std::string &leftName = expr.left->text;
+                auto eit = enumVariants_.find(leftName);
+                if (eit != enumVariants_.end() && eit->second.count(expr.text)) {
+                    return leftName;
+                }
+            }
             std::string leftType = expr.left ? inferExprType(*expr.left) : "";
             auto fields = structFields_.find(leftType);
             if (fields != structFields_.end()) {

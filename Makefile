@@ -24,16 +24,27 @@ $(BUILD)/%.o: $(SRC_DIR)/%.cpp
 clean:
 	rm -rf $(BUILD) drast_v2.cpp drast_v2
 
-.PHONY: run-examples
-run-examples: $(BIN)
+.PHONY: drast-v2 run-examples self-host
+
+DRAST_V2_SRC := src/drast byhand/main.drast
+
+drast-v2: $(BIN)
 	@mkdir -p $(BUILD)/runtime
 	@cp runtime/drast_runtime.hpp $(BUILD)/runtime/
-	@$(BIN) src/drast/main.drast -o $(BUILD)/drast_v2.cpp
+	@$(BIN) "$(DRAST_V2_SRC)" -o $(BUILD)/drast_v2.cpp
 	@$(CXX) $(CXXFLAGS) $(BUILD)/drast_v2.cpp -o $(BUILD)/drast_v2
+	@echo "built $(BUILD)/drast_v2"
+
+run-examples: drast-v2
 	@find Examples -name '*.drast' | sort | while IFS= read -r example; do \
 		echo "=== $$example ==="; \
 		./$(BUILD)/drast_v2 "$$example"; \
 	done
+
+self-host: drast-v2
+	@./$(BUILD)/drast_v2 Examples/Fundamentals/helloWorld.drast > $(BUILD)/hello_v1.cpp
+	@$(BIN)             Examples/Fundamentals/helloWorld.drast > $(BUILD)/hello_v2.cpp
+	@diff -u $(BUILD)/hello_v1.cpp $(BUILD)/hello_v2.cpp && echo "self-host: helloWorld matches"
 
 test: $(BIN)
 	@$(BIN) Examples/Fundamentals/helloWorld.drast

@@ -1,43 +1,35 @@
-// Issue here: TODO:
-/*
-#include <token>
-#include <parser>
-#include <token>
-#include <parser>
-This should be fixed.
-*/
-
 use token
 use ast
 use 'parser/struct'
 use 'parser/use'
 use 'parser/enum'
 
-// ./build/drastc src/drast\ byhand/parser.drast | sed -n '/void Parser::parseUse/,/skipNewLines/p'
-
 struct Parser
 	private tokens {Token};
-	private current int; // TODO: Support unsigned
+	private currentIndex int;
 
 impl Parser
-
-	initialize tokens;{Token}
+	init tokens;{Token}
 		self.tokens = tokens
-		self.current = 0
+		self.currentIndex = 0
+
+	deinit
+		self.tokens.clear
 
 	parse, Program
 		program Program;
 		self.skipNewLines
-		while not self.check .End
-			if self.currentMatch .Use
+		while not self.check TokenKind.End
+			if self.currentMatch TokenKind.Use
 				program.uses += self.parseUse
-			elif self.currentMatch .Struct
+			elif self.currentMatch TokenKind.Struct
 				self.parseStruct program false
-			elif self.currentMatch .Enum
+			elif self.currentMatch TokenKind.Enum
 				self.parseEnum program false
+		return program
 
 	skipNewLines
-		while currentMatches TokenKind.Newline
+		while self.currentMatch TokenKind.Newline
 			continue
 
 	currentMatch kind;TokenKind, bool
@@ -46,5 +38,35 @@ impl Parser
 		self.advance
 		return true
 
+	check kind;TokenKind, bool
+		return self.tokens{self.currentIndex}.kind == kind
+
+	advance, Token
+		token = self.tokens{self.currentIndex}
+		self.currentIndex += 1
+		return token
+
 	previous, Token
-		return self.tokens{self.current - 1}
+		return self.tokens{self.currentIndex - 1}
+
+	peek offset;int, Token
+		return self.tokens{self.currentIndex + offset}
+
+	peekCurrent, Token
+		return self.tokens{self.currentIndex}
+
+	consume kind;TokenKind message;string, Token
+		if not self.check kind
+			// TODO: Try not to rely on the runtime for error reporting.
+			reportError message '' self.peekCurrent.location
+		return self.advance
+
+	consumeStatementEnd
+		self.currentMatch TokenKind.Newline
+
+	parseType, Type
+		t Type;
+		nameToken = self.consume TokenKind.Identifier 'expected type name'
+		t.name = nameToken.text
+		t.location = nameToken.location
+		return t

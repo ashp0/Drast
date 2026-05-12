@@ -1,8 +1,203 @@
-struct Program
-	declarations {Decl}
+use token
 
-enum Program.Visibility
+enum HeapKind
+	None
+	Shared
+
+struct Type
+	name string
+	typeArgs {Type}
+	pointerDepth int
+	isReference bool
+	isMaybe bool
+	isArray bool
+	isVariadic bool
+	isTuple bool
+	isDiscard bool
+	heapKind HeapKind
+	location SourceLocation
+
+enum ExprKind
+	IntLiteral
+	FloatLiteral
+	StringLiteral
+	CharLiteral
+	BoolLiteral
+	NilLiteral
+	IdentifierExpr
+	EnumShorthand
+	FieldAccess
+	IndexExpr
+	CallExpr
+	ConstructorCall
+	BracketCallBatch
+	BinaryExpr
+	UnaryExpr
+	GroupingExpr
+	ArrayLiteral
+	HeapAlloc
+	RefExpr
+	DerefExpr
+	PositionalArg
+
+enum StmtKind
+	ExpressionStmt
+	ReturnStmt
+	VarDeclStmt
+	AssignStmt
+	IfStmt
+	WhileStmt
+	ForInStmt
+	MatchStmt
+	TryCatchStmt
+	BreakStmt
+	ContinueStmt
+
+struct ConstructorArg
+	label string
+	hasLabel bool
+	value Expr
+
+struct Expr
+	kind ExprKind
+	location SourceLocation
+	text string
+	intValue int
+	floatValue int
+	boolValue bool
+	positionalIndex int
+	left {Expr}
+	right {Expr}
+	opText string
+	heapType Type
+	callee {Expr}
+	args {Expr}
+	genericArgs {Type}
+	ctorArgs {ConstructorArg}
+
+struct MatchArm
+	pattern {Expr}
+	isDefault bool
+	body {Stmt}
+	location SourceLocation
+
+struct Stmt
+	kind StmtKind
+	location SourceLocation
+
+	expression {Expr}
+
+	varName string
+	isConst bool
+	declaredType {Type}
+	initializer {Expr}
+
+	assignTarget {Expr}
+	compoundOp string
+	value {Expr}
+
+	condition {Expr}
+	thenBody {Stmt}
+	elseBody {Stmt}
+
+	loopVar string
+	iterable {Expr}
+	rangeStart {Expr}
+	rangeEnd {Expr}
+	rangeStep {Expr}
+	rangeInclusive bool
+
+	matchArms {MatchArm}
+
+	tryBody {Stmt}
+	catchBody {Stmt}
+	catchBinding string
+	hasCatchBinding bool
+
+struct UseDecl
+	kind UseDeclKind
+	path string
+	isDrastModule bool
+	location SourceLocation
+
+enum UseDeclKind
+	Angle
+	Quoted
+
+struct Parameter
+	name string
+	type Type
+	defaultValue {Expr}
+	location SourceLocation
+
+enum Visibility
 	Public
-	Preview
 	Private
+	Preview
 	Fileprivate
+
+struct Function
+	name string
+	typeParams {string}
+	parameters {Parameter}
+	returnType {Type}
+	returnIsMaybe bool
+	nodiscardSuppressed bool
+	body {Stmt}
+	visibility Visibility
+	location SourceLocation
+	isOperator bool
+	operatorSymbol string
+	implTarget string
+
+struct StructField
+	name string
+	type Type
+	visibility Visibility
+	location SourceLocation
+
+struct StructDecl
+	name string
+	typeParams {string}
+	fields {StructField}
+	isFileprivate bool
+	location SourceLocation
+
+struct EnumVariant
+	name string
+	fields {StructField}
+	location SourceLocation
+
+struct EnumDecl
+	name string
+	variants {EnumVariant}
+	isFileprivate bool
+	location SourceLocation
+
+struct ProtocolMethod
+	name string
+	parameters {Parameter}
+	returnType {Type}
+	returnIsMaybe bool
+	location SourceLocation
+
+struct ProtocolDecl
+	name string
+	methods {ProtocolMethod}
+	location SourceLocation
+
+struct ImplBlock
+	targetType string
+	protocolName string
+	hasProtocol bool
+	methods {Function}
+	location SourceLocation
+
+struct Program
+	uses {UseDecl}
+	functions {Function}
+	globals {Stmt}
+	structs {StructDecl}
+	enums {EnumDecl}
+	protocols {ProtocolDecl}
+	impls {ImplBlock}

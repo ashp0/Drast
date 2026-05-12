@@ -1,0 +1,455 @@
+use token
+
+struct Lexer
+	private source string;
+	private offset int;
+	private line int;
+	private column int;
+	private fileName string;
+	private indentStack {int}
+	private pending {Token}
+	private atLineStart bool;
+
+impl Lexer
+	init source;string fileName;string
+		self.source = source
+		self.fileName = fileName
+		self.offset = 0
+		self.line = 1
+		self.column = 1
+		self.atLineStart = true
+		self.indentStack += 0
+
+	deinit
+		self.indentStack.clear
+		self.pending.clear
+
+	lex, {Token}
+		tokens {Token};
+		while true
+			tok = self.next
+			tokens += tok
+			if tok.kind == TokenKind.End
+				break
+		return tokens
+
+	private peekChar offset;int, int
+		idx = self.offset + offset
+		if idx isgteq self.source.length
+			return 0
+		return charCode self.source{idx}
+
+	private advanceChar
+		if self.offset islt self.source.length
+			c = self.source{self.offset}
+			if c == '\n'
+				self.line += 1
+				self.column = 1
+			else
+				self.column += 1
+			self.offset += 1
+
+	private makeLoc, SourceLocation
+		loc SourceLocation;
+		loc.file = self.fileName
+		loc.line = self.line
+		loc.column = self.column
+		return loc
+
+	private makeToken kind;TokenKind text;string loc;SourceLocation, Token
+		t Token;
+		t.kind = kind
+		t.text = text
+		t.location = loc
+		return t
+
+	private next, Token
+		if self.pending.length isgt 0
+			t = self.pending{0}
+			self.pending.removeAt 0
+			return t
+
+		if self.atLineStart
+			self.processIndent
+			if self.pending.length isgt 0
+				t = self.pending{0}
+				self.pending.removeAt 0
+				return t
+
+		self.skipInlineSpace
+
+		start = self.makeLoc
+		c = self.peekChar 0
+
+		if c == 0
+			while self.indentStack.length isgt 1
+				lastIdx = self.indentStack.length - 1
+				self.indentStack.removeAt lastIdx
+				self.pending += self.makeToken TokenKind.Dedent '' self.makeLoc
+			if self.pending.length isgt 0
+				t = self.pending{0}
+				self.pending.removeAt 0
+				self.pending += self.makeToken TokenKind.End '' start
+				return t
+			return self.makeToken TokenKind.End '' start
+
+		if c == charCode '\n'
+			self.advanceChar
+			self.atLineStart = true
+			return self.makeToken TokenKind.Newline s'\n' start
+
+		if c == charCode '/'
+			c2 = self.peekChar 1
+			if c2 == charCode '/'
+				self.skipLineComment
+				return self.next
+			if c2 == charCode '*'
+				self.skipBlockComment
+				return self.next
+
+		if self.isAlphaCode c or c == charCode '_'
+			return self.readIdentifier start
+
+		if self.isDigitCode c
+			return self.readNumber start
+
+		if c == charCode '\''
+			return self.readQuoted start
+
+		if c == charCode '@' and self.peekChar 1 == charCode '['
+			self.advanceChar
+			self.advanceChar
+			return self.makeToken TokenKind.AtLeftBracket '@[' start
+
+		self.advanceChar
+		if c == charCode '{'
+			return self.makeToken TokenKind.LeftBrace s'{' start
+		if c == charCode '}'
+			return self.makeToken TokenKind.RightBrace s'}' start
+		if c == charCode '['
+			return self.makeToken TokenKind.LeftBracket s'[' start
+		if c == charCode ']'
+			return self.makeToken TokenKind.RightBracket s']' start
+		if c == charCode '('
+			return self.makeToken TokenKind.LeftParen s'(' start
+		if c == charCode ')'
+			return self.makeToken TokenKind.RightParen s')' start
+		if c == charCode ','
+			return self.makeToken TokenKind.Comma s',' start
+		if c == charCode ';'
+			return self.makeToken TokenKind.Semicolon s';' start
+		if c == charCode '.'
+			return self.makeToken TokenKind.Dot s'.' start
+		if c == charCode ':'
+			if self.peekChar 0 == charCode ':'
+				self.advanceChar
+				return self.makeToken TokenKind.DoubleColon '::' start
+			return self.makeToken TokenKind.Colon s':' start
+		if c == charCode '`'
+			return self.makeToken TokenKind.Backtick s'`' start
+		if c == charCode '~'
+			return self.makeToken TokenKind.Tilde s'~' start
+		if c == charCode '+'
+			if self.peekChar 0 == charCode '='
+				self.advanceChar
+				return self.makeToken TokenKind.PlusEqual '+=' start
+			return self.makeToken TokenKind.Plus s'+' start
+		if c == charCode '-'
+			if self.peekChar 0 == charCode '='
+				self.advanceChar
+				return self.makeToken TokenKind.MinusEqual '-=' start
+			return self.makeToken TokenKind.Minus s'-' start
+		if c == charCode '*'
+			if self.peekChar 0 == charCode '='
+				self.advanceChar
+				return self.makeToken TokenKind.StarEqual '*=' start
+			return self.makeToken TokenKind.Star s'*' start
+		if c == charCode '/'
+			if self.peekChar 0 == charCode '='
+				self.advanceChar
+				return self.makeToken TokenKind.SlashEqual '/=' start
+			return self.makeToken TokenKind.Slash s'/' start
+		if c == charCode '%'
+			return self.makeToken TokenKind.Percent s'%' start
+		if c == charCode '='
+			if self.peekChar 0 == charCode '='
+				self.advanceChar
+				return self.makeToken TokenKind.EqualEqual '==' start
+			return self.makeToken TokenKind.Equal s'=' start
+
+		// TODO: Try not to rely on the runtime for error reporting.
+		reportError self.fileName self.line self.column 'unexpected character'
+		return self.makeToken TokenKind.End '' start
+
+	private isAlphaCode c;int, bool
+		return [c isgteq charCode 'a' and c islteq charCode 'z'] or [c isgteq charCode 'A' and c islteq charCode 'Z']
+
+	private isDigitCode c;int, bool
+		return c isgteq charCode '0' and c islteq charCode '9'
+
+	private isAlnumCode c;int, bool
+		return self.isAlphaCode c or self.isDigitCode c
+
+	private skipInlineSpace
+		while true
+			c = self.peekChar 0
+			if c == charCode ' ' or c == charCode '\t' or c == charCode '\r'
+				self.advanceChar
+			else
+				break
+
+	private skipLineComment
+		while true
+			c = self.peekChar 0
+			if c == 0 or c == charCode '\n'
+				break
+			self.advanceChar
+
+	private skipBlockComment
+		self.advanceChar
+		self.advanceChar
+		nesting = 1
+		while nesting isgt 0
+			c = self.peekChar 0
+			if c == 0
+				break
+			if c == charCode '/' and self.peekChar 1 == charCode '*'
+				self.advanceChar
+				self.advanceChar
+				nesting += 1
+			elif c == charCode '*' and self.peekChar 1 == charCode '/'
+				self.advanceChar
+				self.advanceChar
+				nesting -= 1
+			else
+				self.advanceChar
+
+	private measureIndent, int
+		indent = 0
+		while true
+			c = self.peekChar 0
+			if c == charCode ' '
+				indent += 1
+				self.advanceChar
+			elif c == charCode '\t'
+				indent += 4
+				self.advanceChar
+			else
+				break
+		return indent
+
+	private processIndent
+		self.atLineStart = false
+		while true
+			indent = self.measureIndent
+			c = self.peekChar 0
+			if c == charCode '\n'
+				self.advanceChar
+				continue
+			if c == 0
+				return
+			if c == charCode '/' and self.peekChar 1 == charCode '/'
+				self.skipLineComment
+				if self.peekChar 0 == charCode '\n'
+					self.advanceChar
+				continue
+			if c == charCode '/' and self.peekChar 1 == charCode '*'
+				self.skipBlockComment
+				continue
+			currentLevel = self.indentStack{self.indentStack.length - 1}
+			if indent isgt currentLevel
+				self.indentStack += indent
+				self.pending += self.makeToken TokenKind.Indent '' self.makeLoc
+			elif indent islt currentLevel
+				topIdx = self.indentStack.length - 1
+				while self.indentStack.length isgt 1 and self.indentStack{topIdx} isgt indent
+					self.indentStack.removeAt topIdx
+					self.pending += self.makeToken TokenKind.Dedent '' self.makeLoc
+					topIdx = self.indentStack.length - 1
+			return
+
+	private readIdentifier start;SourceLocation, Token
+		startOffset = self.offset
+		while true
+			c = self.peekChar 0
+			if self.isAlnumCode c or c == charCode '_'
+				self.advanceChar
+			else
+				break
+		text = self.source.substring startOffset self.offset
+		if text == s's' and self.peekChar 0 == charCode '\''
+			tok = self.readQuoted start
+			tok.kind = TokenKind.StringLiteral
+			return tok
+		kind = self.keywordKind text
+		return self.makeToken kind text start
+
+	private keywordKind text;string, TokenKind
+		if text == 'use'
+			return TokenKind.Use
+		if text == 'const'
+			return TokenKind.Const
+		if text == 'return'
+			return TokenKind.Return
+		if text == 'if'
+			return TokenKind.If
+		if text == 'elif'
+			return TokenKind.Elif
+		if text == 'else'
+			return TokenKind.Else
+		if text == 'while'
+			return TokenKind.While
+		if text == 'for'
+			return TokenKind.For
+		if text == 'break'
+			return TokenKind.Break
+		if text == 'continue'
+			return TokenKind.Continue
+		if text == 'in'
+			return TokenKind.In
+		if text == 'to'
+			return TokenKind.To
+		if text == 'until'
+			return TokenKind.Until
+		if text == 'step'
+			return TokenKind.Step
+		if text == 'struct'
+			return TokenKind.Struct
+		if text == 'enum'
+			return TokenKind.Enum
+		if text == 'impl'
+			return TokenKind.Impl
+		if text == 'protocol'
+			return TokenKind.Protocol
+		if text == 'match'
+			return TokenKind.Match
+		if text == 'with'
+			return TokenKind.With
+		if text == 'as'
+			return TokenKind.As
+		if text == 'try'
+			return TokenKind.Try
+		if text == 'catch'
+			return TokenKind.Catch
+		if text == 'default'
+			return TokenKind.Default
+		if text == 'private'
+			return TokenKind.Private
+		if text == 'preview'
+			return TokenKind.Preview
+		if text == 'fileprivate'
+			return TokenKind.Fileprivate
+		if text == 'discard'
+			return TokenKind.Discard
+		if text == 'operator'
+			return TokenKind.Operator
+		if text == 'maybe'
+			return TokenKind.Maybe
+		if text == 'true'
+			return TokenKind.True
+		if text == 'false'
+			return TokenKind.False
+		if text == 'nil'
+			return TokenKind.Nil
+		if text == 'self'
+			return TokenKind.Self
+		if text == 'variadic'
+			return TokenKind.Variadic
+		if text == 'tuple'
+			return TokenKind.Tuple
+		if text == 'iseq'
+			return TokenKind.Iseq
+		if text == 'isne'
+			return TokenKind.Isne
+		if text == 'islt'
+			return TokenKind.Islt
+		if text == 'isgt'
+			return TokenKind.Isgt
+		if text == 'islteq'
+			return TokenKind.Islteq
+		if text == 'isgteq'
+			return TokenKind.Isgteq
+		if text == 'and'
+			return TokenKind.And
+		if text == 'or'
+			return TokenKind.Or
+		if text == 'not'
+			return TokenKind.Not
+		if text == 'shl'
+			return TokenKind.Shl
+		if text == 'shr'
+			return TokenKind.Shr
+		if text == 'bor'
+			return TokenKind.Bor
+		if text == 'band'
+			return TokenKind.Band
+		if text == 'bxor'
+			return TokenKind.Bxor
+		return TokenKind.Identifier
+
+	private readNumber start;SourceLocation, Token
+		startOffset = self.offset
+		isFloat = false
+		c0 = self.peekChar 0
+		while self.isDigitCode c0
+			self.advanceChar
+			c0 = self.peekChar 0
+		if c0 == charCode '.'
+			c1 = self.peekChar 1
+			if self.isDigitCode c1
+				isFloat = true
+				self.advanceChar
+				c0 = self.peekChar 0
+				while self.isDigitCode c0
+					self.advanceChar
+					c0 = self.peekChar 0
+		text = self.source.substring startOffset self.offset
+		kind = TokenKind.IntLiteral
+		if isFloat
+			kind = TokenKind.FloatLiteral
+		return self.makeToken kind text start
+
+	private readQuoted start;SourceLocation, Token
+		self.advanceChar
+		text string;
+		while true
+			c = self.peekChar 0
+			if c == 0 or c == charCode '\n'
+				// TODO: Try not to rely on the runtime for error reporting.
+				reportError self.fileName self.line self.column 'unterminated string literal'
+				return self.makeToken TokenKind.StringLiteral text start
+			if c == charCode '\\'
+				self.advanceChar
+				e = self.peekChar 0
+				if e == charCode 'n'
+					text += '\n'
+				elif e == charCode 't'
+					text += '\t'
+				elif e == charCode '\\'
+					text += '\\'
+				elif e == charCode '\''
+					text += '\''
+				elif e == charCode '"'
+					text += '"'
+				elif e == charCode '0'
+					text += '\0'
+				elif e == charCode 'r'
+					text += '\r'
+				else
+					text += self.source{self.offset}
+				self.advanceChar
+				continue
+			if c == charCode '\''
+				after = self.peekChar 1
+				if after == charCode '\'' or self.isAlnumCode after
+					text += '\''
+					self.advanceChar
+					continue
+				break
+			text += self.source{self.offset}
+			self.advanceChar
+		self.advanceChar
+		kind = TokenKind.StringLiteral
+		if text.length == 1
+			kind = TokenKind.CharLiteral
+		return self.makeToken kind text start

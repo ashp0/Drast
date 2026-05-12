@@ -102,15 +102,6 @@ struct CompileDiagnostic
 	message string
 	location SourceLocation
 
-makeLocation file;string line;int column;int, SourceLocation
-	return SourceLocation[file, line, column]
-
-makeToken kind;TokenKind text;string location;SourceLocation, Token
-	return Token[kind, text, location]
-
-makeDiagnostic message;string location;SourceLocation, CompileDiagnostic
-	return CompileDiagnostic[message, location]
-
 tokenKindName kind;TokenKind, string
 	match kind
 		.End
