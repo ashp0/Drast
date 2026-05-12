@@ -3,6 +3,7 @@ use transpiler
 
 main, int
 	if args.length islteq 1
+		println 'Did not find file.'
 		return 1
 	input string;
 	output string;
