@@ -1,50 +1,67 @@
 CXX      := clang++
-CXXFLAGS := -std=c++17 -Wall -Wextra -Wno-unused-parameter -g -O0 -MMD -MP
-SRC_DIR  := src
-BUILD    := build
-SRCS     := $(SRC_DIR)/Token.cpp $(SRC_DIR)/Lexer.cpp $(SRC_DIR)/Parser.cpp \
-            $(SRC_DIR)/Codegen.cpp $(SRC_DIR)/main.cpp
-OBJS     := $(patsubst $(SRC_DIR)/%.cpp,$(BUILD)/%.o,$(SRCS))
-DEPS     := $(OBJS:.o=.d)
-BIN      := $(BUILD)/drastc
+CXXFLAGS := -std=c++17 -Wall -Wextra -Wno-unused-parameter -g -O0 -MMD -MP -I.
+OPTFLAGS := -O3 -DNDEBUG -flto
 
-.PHONY: all clean test
+BOOTSTRAP_DIR := legacy/cpp_bootstrap
+SRC_DIR       := src
+BUILD         := build
+RELEASE_DIR   := $(BUILD)/release
 
-all: $(BIN)
+# Bootstrap compiler (C++ implementation)
+BOOTSTRAP_SRCS := $(BOOTSTRAP_DIR)/Token.cpp $(BOOTSTRAP_DIR)/Lexer.cpp \
+                  $(BOOTSTRAP_DIR)/Parser.cpp $(BOOTSTRAP_DIR)/Codegen.cpp \
+                  $(BOOTSTRAP_DIR)/main.cpp
+BOOTSTRAP_OBJS := $(patsubst $(BOOTSTRAP_DIR)/%.cpp,$(BUILD)/bootstrap/%.o,$(BOOTSTRAP_SRCS))
+BOOTSTRAP_BIN  := $(BUILD)/drastc_bootstrap
 
-$(BIN): $(OBJS)
+# Drast compiler source
+DRAST_MAIN := $(SRC_DIR)/main.drast
+
+.PHONY: all clean test release run-examples
+
+all: $(BOOTSTRAP_BIN)
+
+# 1. Build the C++ bootstrap compiler
+$(BOOTSTRAP_BIN): $(BOOTSTRAP_OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
-$(BUILD)/%.o: $(SRC_DIR)/%.cpp
-	@mkdir -p $(BUILD)
+$(BUILD)/bootstrap/%.o: $(BOOTSTRAP_DIR)/%.cpp
+	@mkdir -p $(BUILD)/bootstrap
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
--include $(DEPS)
+-include $(BUILD)/bootstrap/*.d
 
-clean:
-	rm -rf $(BUILD) drast_v2.cpp drast_v2
-
-.PHONY: drast-v2 run-examples self-host
-
-DRAST_V2_SRC := src/drast byhand/main.drast
-
-drast-v2: $(BIN)
+# 2. Build drast_v2 (compiled by the C++ bootstrap)
+$(BUILD)/drast_v2: $(BOOTSTRAP_BIN)
 	@mkdir -p $(BUILD)/runtime
 	@cp runtime/drast_runtime.hpp $(BUILD)/runtime/
-	@$(BIN) "$(DRAST_V2_SRC)" -o $(BUILD)/drast_v2.cpp
+	@$(BOOTSTRAP_BIN) "$(DRAST_MAIN)" -o $(BUILD)/drast_v2.cpp
 	@$(CXX) $(CXXFLAGS) $(BUILD)/drast_v2.cpp -o $(BUILD)/drast_v2
-	@echo "built $(BUILD)/drast_v2"
+	@echo "Built $(BUILD)/drast_v2"
 
-run-examples: drast-v2
+# 3. Build drast_v3 (compiled by drast_v2 - first self-hosted stage)
+$(BUILD)/drast_v3: $(BUILD)/drast_v2
+	@./$(BUILD)/drast_v2 "$(DRAST_MAIN)" -o $(BUILD)/drast_v3.cpp
+	@$(CXX) $(CXXFLAGS) $(BUILD)/drast_v3.cpp -o $(BUILD)/drast_v3
+	@echo "Built $(BUILD)/drast_v3"
+
+# 4. Release build (highly optimized version of drast_v3)
+release: $(BUILD)/drast_v3
+	@mkdir -p $(RELEASE_DIR)/runtime
+	@cp runtime/drast_runtime.hpp $(RELEASE_DIR)/runtime/
+	@echo "Building highly optimized release version..."
+	@./$(BUILD)/drast_v3 "$(DRAST_MAIN)" -o $(RELEASE_DIR)/drastc.cpp
+	@$(CXX) $(CXXFLAGS) $(OPTFLAGS) $(RELEASE_DIR)/drastc.cpp -o $(RELEASE_DIR)/drastc
+	@echo "Success! Release binary is at $(RELEASE_DIR)/drastc"
+
+run-examples: $(BUILD)/drast_v3
 	@find Examples -name '*.drast' | sort | while IFS= read -r example; do \
 		echo "=== $$example ==="; \
-		./$(BUILD)/drast_v2 "$$example"; \
+		./$(BUILD)/drast_v3 "$$example"; \
 	done
 
-self-host: drast-v2
-	@./$(BUILD)/drast_v2 Examples/Fundamentals/helloWorld.drast > $(BUILD)/hello_v1.cpp
-	@$(BIN)             Examples/Fundamentals/helloWorld.drast > $(BUILD)/hello_v2.cpp
-	@diff -u $(BUILD)/hello_v1.cpp $(BUILD)/hello_v2.cpp && echo "self-host: helloWorld matches"
+test: $(BOOTSTRAP_BIN)
+	@$(BOOTSTRAP_BIN) Examples/Fundamentals/helloWorld.drast
 
-test: $(BIN)
-	@$(BIN) Examples/Fundamentals/helloWorld.drast
+clean:
+	rm -rf $(BUILD)

@@ -345,6 +345,8 @@ inline std::string shell_quote(const std::string &text) {
     return out;
 }
 
+// Note: THIS SHOULD BE REMOVED.
+// WE ARE SELF-HOSTING, this is never going to be needed now.
 inline int delegateToV1(int = 0) {
     std::string command = shell_quote("./build/drastc");
     const auto &values = args();
@@ -365,11 +367,11 @@ inline std::size_t line_count(const std::string &text) {
     return count;
 }
 
-template <typename K, typename V>
+template <typename K, typename V, typename F>
 V map_get(const std::unordered_map<K, V> &values, const K &key,
-          const V &fallback) {
+          const F &fallback) {
     auto found = values.find(key);
-    if (found == values.end()) return fallback;
+    if (found == values.end()) return V(fallback);
     return found->second;
 }
 

@@ -1,0 +1,34 @@
+use std
+use transpiler
+
+main, int
+	if args.length islteq 1
+		return 1
+	input string;
+	output string;
+	noRuntime = false
+	i = 1
+	while i islt args.length
+		current = arg i
+		if current == '-o'
+			i += 1
+			output = arg i
+		elif current == '--no-runtime'
+			noRuntime = true
+		elif current == '--path'
+			i += 1
+			// The v2 resolver already uses the source file's directory. The
+			// option is accepted for CLI compatibility with drastc.
+		else
+			input = current
+		i += 1
+	if input.length == 0
+		return 1
+	transpiler Transpiler;
+	transpiler.setNoRuntime noRuntime
+	cpp = transpiler.transpileFile input
+	if output.length isgt 0
+		writeFile output cpp
+	else
+		print cpp
+	return 0
