@@ -1,0 +1,107 @@
+// # TEST: 50 levels of function calls
+// # EXPECT: pass
+
+f0 value;int, int
+	return f1 value
+f1 value;int, int
+	return f2 value
+f2 value;int, int
+	return f3 value
+f3 value;int, int
+	return f4 value
+f4 value;int, int
+	return f5 value
+f5 value;int, int
+	return f6 value
+f6 value;int, int
+	return f7 value
+f7 value;int, int
+	return f8 value
+f8 value;int, int
+	return f9 value
+f9 value;int, int
+	return f10 value
+f10 value;int, int
+	return f11 value
+f11 value;int, int
+	return f12 value
+f12 value;int, int
+	return f13 value
+f13 value;int, int
+	return f14 value
+f14 value;int, int
+	return f15 value
+f15 value;int, int
+	return f16 value
+f16 value;int, int
+	return f17 value
+f17 value;int, int
+	return f18 value
+f18 value;int, int
+	return f19 value
+f19 value;int, int
+	return f20 value
+f20 value;int, int
+	return f21 value
+f21 value;int, int
+	return f22 value
+f22 value;int, int
+	return f23 value
+f23 value;int, int
+	return f24 value
+f24 value;int, int
+	return f25 value
+f25 value;int, int
+	return f26 value
+f26 value;int, int
+	return f27 value
+f27 value;int, int
+	return f28 value
+f28 value;int, int
+	return f29 value
+f29 value;int, int
+	return f30 value
+f30 value;int, int
+	return f31 value
+f31 value;int, int
+	return f32 value
+f32 value;int, int
+	return f33 value
+f33 value;int, int
+	return f34 value
+f34 value;int, int
+	return f35 value
+f35 value;int, int
+	return f36 value
+f36 value;int, int
+	return f37 value
+f37 value;int, int
+	return f38 value
+f38 value;int, int
+	return f39 value
+f39 value;int, int
+	return f40 value
+f40 value;int, int
+	return f41 value
+f41 value;int, int
+	return f42 value
+f42 value;int, int
+	return f43 value
+f43 value;int, int
+	return f44 value
+f44 value;int, int
+	return f45 value
+f45 value;int, int
+	return f46 value
+f46 value;int, int
+	return f47 value
+f47 value;int, int
+	return f48 value
+f48 value;int, int
+	return f49 value
+f49 value;int, int
+	return f50 value
+f50 value;int, int
+	return value
+main, int
+	return f0 0

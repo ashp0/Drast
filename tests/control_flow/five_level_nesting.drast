@@ -1,0 +1,11 @@
+// # TEST: five levels of nested conditionals
+// # EXPECT: pass
+
+main, int
+	if true
+		if true
+			if true
+				if true
+					if true
+						return 0
+	return 1

@@ -1,0 +1,8 @@
+// # TEST: match requires indented block
+// # EXPECT: error
+// # ERROR_CONTAINS: expected match block
+
+main, int
+	value = 1
+	match value
+	return 0

@@ -1,0 +1,23 @@
+use std
+
+describe value;int, string
+	if value islt 10
+		return 'small'
+	elif value islteq 100 and not value iseq 42
+		return 'medium'
+	else
+		return 'large'
+
+main, int
+	index = 0
+	while index islt 3
+		println describe index
+		index += 1
+
+	for item in 1 to 5 step 2
+		println item
+
+	for item in 0 until 3
+		println item
+
+	return 0

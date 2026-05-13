@@ -1,0 +1,8 @@
+// # TEST: struct requires indented block
+// # EXPECT: error
+// # ERROR_CONTAINS: expected struct block
+
+struct Empty
+
+main, int
+	return 0

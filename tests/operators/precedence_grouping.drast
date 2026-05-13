@@ -1,0 +1,6 @@
+// # TEST: grouping overrides precedence
+// # EXPECT: pass
+
+main, int
+	value = [1 + 2] * 3
+	return value

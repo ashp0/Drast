@@ -1,0 +1,9 @@
+// # TEST: wrong number of arguments is rejected
+// # EXPECT: error
+// # ERROR_CONTAINS: argument
+
+add left;int right;int, int
+	return left + right
+
+main, int
+	return add 1

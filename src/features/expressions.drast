@@ -1,0 +1,670 @@
+impl Parser
+	private parseExpression, CExpr
+		return self.parseOr
+
+	private parseOr, CExpr
+		left = self.parseAnd
+		while self.check TokenKind.Or
+			op = self.advance
+			right = self.parseAnd
+			left = self.binaryExpr left op right
+		return left
+
+	private parseAnd, CExpr
+		left = self.parseEquality
+		while self.check TokenKind.And
+			op = self.advance
+			right = self.parseEquality
+			left = self.binaryExpr left op right
+		return left
+
+	private parseEquality, CExpr
+		left = self.parseComparison
+		while self.check TokenKind.EqualEqual or self.check TokenKind.Iseq or self.check TokenKind.Isne
+			op = self.advance
+			right = self.parseComparison
+			left = self.binaryExpr left op right
+		return left
+
+	private parseComparison, CExpr
+		left = self.parseTerm
+		while self.check TokenKind.Islt or self.check TokenKind.Isgt or self.check TokenKind.Islteq or self.check TokenKind.Isgteq or self.isComparisonWordCurrent
+			op = self.advance
+			right = self.parseTerm
+			left = self.binaryExpr left op right
+		return left
+
+	private parseTerm, CExpr
+		left = self.parseFactor
+		while self.check TokenKind.Plus or self.check TokenKind.Minus
+			op = self.advance
+			right = self.parseFactor
+			left = self.binaryExpr left op right
+		return left
+
+	private parseFactor, CExpr
+		left = self.parseUnary
+		while self.check TokenKind.Star or self.check TokenKind.Slash or self.check TokenKind.Percent
+			op = self.advance
+			right = self.parseUnary
+			left = self.binaryExpr left op right
+		return left
+
+	private parseUnary, CExpr
+		if self.currentMatch TokenKind.Not
+			ex = self.parseUnary
+			out CExpr;
+			out.kind = 'Unary'
+			out.code = s'!' + self.valueCode ex
+			out.typeText = 'bool'
+			return out
+		if self.currentMatch TokenKind.Minus
+			ex = self.parseUnary
+			out CExpr;
+			out.kind = 'Unary'
+			out.code = s'-' + self.valueCode ex
+			out.typeText = ex.typeText
+			return out
+		if self.currentMatch TokenKind.Tilde
+			ex = self.parseUnary
+			out CExpr;
+			out.kind = 'Ref'
+			out.code = s'&' + self.valueCode ex
+			out.typeText = ex.typeText + '*'
+			return out
+		if self.currentMatch TokenKind.Backtick
+			ex = self.parseUnary
+			out CExpr;
+			out.kind = 'Deref'
+			out.code = s'*' + self.valueCode ex
+			out.typeText = self.dereferenceType ex.typeText
+			return out
+		return self.parsePostfix
+
+	private parseCallArgument, CExpr
+		if self.currentMatch TokenKind.Not
+			ex = self.parseCallArgument
+			out CExpr;
+			out.kind = 'Unary'
+			out.code = s'!' + self.valueCode ex
+			out.typeText = 'bool'
+			return out
+		if self.currentMatch TokenKind.Minus
+			ex = self.parseCallArgument
+			out CExpr;
+			out.kind = 'Unary'
+			out.code = s'-' + self.valueCode ex
+			out.typeText = ex.typeText
+			return out
+		if self.currentMatch TokenKind.Tilde
+			ex = self.parseCallArgument
+			out CExpr;
+			out.kind = 'Ref'
+			out.code = s'&' + self.valueCode ex
+			out.typeText = ex.typeText + '*'
+			return out
+		if self.currentMatch TokenKind.Backtick
+			ex = self.parseCallArgument
+			out CExpr;
+			out.kind = 'Deref'
+			out.code = s'*' + self.valueCode ex
+			out.typeText = self.dereferenceType ex.typeText
+			return out
+		return self.parsePostfixNoImplicit
+
+	private parsePostfix, CExpr
+		ex = self.parsePostfixNoImplicit
+		if self.isCallee ex and self.isPrimaryStart self.peekCurrent.kind and not self.isComparisonWordCurrent
+			return self.parseImplicitCall ex
+		return ex
+
+	private parsePostfixNoImplicit, CExpr
+		ex = self.parsePrimary
+		while true
+			nextForDot = self.peek 1
+			if self.check TokenKind.Dot and ex.kind == 'FieldAccess' and nextForDot.kind == TokenKind.Identifier and self.isUpperName nextForDot.text
+				break
+			if self.currentMatch TokenKind.Dot
+				memberTok = self.consume TokenKind.Identifier 'expected member'
+				member = memberTok.text
+				ex = self.fieldExpr ex member
+				continue
+			if self.currentMatch TokenKind.LeftBrace
+				idx = self.parseExpression
+				self.consume TokenKind.RightBrace 'expected index close'
+				out CExpr;
+				out.kind = 'Index'
+				out.code = self.valueCode ex + '[' + self.valueCode idx + ']'
+				if self.isVectorType ex.typeText
+					out.typeText = self.vectorElementType ex.typeText
+				elif ex.typeText == 'std::string'
+					out.typeText = 'char'
+				else
+					out.typeText = ''
+				ex = out
+				continue
+			if self.check TokenKind.LeftBracket and self.isCallee ex
+				ex = self.parseBracketAfterCallee ex
+				continue
+			if self.check TokenKind.Backtick and [self.peek 1].kind == TokenKind.LeftBracket and self.isCallee ex
+				ex.code += self.parseGenericArgsText
+				continue
+			break
+		return ex
+
+	private parseImplicitCall callee;CExpr, CExpr
+		argText string;
+		argText.reserve 128
+		types string;
+		first = true
+		while self.isPrimaryStart self.peekCurrent.kind
+			nextTok = self.peek 1
+			if self.check TokenKind.Semicolon and self.isIdentLikeKind nextTok.kind
+				self.advance
+				self.advance
+			callArg = self.parseCallArgument
+			if not first
+				argText += ', '
+			argText += self.valueCode callArg
+			first = false
+		out CExpr;
+		out.kind = 'Call'
+		out.code = self.callCode callee argText
+		out.typeText = self.callReturnType callee
+		return out
+
+	private parseBracketAfterCallee callee;CExpr, CExpr
+		self.consume TokenKind.LeftBracket 'expected bracket'
+		if self.isTypeLike callee.text
+			argText string;
+			argText.reserve 128
+			first = true
+			while not self.check TokenKind.RightBracket and not self.check TokenKind.End
+				if self.currentMatch TokenKind.Semicolon
+					self.consume TokenKind.Identifier 'expected label'
+				ctorArg = self.parseCallArgument
+				if not first
+					argText += ', '
+				argText += self.valueCode ctorArg
+				first = false
+				self.currentMatch TokenKind.Comma
+			self.consume TokenKind.RightBracket 'expected bracket end'
+			out CExpr;
+			out.kind = 'Constructor'
+			out.text = callee.text
+			enumCtorKey = callee.leftType + '.' + callee.text
+			if self.dataEnumVariants.contains enumCtorKey
+				out.code = callee.leftType + '::' + callee.text + '(' + argText + ')'
+				out.typeText = callee.leftType
+			else
+				if self.isBuiltinType callee.text
+					if callee.text == 'Float' or callee.text == 'float'
+						out.code = 'std::stof(' + argText + ')'
+						out.typeText = 'float'
+					else
+						out.code = self.typeName callee.text + '(' + argText + ')'
+						out.typeText = self.typeName callee.text
+				else
+					out.code = self.valueCode callee + '(' + argText + ')'
+					out.typeText = callee.text
+			return out
+		out CExpr;
+		out.kind = 'BatchCall'
+		out.text = callee.code
+		batch string;
+		batch.reserve 128
+		result string;
+		result.reserve 256
+		firstArg = true
+		while not self.check TokenKind.RightBracket and not self.check TokenKind.End
+			if self.currentMatch TokenKind.Newline or self.currentMatch TokenKind.Indent or self.currentMatch TokenKind.Dedent
+				continue
+			if self.currentMatch TokenKind.Comma
+				result += self.indentText + self.callCode callee batch + ';\n'
+				batch = ''
+				firstArg = true
+				continue
+			nextTok = self.peek 1
+			if self.check TokenKind.Semicolon and self.isIdentLikeKind nextTok.kind
+				self.advance
+				self.advance
+			batchArg = self.parseCallArgument
+			if not firstArg
+				batch += ', '
+			batch += self.valueCode batchArg
+			firstArg = false
+		self.consume TokenKind.RightBracket 'expected batch end'
+		if batch.length isgt 0
+			result += self.indentText + self.callCode callee batch
+		out.code = result
+		out.kind = 'BatchCall'
+		return out
+
+	private parsePrimary, CExpr
+		tok = self.peekCurrent
+		out CExpr;
+		if self.currentMatch TokenKind.IntLiteral
+			out.kind = 'Literal'
+			out.text = tok.text
+			out.code = tok.text
+			out.typeText = 'int'
+			return out
+		if self.currentMatch TokenKind.FloatLiteral
+			out.kind = 'Literal'
+			out.text = tok.text
+			out.code = tok.text
+			out.typeText = 'float'
+			return out
+		if self.currentMatch TokenKind.StringLiteral
+			out.kind = 'Literal'
+			out.code = s'"' + self.escapeString tok.text + s'"'
+			out.typeText = 'std::string'
+			return out
+		if self.currentMatch TokenKind.CharLiteral
+			out.kind = 'Literal'
+			out.code = s'\'' + self.escapeChar tok.text + s'\''
+			out.typeText = 'char'
+			return out
+		if self.currentMatch TokenKind.True
+			out.kind = 'Literal'
+			out.code = 'true'
+			out.typeText = 'bool'
+			return out
+		if self.currentMatch TokenKind.False
+			out.kind = 'Literal'
+			out.code = 'false'
+			out.typeText = 'bool'
+			return out
+		if self.currentMatch TokenKind.Nil
+			out.kind = 'Literal'
+			out.code = 'std::nullopt'
+			return out
+		if self.currentMatch TokenKind.Nothing
+			reportError self.currentFile tok.location.line tok.location.column '`nothing` is only valid as a statement'
+			out.kind = 'Invalid'
+			out.code = ''
+			return out
+		if self.currentMatch TokenKind.Self
+			out.kind = 'Identifier'
+			out.text = 'self'
+			out.code = 'this'
+			out.typeText = self.currentHost
+			return out
+		if self.check TokenKind.Identifier or self.check TokenKind.To or self.check TokenKind.Until or self.check TokenKind.Step or self.check TokenKind.In
+			t = self.advance
+			out.kind = 'Identifier'
+			out.text = t.text
+			out.code = t.text
+			out.typeText = self.lookupNameType t.text
+			return out
+		if self.currentMatch TokenKind.Tuple
+			out.kind = 'Identifier'
+			out.text = 'std::make_tuple'
+			out.code = 'std::make_tuple'
+			return out
+		if self.currentMatch TokenKind.LeftParen
+			inner = self.parseExpression
+			self.consume TokenKind.RightParen 'expected )'
+			out.kind = 'Grouping'
+			out.code = s'(' + self.valueCode inner + s')'
+			out.typeText = inner.typeText
+			return out
+		if self.currentMatch TokenKind.LeftBracket
+			inner = self.parseExpression
+			self.consume TokenKind.RightBracket 'expected ]'
+			out.kind = 'Grouping'
+			out.code = s'(' + self.valueCode inner + s')'
+			out.typeText = inner.typeText
+			return out
+		if self.currentMatch TokenKind.LeftBrace
+			values string;
+			values.reserve 128
+			first = true
+			elementType string;
+			itemCount = 0
+			singleItem CExpr;
+			while not self.check TokenKind.RightBrace and not self.check TokenKind.End
+				if self.currentMatch TokenKind.Comma or self.currentMatch TokenKind.Newline
+					continue
+				item = self.parseExpression
+				if first
+					elementType = item.typeText
+					singleItem = item
+				if not first
+					values += ', '
+				values += self.valueCode item
+				first = false
+				itemCount += 1
+			self.consume TokenKind.RightBrace 'expected }'
+			out.kind = 'Array'
+			out.code = s'{' + values + s'}'
+			if itemCount == 1 and singleItem.kind == 'Identifier' and [self.isTypeLike singleItem.text or self.isBuiltinType singleItem.text]
+				out.code = '{}'
+				out.typeText = 'std::vector<' + self.typeName singleItem.text + '>'
+				return out
+			if elementType.length isgt 0
+				out.typeText = 'std::vector<' + elementType + '>'
+			return out
+		if self.currentMatch TokenKind.AtLeftBracket
+			t = self.parseType
+			argText string;
+			argText.reserve 128
+			first = true
+			while not self.check TokenKind.RightBracket and not self.check TokenKind.End
+				heapArg = self.parseCallArgument
+				if not first
+					argText += ', '
+				argText += self.valueCode heapArg
+				first = false
+			self.consume TokenKind.RightBracket 'expected heap close'
+			out.kind = 'Heap'
+			out.code = 'std::make_shared<' + t.text + '>(' + argText + ')'
+			out.typeText = 'std::shared_ptr<' + t.text + '>'
+			return out
+		if self.currentMatch TokenKind.Dot
+			shorthandTok = self.consume TokenKind.Identifier 'expected enum shorthand'
+			name = shorthandTok.text
+			out.kind = 'EnumShorthand'
+			out.text = name
+			enumName = self.enumVariants.get name s''
+			if enumName.length isgt 0
+				out.code = self.qualifyName enumName + '::' + name
+				out.typeText = enumName
+			else
+				out.code = name
+			return out
+		if self.currentMatch TokenKind.Semicolon
+			if self.check TokenKind.IntLiteral
+				num = self.advance.text
+				out.kind = 'Positional'
+				out.text = num
+				out.code = s'_' + num
+				return out
+			if self.check TokenKind.Identifier
+				name = self.advance.text
+				out.kind = 'Identifier'
+				out.text = name
+				out.code = name
+				out.typeText = self.lookupNameType name
+				return out
+		self.advance
+		out.code = ''
+		return out
+
+	private binaryExpr left;CExpr op;Token right;CExpr, CExpr
+		out CExpr;
+		out.kind = 'Binary'
+		out.typeText = left.typeText
+		opText = self.binaryOpTextForToken op
+		if right.kind == 'EnumShorthand' and left.typeText.length isgt 0
+			out.code = self.valueCode left + ' ' + opText + ' ' + self.qualifyName left.typeText + '::' + right.text
+		else
+			out.code = self.valueCode left + ' ' + opText + ' ' + self.valueCode right
+		if opText == '==' or opText == '!=' or opText == s'<' or opText == s'>' or opText == '<=' or opText == '>=' or opText == '&&' or opText == '||'
+			out.typeText = 'bool'
+		return out
+
+	private fieldExpr left;CExpr member;string, CExpr
+		out CExpr;
+		out.kind = 'FieldAccess'
+		out.text = member
+		out.leftCode = self.valueCode left
+		baseType = self.baseTypeName left.typeText
+		out.leftType = baseType
+		if self.isHeapType left.typeText
+			out.code = out.leftCode + '->' + member
+		else
+			out.code = out.leftCode + '.' + member
+		enumOwner = self.enumVariants.get member s''
+		if left.kind == 'Identifier' and self.enumVariants.contains member and enumOwner == left.text
+			out.code = self.qualifyName left.text + '::' + member
+			out.typeText = left.text
+			return out
+		if member == 'length'
+			out.kind = 'Special'
+			out.code = self.valueCode left + '.size()'
+			out.typeText = 'std::size_t'
+			return out
+		if member == 'lineCount'
+			out.kind = 'Special'
+			out.code = 'drast::line_count(' + self.valueCode left + ')'
+			out.typeText = 'std::size_t'
+			return out
+		if member == 'splitWhitespace'
+			out.kind = 'Special'
+			out.code = 'drast::split_whitespace(' + self.valueCode left + ')'
+			out.typeText = 'std::vector<std::string>'
+			return out
+		if member == 'trim'
+			out.kind = 'Special'
+			out.code = 'drast::trim(' + self.valueCode left + ')'
+			out.typeText = 'std::string'
+			return out
+		if member == 'asInt'
+			out.kind = 'Special'
+			out.code = 'drast::parse_int(' + self.valueCode left + ')'
+			out.typeText = 'std::optional<int>'
+			return out
+		if member == 'value' and self.isOptionalType left.typeText
+			out.kind = 'Special'
+			out.code = self.valueCode left + '.value()'
+			out.typeText = self.optionalInnerType left.typeText
+			return out
+		if member == 'lowercase'
+			out.kind = 'Special'
+			out.code = 'drast::lowercase(' + self.valueCode left + ')'
+			out.typeText = 'std::string'
+			return out
+		if member == 'keys'
+			out.kind = 'Special'
+			out.code = 'drast::map_keys(' + self.valueCode left + ')'
+			out.typeText = 'std::vector<std::string>'
+			return out
+		if member == 'values'
+			out.kind = 'Special'
+			out.code = 'drast::map_values(' + self.valueCode left + ')'
+			return out
+		if left.text == 'self'
+			fieldKey = self.currentHost + '.' + member
+			fieldType = self.structFieldTypes.get fieldKey s''
+			if fieldType.length isgt 0
+				out.code = 'this->' + member
+				out.typeText = fieldType
+			else
+				out.code = 'this->' + member
+				methodKey = self.currentHost + '.' + member
+				out.typeText = self.methodReturns.get methodKey s''
+			return out
+		fieldKey = baseType + '.' + member
+		fieldType = self.structFieldTypes.get fieldKey s''
+		if fieldType.length isgt 0
+			out.typeText = fieldType
+		else
+			methodKey = baseType + '.' + member
+			out.typeText = self.methodReturns.get methodKey s''
+			if member == 'value' and out.typeText.length == 0
+				out.kind = 'Special'
+				out.code = out.leftCode + '.value()'
+		return out
+
+	private parseGenericArgsText, string
+		self.consume TokenKind.Backtick 'expected generic marker'
+		self.consume TokenKind.LeftBracket 'expected generic args'
+		out = s'<'
+		first = true
+		while not self.check TokenKind.RightBracket and not self.check TokenKind.End
+			if self.currentMatch TokenKind.Comma
+				continue
+			t = self.parseType
+			if not first
+				out += ', '
+			out += t.text
+			first = false
+		self.consume TokenKind.RightBracket 'expected generic close'
+		out += '>'
+		return out
+
+	private patternVariantName ex;CExpr, string
+		if ex.kind == 'FieldAccess'
+			return ex.text
+		if ex.kind == 'Call'
+			return ex.text
+		return ex.text
+
+	private isCallee ex;CExpr, bool
+		return ex.kind == 'Identifier' or ex.kind == 'FieldAccess'
+
+	private isPrimaryStart kind;TokenKind, bool
+		if kind == TokenKind.IntLiteral or kind == TokenKind.FloatLiteral or kind == TokenKind.StringLiteral or kind == TokenKind.CharLiteral
+			return true
+		if kind == TokenKind.Identifier or kind == TokenKind.True or kind == TokenKind.False or kind == TokenKind.Nil or kind == TokenKind.Self
+			return true
+		if kind == TokenKind.LeftParen or kind == TokenKind.LeftBrace or kind == TokenKind.AtLeftBracket or kind == TokenKind.Tilde or kind == TokenKind.Backtick or kind == TokenKind.Dot or kind == TokenKind.Semicolon
+			return true
+		return false
+
+	private isComparisonWordCurrent, bool
+		if not self.check TokenKind.Identifier
+			return false
+		text = self.peekCurrent.text
+		return text == 'isgte' or text == 'islte' or text == 'isgt' or text == 'islt'
+
+	private isIdentLikeKind kind;TokenKind, bool
+		return kind == TokenKind.Identifier or kind == TokenKind.To or kind == TokenKind.Until or kind == TokenKind.Step or kind == TokenKind.In
+
+	private consumeIdentLike message;string, Token
+		if self.isIdentLikeKind self.peekCurrent.kind
+			return self.advance
+		return self.consume TokenKind.Identifier message
+
+
+impl Parser
+	private expressionsAreEmittedInFunctionBodies, bool
+		return true
+
+	private valueCode ex;CExpr, string
+		if ex.kind == 'Identifier'
+			if self.isStdFunction ex.text
+				if ex.text == 'getInput' or ex.text == 'args' or ex.text == 'errorCount' or ex.text == 'hasErrors' or ex.text == 'currentDir'
+					return 'drast::' + ex.text + '()'
+				return ex.code
+			if self.functionReturns.contains ex.text
+				return ex.code + '()'
+		if ex.kind == 'FieldAccess'
+			if ex.leftCode == 'this'
+				fieldKey = self.currentHost + '.' + ex.text
+				if self.structFieldTypes.contains fieldKey
+					return ex.code
+				return ex.code + '()'
+			methodKey = ex.leftType + '.' + ex.text
+			if ex.typeText.length isgt 0 and self.methodReturns.contains methodKey
+				return ex.code + '()'
+			if ex.typeText.length == 0 and [ex.text.startsWith 'get' or ex.text.startsWith 'make' or ex.text.startsWith 'read']
+				return ex.code + '()'
+		return ex.code
+
+	private callCode callee;CExpr argText;string, string
+		if callee.kind == 'Identifier'
+			name = callee.text
+			if self.isStdFunction name
+				return 'drast::' + name + '(' + argText + ')'
+			if name == 'Float'
+				return 'std::stof(' + argText + ')'
+			if name == 'Int'
+				return 'int(' + argText + ')'
+			if name == 'String'
+				return 'std::string(' + argText + ')'
+			methodKey = self.currentHost + '.' + name
+			if self.currentHost.length isgt 0 and self.methodReturns.contains methodKey
+				return 'this->' + name + '(' + argText + ')'
+			if self.currentHost.length isgt 0 and not self.localTypes.contains name and not self.functionReturns.contains name and not self.isTypeLike name
+				return 'this->' + name + '(' + argText + ')'
+			return name + '(' + argText + ')'
+		if callee.kind == 'FieldAccess'
+			name = callee.text
+			if name == 'contains'
+				return 'drast::contains(' + callee.leftCode + ', ' + argText + ')'
+			if name == 'startsWith'
+				return 'drast::starts_with(' + callee.leftCode + ', ' + argText + ')'
+			if name == 'endsWith'
+				return 'drast::ends_with(' + callee.leftCode + ', ' + argText + ')'
+			if name == 'find'
+				return 'drast::find(' + callee.leftCode + ', ' + argText + ')'
+			if name == 'replace'
+				return 'drast::replace_all(' + callee.leftCode + ', ' + argText + ')'
+			if name == 'split'
+				return 'drast::split(' + callee.leftCode + ', ' + argText + ')'
+			if name == 'get'
+				return 'drast::map_get(' + callee.leftCode + ', ' + argText + ')'
+			if name == 'set'
+				parts = argText.split ', '
+				if parts.length isgteq 2
+					return s'(' + callee.leftCode + '[' + parts{0} + '] = ' + parts{1} + s')'
+			if name == 'clear'
+				return callee.leftCode + '.clear()'
+			if name == 'removeAt'
+				return 'drast::remove_at(' + callee.leftCode + ', ' + argText + ')'
+			if name == 'remove'
+				if self.isIntegerCode argText
+					return 'drast::remove_at(' + callee.leftCode + ', ' + argText + ')'
+				return 'drast::remove_value(' + callee.leftCode + ', ' + argText + ')'
+			if name == 'substring'
+				parts = argText.split ', '
+				if parts.length isgteq 2
+					return callee.leftCode + '.substr(' + parts{0} + ', (' + parts{1} + ')-(' + parts{0} + '))'
+			if name == 'valueOr'
+				return callee.leftCode + '.value_or(' + argText + ')'
+			if name == 'random' and callee.leftCode == 'int'
+				return 'drast::random_int(' + argText + ')'
+			if name == 'float' and callee.leftCode == 'random'
+				return 'drast::random_float(' + argText + ')'
+			if callee.leftCode == 'this'
+				return 'this->' + name + '(' + argText + ')'
+			return callee.code + '(' + argText + ')'
+		return self.valueCode callee + '(' + argText + ')'
+
+	private callReturnType callee;CExpr, string
+		if callee.kind == 'Identifier'
+			if callee.text == 'getInput' or callee.text == 'arg' or callee.text == 'readFile' or callee.text == 'toString' or callee.text == 'getEnv' or callee.text == 'currentDir' or callee.text == 'normalizePath' or callee.text == 'pathJoin' or callee.text == 'pathDirname' or callee.text == 'pathBasename' or callee.text == 'pathStem' or callee.text == 'sourceOutputPath' or callee.text == 'findExecutable'
+				return 'std::string'
+			if callee.text == 'parseInt'
+				return 'std::optional<int>'
+			if callee.text == 'parseFloat'
+				return 'std::optional<double>'
+			if callee.text == 'charCode'
+				return 'int'
+			if callee.text == 'runProcess' or callee.text == 'runExecutable'
+				return 'int'
+			if callee.text == 'args' or callee.text == 'sourceIncludeDirs' or callee.text == 'discoverDrastSources' or callee.text == 'moduleDependencies' or callee.text == 'orderDrastSources'
+				return 'std::vector<std::string>'
+			if callee.text == 'fileExists' or callee.text == 'writeFile' or callee.text == 'hasErrors' or callee.text == 'isAbsolutePath' or callee.text == 'isDirectory' or callee.text == 'ensureDir' or callee.text == 'removeDirRecursive' or callee.text == 'sourceNewerThanTarget' or callee.text == 'targetMissingOrOlder'
+				return 'bool'
+			if self.isTypeLike callee.text
+				return self.typeName callee.text
+			return self.functionReturns.get callee.text s''
+		if callee.kind == 'FieldAccess'
+			if callee.text == 'contains'
+				return 'bool'
+			if callee.text == 'startsWith' or callee.text == 'endsWith'
+				return 'bool'
+			if callee.text == 'find'
+				return 'int'
+			if callee.text == 'split'
+				return 'std::vector<std::string>'
+			if callee.text == 'get'
+				return ''
+			methodKey = callee.leftType + '.' + callee.text
+			return self.methodReturns.get methodKey s''
+		return ''
+
+	private lookupNameType name;string, string
+		if self.localTypes.contains name
+			return self.localTypes.get name s''
+		fieldKey = self.currentHost + '.' + name
+		if self.currentHost.length isgt 0 and self.structFieldTypes.contains fieldKey
+			return self.structFieldTypes.get fieldKey s''
+		return ''
+
+impl Codegen
+	private expressionsAreEmittedInFunctionBodies, bool
+		return true

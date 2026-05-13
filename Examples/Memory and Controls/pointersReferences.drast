@@ -9,8 +9,8 @@ main, int
 	// myDerefNumber = *myPointer
 	myDerefNumber = `myPointer
 
-	// string* someMemory = 0x255C
-	someMemory string` = 0x255C
+	// string* someMemory
+	someMemory string`;
 
 	myString = 'Ashwin'
 	addLetterA myString
@@ -21,4 +21,3 @@ main, int
 
 addLetterA to;~string
 	to += 'A'
-

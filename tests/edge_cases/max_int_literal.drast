@@ -1,0 +1,6 @@
+// # TEST: maximum signed 32 bit integer literal
+// # EXPECT: pass
+
+main, int
+	maxValue = 2147483647
+	return 0

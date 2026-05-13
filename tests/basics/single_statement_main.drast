@@ -1,0 +1,5 @@
+// # TEST: single return statement program
+// # EXPECT: pass
+
+main, int
+	return 0

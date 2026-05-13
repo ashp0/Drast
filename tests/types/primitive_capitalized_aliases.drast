@@ -1,0 +1,11 @@
+// # TEST: capitalized primitive type aliases
+// # EXPECT: pass
+
+main, int
+	count Int = 1
+	ratio Float = 1.5
+	precise Double = 2.25
+	flag Bool = false
+	letter Char = 'q'
+	name String = s'Alias'
+	return count

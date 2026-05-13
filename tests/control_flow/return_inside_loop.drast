@@ -1,0 +1,8 @@
+// # TEST: return from inside loop
+// # EXPECT: pass
+
+main, int
+	for i in 0 to 5
+		if i iseq 3
+			return i
+	return 9

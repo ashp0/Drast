@@ -1,0 +1,13 @@
+// # TEST: variadic parameter type is accepted
+// # EXPECT: pass
+
+use std
+
+sum values;variadic[int], int
+	total = 0
+	for value in values
+		total += value
+	return total
+
+main, int
+	return sum ({1 2 3})

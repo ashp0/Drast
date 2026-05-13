@@ -1,0 +1,6 @@
+// # TEST: unary minus expression
+// # EXPECT: pass
+
+main, int
+	value = -5
+	return value + 5

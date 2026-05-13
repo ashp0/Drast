@@ -1,0 +1,8 @@
+// # TEST: empty typed array literal
+// # EXPECT: pass
+
+use std
+
+main, int
+	items = {int}
+	return items.length

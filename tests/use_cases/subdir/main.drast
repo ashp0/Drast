@@ -1,0 +1,10 @@
+// # TEST: existing use case subdir main.drast
+// # EXPECT: pass
+
+use std
+use lib/math
+
+main, int
+	answer = doubleValue 21
+	println answer
+	return 0

@@ -1,0 +1,5 @@
+// # TEST: program containing only comments
+// # EXPECT: pass
+
+// just a line comment
+/* and a block comment */

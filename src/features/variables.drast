@@ -1,0 +1,176 @@
+impl Parser
+	private parseSimpleStatement, string
+		if self.check TokenKind.Identifier and self.isBuiltinType self.peekCurrent.text and [self.peek 1].kind == TokenKind.Identifier and self.hasLineToken TokenKind.Equal
+			cTypeName = self.advance.text
+			varName = self.advance.text
+			self.consume TokenKind.Equal 'expected ='
+			ex = self.parseExpression
+			self.consumeStatementEnd
+			cType = self.typeName cTypeName
+			self.localTypes.set varName cType
+			return self.indentText + cType + ' ' + varName + ' = ' + self.valueCode ex + ';\n'
+		if self.isIdentLikeKind self.peekCurrent.kind or self.check TokenKind.Self
+			assignAt = self.findAssignmentOnLine
+			if assignAt islt self.tokens.length
+				if self.isTypedDeclarationBefore assignAt
+					name = self.advance.text
+					t = self.parseType
+					self.consume TokenKind.Equal 'expected ='
+					ex = self.parseExpression
+					self.consumeStatementEnd
+					self.localTypes.set name t.text
+					return self.indentText + t.text + ' ' + name + ' = ' + self.valueCode ex + ';\n'
+				target = self.parsePostfixNoImplicit
+				op = self.advance
+				ex = self.parseExpression
+				self.consumeStatementEnd
+				targetCode = self.valueCode target
+				if op.kind == TokenKind.Equal and target.kind == 'Identifier' and not self.localTypes.contains target.text
+					t = ex.typeText
+					if t.length == 0
+						t = 'auto'
+					self.localTypes.set target.text t
+					return self.indentText + t + ' ' + target.text + ' = ' + self.valueCode ex + ';\n'
+				if op.kind == TokenKind.PlusEqual and self.isVectorType target.typeText
+					return self.indentText + targetCode + '.push_back(' + self.valueCode ex + ');\n'
+				compound = s''
+				if op.kind isne TokenKind.Equal
+					compound = op.text.substring 0 ;to [op.text.length - 1]
+				valueText = self.valueCode ex
+				if op.kind == TokenKind.Equal and self.isOptionalType ex.typeText and not self.isOptionalType target.typeText
+					valueText += '.value_or(' + self.defaultValueForType target.typeText + ')'
+				return self.indentText + targetCode + ' ' + compound + '= ' + valueText + ';\n'
+			if self.isUninitDeclaration
+				name = self.advance.text
+				t = self.parseType
+				self.currentMatch TokenKind.Semicolon
+				self.consumeStatementEnd
+				declType = t.text
+				if self.shouldPromoteOptional name
+					declType = 'std::optional<' + t.text + '>'
+				self.localTypes.set name declType
+				return self.indentText + declType + ' ' + name + ';\n'
+		ex = self.parseExpression
+		self.consumeStatementEnd
+		if ex.kind == 'BatchCall'
+			return ex.code + ';\n'
+		code = self.valueCode ex
+		if ex.kind == 'Identifier' or ex.kind == 'FieldAccess'
+			code = self.callCode ex ''
+		return self.indentText + code + ';\n'
+
+	private classifyTopLevel, string
+		i = self.currentIndex + 1
+		while i islt self.tokens.length
+			k = self.tokens{i}.kind
+			if k == TokenKind.Newline or k == TokenKind.End or k == TokenKind.Indent or k == TokenKind.Dedent
+				break
+			if k == TokenKind.Equal or k == TokenKind.Const
+				return 'global'
+			i += 1
+		return 'function'
+
+	private findAssignmentOnLine, usize
+		i = self.currentIndex
+		depth = 0
+		while i islt self.tokens.length
+			k = self.tokens{i}.kind
+			if k == TokenKind.Newline or k == TokenKind.End or k == TokenKind.Dedent
+				return self.tokens.length
+			if k == TokenKind.LeftBracket or k == TokenKind.LeftBrace or k == TokenKind.LeftParen
+				depth += 1
+			elif k == TokenKind.RightBracket or k == TokenKind.RightBrace or k == TokenKind.RightParen
+				depth -= 1
+			if depth == 0
+				if k == TokenKind.Equal or k == TokenKind.PlusEqual or k == TokenKind.MinusEqual or k == TokenKind.StarEqual or k == TokenKind.SlashEqual
+					return i
+			i += 1
+		return self.tokens.length
+
+	private hasLineToken kind;TokenKind, bool
+		i = self.currentIndex
+		while i islt self.tokens.length
+			k = self.tokens{i}.kind
+			if k == TokenKind.Newline or k == TokenKind.End or k == TokenKind.Dedent
+				return false
+			if k == kind
+				return true
+			i += 1
+		return false
+
+	private isTypedDeclarationBefore assignAt;usize, bool
+		if not self.check TokenKind.Identifier
+			return false
+		if self.currentIndex + 1 isgteq assignAt
+			return false
+		nextTok = self.peek 1
+		if nextTok.kind == TokenKind.Identifier or nextTok.kind == TokenKind.LeftBrace or nextTok.kind == TokenKind.Tilde or nextTok.kind == TokenKind.AtLeftBracket
+			return true
+		return false
+
+	private isUninitDeclaration, bool
+		if not self.check TokenKind.Identifier
+			return false
+		nextTok = self.peek 1
+		if not self.isTypeStartKind nextTok.kind
+			return false
+		i = self.currentIndex + 1
+		while i islt self.tokens.length
+			k = self.tokens{i}.kind
+			if k == TokenKind.Newline or k == TokenKind.End or k == TokenKind.Dedent
+				return false
+			if k == TokenKind.Dot
+				return false
+			if k == TokenKind.Semicolon
+				return true
+			if k == TokenKind.Equal
+				return false
+			i += 1
+		return false
+
+	private shouldPromoteOptional name;string, bool
+		i = self.currentIndex
+		while i islt self.tokens.length
+			k = self.tokens{i}.kind
+			if k == TokenKind.End
+				return false
+			if k == TokenKind.Identifier and self.tokens{i}.text == name
+				if self.lineHasNilComparison i
+					return true
+				if self.lineAssignsAsInt i
+					return true
+			i += 1
+		return false
+
+	private lineHasNilComparison start;usize, bool
+		i = start
+		while i islt self.tokens.length
+			k = self.tokens{i}.kind
+			if k == TokenKind.Newline or k == TokenKind.Dedent or k == TokenKind.End
+				return false
+			if k == TokenKind.Nil
+				return true
+			i += 1
+		return false
+
+	private lineAssignsAsInt start;usize, bool
+		i = start
+		hasEqual = false
+		while i islt self.tokens.length
+			k = self.tokens{i}.kind
+			if k == TokenKind.Newline or k == TokenKind.Dedent or k == TokenKind.End
+				return false
+			if k == TokenKind.Equal
+				hasEqual = true
+			if hasEqual and k == TokenKind.Identifier and self.tokens{i}.text == 'asInt'
+				return true
+			i += 1
+		return false
+
+	private isTypeStartKind kind;TokenKind, bool
+		return kind == TokenKind.Identifier or kind == TokenKind.LeftBrace or kind == TokenKind.Tilde or kind == TokenKind.AtLeftBracket or kind == TokenKind.Variadic or kind == TokenKind.Tuple
+
+
+impl Codegen
+	private variablesAreEmittedInFunctionBodies, bool
+		return true

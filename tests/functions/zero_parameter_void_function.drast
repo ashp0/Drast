@@ -1,0 +1,11 @@
+// # TEST: zero parameter void function
+// # EXPECT: pass
+
+use std
+
+sayHello
+	println s'hello'
+
+main, int
+	sayHello
+	return 0

@@ -1,0 +1,7 @@
+// # TEST: typed assignment rejects incompatible initializer
+// # EXPECT: error
+// # ERROR_CONTAINS: type mismatch
+
+main, int
+	count int = s'not an int'
+	return count

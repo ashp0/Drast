@@ -1,0 +1,8 @@
+// # TEST: zero parameter function returning value
+// # EXPECT: pass
+
+answer, int
+	return 42
+
+main, int
+	return answer

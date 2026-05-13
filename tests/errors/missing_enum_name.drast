@@ -1,0 +1,6 @@
+// # TEST: enum requires a name
+// # EXPECT: error
+// # ERROR_CONTAINS: expected enum name
+
+enum
+	North;

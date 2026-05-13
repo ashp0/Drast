@@ -1,0 +1,8 @@
+// # TEST: array type annotation and literal
+// # EXPECT: pass
+
+use std
+
+main, int
+	items {int} = {1 2 3}
+	return items{0}

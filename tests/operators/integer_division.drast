@@ -1,0 +1,6 @@
+// # TEST: integer division expression
+// # EXPECT: pass
+
+main, int
+	value = 7 / 2
+	return value

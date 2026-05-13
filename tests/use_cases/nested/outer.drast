@@ -1,0 +1,7 @@
+// # TEST: existing use case nested outer.drast
+// # EXPECT: pass
+
+use inner
+
+outerValue, string
+	return innerValue

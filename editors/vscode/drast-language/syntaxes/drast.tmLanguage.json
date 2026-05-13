@@ -1,0 +1,360 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Drast",
+  "scopeName": "source.drast",
+  "fileTypes": [
+    "drast"
+  ],
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#declarations"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#types"
+    },
+    {
+      "include": "#builtins"
+    },
+    {
+      "include": "#operators"
+    },
+    {
+      "include": "#punctuation"
+    },
+    {
+      "include": "#identifiers"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.drast",
+          "begin": "//",
+          "end": "$"
+        },
+        {
+          "name": "comment.block.drast",
+          "begin": "/\\*",
+          "end": "\\*/",
+          "patterns": [
+            {
+              "include": "#comments"
+            }
+          ]
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "constant.character.literal.drast",
+          "match": "'(?:\\\\[nt\\\\'\"0r]|[^'\\\\\\n])'"
+        },
+        {
+          "name": "string.quoted.single.forced.drast",
+          "begin": "\\b(s)(')",
+          "beginCaptures": {
+            "1": {
+              "name": "storage.type.string-prefix.drast"
+            },
+            "2": {
+              "name": "punctuation.definition.string.begin.drast"
+            }
+          },
+          "end": "'",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.drast"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#escapes"
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.single.drast",
+          "begin": "'",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.drast"
+            }
+          },
+          "end": "'",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.drast"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#escapes"
+            }
+          ]
+        }
+      ]
+    },
+    "escapes": {
+      "patterns": [
+        {
+          "name": "constant.character.escape.drast",
+          "match": "\\\\[nt\\\\'\"0r]"
+        },
+        {
+          "name": "invalid.illegal.escape.drast",
+          "match": "\\\\."
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.float.drast",
+          "match": "\\b\\d+\\.\\d+\\b"
+        },
+        {
+          "name": "constant.numeric.integer.drast",
+          "match": "\\b\\d+\\b"
+        }
+      ]
+    },
+    "declarations": {
+      "patterns": [
+        {
+          "name": "meta.import.drast",
+          "match": "^\\s*(use)\\b(?:\\s+(file)\\b)?(?:\\s+([^\\n]*?))?(?=\\s*(?://|$))",
+          "captures": {
+            "1": {
+              "name": "keyword.control.import.drast"
+            },
+            "2": {
+              "name": "storage.modifier.include.drast"
+            },
+            "3": {
+              "name": "string.unquoted.import-path.drast"
+            }
+          }
+        },
+        {
+          "name": "meta.type.declaration.drast",
+          "match": "^\\s*(?:(fileprivate)\\s+)?(struct|enum|protocol|impl)\\s+([A-Za-z_]\\w*(?:\\.[A-Za-z_]\\w*)?)(?:\\s+(as)\\s+([A-Za-z_]\\w*))?",
+          "captures": {
+            "1": {
+              "name": "storage.modifier.fileprivate.drast"
+            },
+            "2": {
+              "name": "storage.type.declaration.drast"
+            },
+            "3": {
+              "name": "entity.name.type.drast"
+            },
+            "4": {
+              "name": "keyword.control.as.drast"
+            },
+            "5": {
+              "name": "entity.other.inherited-class.drast"
+            }
+          }
+        },
+        {
+          "name": "meta.operator.declaration.drast",
+          "match": "^\\s*(?:(private|preview)\\s+)?(operator)(\\[[^\\]]+\\])",
+          "captures": {
+            "1": {
+              "name": "storage.modifier.visibility.drast"
+            },
+            "2": {
+              "name": "keyword.declaration.operator.drast"
+            },
+            "3": {
+              "name": "entity.name.function.operator.drast"
+            }
+          }
+        },
+        {
+          "name": "meta.function.declaration.drast",
+          "match": "^\\s*(?:(private|preview)\\s+)?([A-Za-z_]\\w*)(?=(?:`\\[[^\\]]*\\])?(?:(?![=]).)*(?:,|$))",
+          "captures": {
+            "1": {
+              "name": "storage.modifier.visibility.drast"
+            },
+            "2": {
+              "name": "entity.name.function.drast"
+            }
+          }
+        },
+        {
+          "name": "variable.parameter.drast",
+          "match": "\\b([A-Za-z_]\\w*)(;)(?=[A-Za-z_~@{`])",
+          "captures": {
+            "1": {
+              "name": "variable.parameter.drast"
+            },
+            "2": {
+              "name": "punctuation.separator.parameter-type.drast"
+            }
+          }
+        },
+        {
+          "name": "variable.parameter.labeled.drast",
+          "match": "(;)([A-Za-z_]\\w*|\\d+)\\b",
+          "captures": {
+            "1": {
+              "name": "punctuation.definition.label.drast"
+            },
+            "2": {
+              "name": "variable.parameter.label.drast"
+            }
+          }
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.drast",
+          "match": "\\b(?:use|return|if|elif|else|while|for|break|continue|in|to|until|step|match|default|with|as|try|catch)\\b"
+        },
+        {
+          "name": "storage.type.declaration.drast",
+          "match": "\\b(?:struct|enum|impl|protocol|operator)\\b"
+        },
+        {
+          "name": "storage.modifier.drast",
+          "match": "\\b(?:const|private|preview|fileprivate|discard)\\b"
+        },
+        {
+          "name": "storage.type.constructor.drast",
+          "match": "\\b(?:maybe|variadic|tuple)\\b"
+        },
+        {
+          "name": "constant.language.drast",
+          "match": "\\b(?:true|false|nil|nothing|self)\\b"
+        },
+        {
+          "name": "keyword.operator.word.drast",
+          "match": "\\b(?:iseq|isne|islt|isgt|islteq|isgteq|islte|isgte|and|or|not|shl|shr|bor|band|bxor)\\b"
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "name": "support.type.primitive.drast",
+          "match": "\\b(?:int|Int|float|Float|double|Double|bool|Bool|char|Char|string|String|usize)\\b"
+        },
+        {
+          "name": "support.type.generic.drast",
+          "match": "\\bmap(?=`\\[)"
+        }
+      ]
+    },
+    "builtins": {
+      "patterns": [
+        {
+          "name": "support.function.runtime.drast",
+          "match": "\\b(?:print|println|printf|getInput|arg|args|readFile|writeFile|fileExists|toString|parseInt|parseFloat|charCode|isAlpha|isDigit|isAlnum|isWhitespace|isUpper|isLower|errorCount|hasErrors|reportError|clearErrors)\\b"
+        },
+        {
+          "name": "support.function.member.drast",
+          "match": "(\\.)(?:length|lineCount|splitWhitespace|trim|asInt|lowercase|keys|values|contains|startsWith|endsWith|find|replace|split|get|set|clear|removeAt|remove|substring|value|valueOr)\\b",
+          "captures": {
+            "1": {
+              "name": "punctuation.accessor.drast"
+            }
+          }
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.shared-pointer.drast",
+          "match": "@\\["
+        },
+        {
+          "name": "keyword.operator.assignment.compound.drast",
+          "match": "\\+=|-=|\\*=|/="
+        },
+        {
+          "name": "keyword.operator.comparison.drast",
+          "match": "=="
+        },
+        {
+          "name": "keyword.operator.scope.drast",
+          "match": "::"
+        },
+        {
+          "name": "keyword.operator.arithmetic.drast",
+          "match": "[+\\-*/%]"
+        },
+        {
+          "name": "keyword.operator.assignment.drast",
+          "match": "="
+        },
+        {
+          "name": "keyword.operator.reference.drast",
+          "match": "~"
+        },
+        {
+          "name": "keyword.operator.pointer-or-generic.drast",
+          "match": "`"
+        }
+      ]
+    },
+    "punctuation": {
+      "patterns": [
+        {
+          "name": "punctuation.section.braces.drast",
+          "match": "[{}]"
+        },
+        {
+          "name": "punctuation.section.brackets.drast",
+          "match": "[\\[\\]]"
+        },
+        {
+          "name": "punctuation.section.parens.drast",
+          "match": "[()]"
+        },
+        {
+          "name": "punctuation.separator.comma.drast",
+          "match": ","
+        },
+        {
+          "name": "punctuation.separator.semicolon.drast",
+          "match": ";"
+        },
+        {
+          "name": "punctuation.accessor.dot.drast",
+          "match": "\\."
+        },
+        {
+          "name": "punctuation.separator.colon.drast",
+          "match": ":"
+        }
+      ]
+    },
+    "identifiers": {
+      "patterns": [
+        {
+          "name": "variable.other.drast",
+          "match": "\\b[A-Za-z_]\\w*\\b"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,20 @@
+use std
+
+protocol Animal
+	makeSound, string
+
+struct Dog
+	name string
+	private age int
+	preview breed string
+
+impl Dog as Animal
+	init name;string age;int
+		self.name = name
+		self.age = age
+
+	makeSound, string
+		return 'bark'
+
+	operator[==] left;Dog right;Dog, bool
+		return left.name == right.name and left.age iseq right.age

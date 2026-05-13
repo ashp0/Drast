@@ -1,0 +1,8 @@
+// # TEST: pending nothing mixed with real statements
+// # EXPECT: pass
+
+main, int
+	value = 1
+	nothing
+	value += 1
+	return value

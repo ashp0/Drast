@@ -1,0 +1,5 @@
+// # TEST: existing use case nested inner.drast
+// # EXPECT: pass
+
+innerValue, string
+	return 'nested-ok'

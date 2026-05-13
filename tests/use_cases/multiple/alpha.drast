@@ -1,0 +1,5 @@
+// # TEST: existing use case multiple alpha.drast
+// # EXPECT: pass
+
+alpha, string
+	return 'multi-a'

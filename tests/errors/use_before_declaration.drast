@@ -1,0 +1,8 @@
+// # TEST: local use before declaration is rejected
+// # EXPECT: error
+// # ERROR_CONTAINS: before declaration
+
+main, int
+	value = later
+	later = 1
+	return value

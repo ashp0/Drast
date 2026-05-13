@@ -1,0 +1,8 @@
+// # TEST: function default parameter
+// # EXPECT: pass
+
+addDefault value;int extra;int;10, int
+	return value + extra
+
+main, int
+	return addDefault 5

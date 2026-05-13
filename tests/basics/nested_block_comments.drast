@@ -1,0 +1,9 @@
+// # TEST: nested block comments are skipped
+// # EXPECT: pass
+
+/* outer
+   /* inner */
+*/
+main, int
+	// line comment between real statements
+	return 0

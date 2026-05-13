@@ -86,6 +86,7 @@ enum TokenKind
 	Discard
 	Operator
 	Maybe
+	Nothing
 	True
 	False
 	Nil
@@ -264,6 +265,8 @@ tokenKindName kind;TokenKind, string
 			return 'Operator'
 		.Maybe
 			return 'Maybe'
+		.Nothing
+			return 'Nothing'
 		.True
 			return 'True'
 		.False

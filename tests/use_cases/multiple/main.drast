@@ -1,0 +1,12 @@
+// # TEST: existing use case multiple main.drast
+// # EXPECT: pass
+
+use std
+use alpha
+use beta
+
+main, int
+	print alpha
+	print ':'
+	println beta
+	return 0

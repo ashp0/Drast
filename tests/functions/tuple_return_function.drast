@@ -1,0 +1,11 @@
+// # TEST: function returning tuple
+// # EXPECT: pass
+
+use std
+
+makePair left;int right;string, tuple Int String
+	return tuple left right
+
+main, int
+	pair = makePair 1 s'one'
+	return 0

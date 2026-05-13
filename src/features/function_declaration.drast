@@ -1,0 +1,166 @@
+impl Parser
+	private parseFunction host;string isMethod;bool, CFunction
+		fn CFunction;
+		fn.host = host
+		fn.isMethod = isMethod
+		nameTok = self.consume TokenKind.Identifier 'expected function name'
+		fn.name = nameTok.text
+		self.parseFunctionTail fn
+		return fn
+
+	private parseFunctionTail fn;~CFunction
+		if self.currentMatch TokenKind.Backtick
+			self.consume TokenKind.LeftBracket 'expected generic params'
+			while not self.check TokenKind.RightBracket and not self.check TokenKind.End
+				if self.currentMatch TokenKind.Comma
+					continue
+				paramTok = self.consume TokenKind.Identifier 'expected generic param'
+				fn.typeParams += paramTok.text
+			self.consume TokenKind.RightBracket 'expected generic end'
+		while not self.check TokenKind.Comma and not self.check TokenKind.Newline and not self.check TokenKind.End
+			param CParam;
+			paramNameTok = self.consumeIdentLike 'expected parameter name'
+			param.name = paramNameTok.text
+			self.consume TokenKind.Semicolon 'expected param semicolon'
+			t = self.parseType
+			param.typeText = t.text
+			param.isVariadic = t.isVariadic
+			if self.currentMatch TokenKind.Semicolon
+				defaultExpr = self.parseExpression
+				param.defaultCode = self.valueCode defaultExpr
+				param.hasDefault = true
+			fn.params += param
+		if self.currentMatch TokenKind.Comma
+			maybeReturn = false
+			if self.currentMatch TokenKind.Maybe
+				maybeReturn = true
+			t = self.parseType
+			if maybeReturn
+				fn.returnText = 'std::optional<' + t.text + '>'
+			else
+				fn.returnText = t.text
+			if self.currentMatch TokenKind.Discard
+				fn.nodiscardSuppressed = true
+		else
+			fn.returnText = 'void'
+		if fn.host.length isgt 0 and fn.name.length isgt 0
+			methodKey = fn.host + '.' + fn.name
+			self.methodReturns.set methodKey fn.returnText
+		elif fn.name.length isgt 0
+			self.functionReturns.set fn.name fn.returnText
+		self.consumeStatementEnd
+		self.skipNewlines
+		if self.check TokenKind.Indent
+			self.localTypes.clear
+			for p in fn.params
+				self.localTypes.set p.name p.typeText
+			oldHost = self.currentHost
+			if fn.host.length isgt 0
+				self.currentHost = fn.host
+			self.indent = 1
+			fn.body = self.parseBlock
+			self.currentHost = oldHost
+		elif not fn.isMethod or fn.host.length isgt 0
+			self.reportEmptyBlock
+		self.skipNewlines
+		if self.currentMatch TokenKind.With
+			self.skipLine
+
+	private parseGlobal
+		nameTok = self.consume TokenKind.Identifier 'expected global name'
+		name = nameTok.text
+		g CGlobal;
+		g.name = name
+		if self.currentMatch TokenKind.Const
+			g.isConst = true
+		if not self.check TokenKind.Equal
+			t = self.parseType
+			g.typeText = t.text
+		self.consume TokenKind.Equal 'expected global initializer'
+		ex = self.parseExpression
+		g.initializer = self.valueCode ex
+		g.hasInitializer = true
+		if g.typeText.length == 0
+			g.typeText = ex.typeText
+			if g.typeText.length == 0
+				g.typeText = 'auto'
+		self.ast.globals += g
+		self.consumeStatementEnd
+
+
+impl Codegen
+	private emitsFunctions ast;AST, bool
+		return ast.functions.length isgt 0
+
+impl Codegen
+	private emitForwardFunction fn;CFunction, string
+		if fn.typeParams.length isgt 0
+			return ''
+		out string;
+		out.reserve 128
+		out += fn.returnText + ' ' + fn.name + '(' + self.paramList fn false + ');\n'
+		return out
+
+	private emitFunctionDefinition fn;CFunction isMethodDef;bool ast;AST, string
+		out string;
+		out.reserve 512
+		if fn.isOperator
+			hostParams = self.structTypeParams ast fn.host
+			if hostParams.length isgt 0
+				out += self.templatePrefix hostParams
+			out += fn.returnText + ' operator' + fn.operatorSymbol + '('
+			if fn.params.length == 0
+				hostName = self.templateName fn.host hostParams
+				out += 'const ' + hostName + '& _1, const ' + hostName + '& _2'
+			else
+				out += self.paramList fn false
+			out += ') {\n' + fn.body + '}\n'
+			return out
+		if fn.typeParams.length isgt 0 and not isMethodDef
+			out += self.templatePrefix fn.typeParams
+		if isMethodDef
+			hostParams = self.structTypeParams ast fn.host
+			if hostParams.length isgt 0
+				out += self.templatePrefix hostParams
+			if fn.typeParams.length isgt 0
+				out += self.templatePrefix fn.typeParams
+			hostName = self.templateName fn.host hostParams
+			if fn.name == 'init'
+				out += hostName + '::' + fn.host + '(' + self.paramList fn false + ') {\n'
+			elif fn.name == 'deinit'
+				out += hostName + '::~' + fn.host + '() {\n'
+			else
+				out += fn.returnText + ' ' + hostName + '::' + fn.name + '(' + self.paramList fn false + ') {\n'
+		else
+			runtimeMain = fn.name == 'main' and fn.params.length == 0 and ast.usesStd and not ast.noRuntime
+			out += fn.returnText + ' ' + fn.name + '('
+			if runtimeMain
+				out += 'int argc, char **argv'
+			else
+				out += self.paramList fn true
+			out += ') {\n'
+			if runtimeMain
+				out += '    drast::setArgs(argc, argv);\n'
+		out += fn.body
+		out += '}\n'
+		return out
+
+	private paramList fn;CFunction defaults;bool, string
+		out string;
+		out.reserve 256
+		i = 0
+		for p in fn.params
+			if i isgt 0
+				out += ', '
+			out += self.paramCppType p + ' ' + p.name
+			if defaults and p.hasDefault
+				out += ' = ' + p.defaultCode
+			i += 1
+		return out
+
+	private paramCppType p;CParam, string
+		if p.isVariadic
+			return p.typeText
+		if self.isCheapValueType p.typeText
+			return p.typeText
+		return 'const ' + p.typeText + '&'

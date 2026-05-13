@@ -1,0 +1,7 @@
+// # TEST: nothing cannot be assigned as a value
+// # EXPECT: error
+// # ERROR_CONTAINS: nothing
+
+main, int
+	x = nothing
+	return 0

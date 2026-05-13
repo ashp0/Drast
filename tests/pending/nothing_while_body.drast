@@ -1,0 +1,8 @@
+// # TEST: pending nothing as while body
+// # EXPECT: pass
+
+main, int
+	while true
+		nothing
+		break
+	return 0

@@ -1,0 +1,22 @@
+use std
+
+enum Expr
+	Number value;int
+	Add left;Expr right;Expr
+
+eval expr;Expr, int
+	match expr
+		Expr.Number value
+			return value
+		Expr.Add left right
+			return [eval left] + [eval right]
+	default
+		return 0
+
+main, int
+	try
+		value = eval Expr.Number[41]
+		println value
+	catch ;error
+		println error
+	return 0

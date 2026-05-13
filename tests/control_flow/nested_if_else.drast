@@ -1,0 +1,12 @@
+// # TEST: nested conditional branches
+// # EXPECT: pass
+
+main, int
+	outer = true
+	inner = false
+	if outer
+		if inner
+			return 1
+		else
+			return 0
+	return 2

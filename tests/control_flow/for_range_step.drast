@@ -1,0 +1,8 @@
+// # TEST: range for loop with step
+// # EXPECT: pass
+
+main, int
+	total = 0
+	for i in 0 to 6 step 2
+		total += i
+	return total

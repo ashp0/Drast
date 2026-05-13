@@ -1,0 +1,5 @@
+// # TEST: modulo operator
+// # EXPECT: pass
+
+main, int
+	return 17 % 5

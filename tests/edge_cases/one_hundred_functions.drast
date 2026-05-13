@@ -1,0 +1,207 @@
+// # TEST: program with more than one hundred functions
+// # EXPECT: pass
+
+fn0, int
+	return 0
+fn1, int
+	return 1
+fn2, int
+	return 2
+fn3, int
+	return 3
+fn4, int
+	return 4
+fn5, int
+	return 5
+fn6, int
+	return 6
+fn7, int
+	return 7
+fn8, int
+	return 8
+fn9, int
+	return 9
+fn10, int
+	return 10
+fn11, int
+	return 11
+fn12, int
+	return 12
+fn13, int
+	return 13
+fn14, int
+	return 14
+fn15, int
+	return 15
+fn16, int
+	return 16
+fn17, int
+	return 17
+fn18, int
+	return 18
+fn19, int
+	return 19
+fn20, int
+	return 20
+fn21, int
+	return 21
+fn22, int
+	return 22
+fn23, int
+	return 23
+fn24, int
+	return 24
+fn25, int
+	return 25
+fn26, int
+	return 26
+fn27, int
+	return 27
+fn28, int
+	return 28
+fn29, int
+	return 29
+fn30, int
+	return 30
+fn31, int
+	return 31
+fn32, int
+	return 32
+fn33, int
+	return 33
+fn34, int
+	return 34
+fn35, int
+	return 35
+fn36, int
+	return 36
+fn37, int
+	return 37
+fn38, int
+	return 38
+fn39, int
+	return 39
+fn40, int
+	return 40
+fn41, int
+	return 41
+fn42, int
+	return 42
+fn43, int
+	return 43
+fn44, int
+	return 44
+fn45, int
+	return 45
+fn46, int
+	return 46
+fn47, int
+	return 47
+fn48, int
+	return 48
+fn49, int
+	return 49
+fn50, int
+	return 50
+fn51, int
+	return 51
+fn52, int
+	return 52
+fn53, int
+	return 53
+fn54, int
+	return 54
+fn55, int
+	return 55
+fn56, int
+	return 56
+fn57, int
+	return 57
+fn58, int
+	return 58
+fn59, int
+	return 59
+fn60, int
+	return 60
+fn61, int
+	return 61
+fn62, int
+	return 62
+fn63, int
+	return 63
+fn64, int
+	return 64
+fn65, int
+	return 65
+fn66, int
+	return 66
+fn67, int
+	return 67
+fn68, int
+	return 68
+fn69, int
+	return 69
+fn70, int
+	return 70
+fn71, int
+	return 71
+fn72, int
+	return 72
+fn73, int
+	return 73
+fn74, int
+	return 74
+fn75, int
+	return 75
+fn76, int
+	return 76
+fn77, int
+	return 77
+fn78, int
+	return 78
+fn79, int
+	return 79
+fn80, int
+	return 80
+fn81, int
+	return 81
+fn82, int
+	return 82
+fn83, int
+	return 83
+fn84, int
+	return 84
+fn85, int
+	return 85
+fn86, int
+	return 86
+fn87, int
+	return 87
+fn88, int
+	return 88
+fn89, int
+	return 89
+fn90, int
+	return 90
+fn91, int
+	return 91
+fn92, int
+	return 92
+fn93, int
+	return 93
+fn94, int
+	return 94
+fn95, int
+	return 95
+fn96, int
+	return 96
+fn97, int
+	return 97
+fn98, int
+	return 98
+fn99, int
+	return 99
+fn100, int
+	return 100
+main, int
+	return fn100

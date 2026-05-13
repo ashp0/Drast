@@ -1,0 +1,243 @@
+impl Parser
+	private parseBlock, string
+		if not self.check TokenKind.Indent
+			self.reportEmptyBlock
+			return ''
+		self.consume TokenKind.Indent 'expected indented block'
+		out string;
+		out.reserve 512
+		if self.check TokenKind.Dedent or self.check TokenKind.End
+			self.reportEmptyBlock
+		while not self.check TokenKind.Dedent and not self.check TokenKind.End
+			out += self.parseStatement
+			self.skipNewlines
+		self.consume TokenKind.Dedent 'expected block end'
+		return out
+
+	private reportEmptyBlock
+		reportError self.currentFile self.peekCurrent.location.line self.peekCurrent.location.column 'Error: empty block body. Use `nothing` as a placeholder if the block is intentionally empty.'
+
+	private parseStatement, string
+		if self.currentMatch TokenKind.Return
+			out = self.indentText + 'return'
+			if not self.check TokenKind.Newline and not self.check TokenKind.Dedent and not self.check TokenKind.End
+				ex = self.parseExpression
+				out += ' ' + self.valueCode ex
+			out += ';\n'
+			self.consumeStatementEnd
+			return out
+		if self.currentMatch TokenKind.Break
+			self.consumeStatementEnd
+			return self.indentText + 'break;\n'
+		if self.currentMatch TokenKind.Continue
+			self.consumeStatementEnd
+			return self.indentText + 'continue;\n'
+		if self.currentMatch TokenKind.Nothing
+			stmt = CStmt.NothingStmt
+			self.consumeStatementEnd
+			return self.emitNothingStmt stmt
+		if self.check TokenKind.If
+			return self.parseIf
+		if self.check TokenKind.While
+			return self.parseWhile
+		if self.check TokenKind.For
+			return self.parseFor
+		if self.check TokenKind.Match
+			return self.parseMatch
+		if self.check TokenKind.Try
+			return self.parseTryCatch
+		return self.parseSimpleStatement
+
+	private emitNothingStmt stmt;CStmt, string
+		if stmt == CStmt.NothingStmt
+			return self.indentText + '; // nothing\n'
+		return ''
+
+	private parseIf, string
+		self.consume TokenKind.If 'expected if'
+		cond = self.parseExpression
+		out = self.indentText + 'if (' + self.valueCode cond + ') {\n'
+		self.consumeStatementEnd
+		self.skipNewlines
+		savedTypes = self.localTypes
+		self.indent += 1
+		out += self.parseBlock
+		self.indent -= 1
+		self.localTypes = savedTypes
+		out += self.indentText + '}'
+		self.skipNewlines
+		while self.currentMatch TokenKind.Elif
+			cond2 = self.parseExpression
+			out += ' else if (' + self.valueCode cond2 + ') {\n'
+			self.consumeStatementEnd
+			self.skipNewlines
+			self.localTypes = savedTypes
+			self.indent += 1
+			out += self.parseBlock
+			self.indent -= 1
+			self.localTypes = savedTypes
+			out += self.indentText + '}'
+			self.skipNewlines
+		if self.currentMatch TokenKind.Else
+			out += ' else {\n'
+			self.consumeStatementEnd
+			self.skipNewlines
+			self.localTypes = savedTypes
+			self.indent += 1
+			out += self.parseBlock
+			self.indent -= 1
+			self.localTypes = savedTypes
+			out += self.indentText + '}'
+		out += '\n'
+		return out
+
+	private parseWhile, string
+		self.consume TokenKind.While 'expected while'
+		cond = self.parseExpression
+		out = self.indentText + 'while (' + self.valueCode cond + ') {\n'
+		self.consumeStatementEnd
+		self.skipNewlines
+		savedTypes = self.localTypes
+		self.indent += 1
+		out += self.parseBlock
+		self.indent -= 1
+		self.localTypes = savedTypes
+		out += self.indentText + '}\n'
+		return out
+
+	private parseFor, string
+		self.consume TokenKind.For 'expected for'
+		loopTok = self.consume TokenKind.Identifier 'expected loop variable'
+		loopVar = loopTok.text
+		self.consume TokenKind.In 'expected in'
+		first = self.parseExpression
+		out string;
+		if self.currentMatch TokenKind.To
+			endEx = self.parseExpression
+			stepCode = s'1'
+			if self.currentMatch TokenKind.Step
+				stepEx = self.parseExpression
+				stepCode = self.valueCode stepEx
+			out = self.indentText + 'for (auto ' + loopVar + ' = ' + self.valueCode first + '; ' + loopVar + ' <= ' + self.valueCode endEx + '; ' + loopVar + ' += ' + stepCode + ') {\n'
+		elif self.currentMatch TokenKind.Until
+			endEx = self.parseExpression
+			stepCode = s'1'
+			if self.currentMatch TokenKind.Step
+				stepEx = self.parseExpression
+				stepCode = self.valueCode stepEx
+			out = self.indentText + 'for (auto ' + loopVar + ' = ' + self.valueCode first + '; ' + loopVar + ' < ' + self.valueCode endEx + '; ' + loopVar + ' += ' + stepCode + ') {\n'
+		else
+			out = self.indentText + 'for (auto& ' + loopVar + ' : ' + self.valueCode first + ') {\n'
+		savedTypes = self.localTypes
+		self.localTypes.set loopVar 'auto'
+		self.consumeStatementEnd
+		self.skipNewlines
+		self.indent += 1
+		out += self.parseBlock
+		self.indent -= 1
+		self.localTypes = savedTypes
+		out += self.indentText + '}\n'
+		return out
+
+	private parseTryCatch, string
+		self.consume TokenKind.Try 'expected try'
+		self.consumeStatementEnd
+		self.skipNewlines
+		out = self.indentText + 'try {\n'
+		self.indent += 1
+		out += self.parseBlock
+		self.indent -= 1
+		self.skipNewlines
+		self.consume TokenKind.Catch 'expected catch'
+		binding = '_1'
+		if self.currentMatch TokenKind.Semicolon
+			bindingTok = self.consume TokenKind.Identifier 'expected catch binding'
+			binding = bindingTok.text
+		self.consumeStatementEnd
+		self.skipNewlines
+		out += self.indentText + '} catch (const std::exception& ' + binding + ') {\n'
+		old = self.localTypes.get binding s''
+		self.localTypes.set binding 'std::exception'
+		savedTypes = self.localTypes
+		self.indent += 1
+		out += self.parseBlock
+		self.indent -= 1
+		self.localTypes = savedTypes
+		if old.length isgt 0
+			self.localTypes.set binding old
+		out += self.indentText + '}\n'
+		return out
+
+	private parseMatch, string
+		self.consume TokenKind.Match 'expected match'
+		ex = self.parseExpression
+		matchCode = self.valueCode ex
+		matchType = ex.typeText
+		self.consumeStatementEnd
+		self.skipNewlines
+		self.consume TokenKind.Indent 'expected match block'
+		out = self.indentText + '{\n'
+		self.indent += 1
+		out += self.indentText + 'const auto& _match = ' + matchCode + ';\n'
+		first = true
+		while not self.check TokenKind.Dedent and not self.check TokenKind.End
+			if self.currentMatch TokenKind.Default
+				if first
+					out += self.indentText + '{\n'
+				else
+					out += self.indentText + 'else {\n'
+				self.consumeStatementEnd
+				self.skipNewlines
+				self.indent += 1
+				out += self.parseBlock
+				self.indent -= 1
+				out += self.indentText + '}\n'
+				first = false
+			else
+				pattern = self.parseExpression
+				variantName = self.patternVariantName pattern
+				matchVariantKey = matchType + '.' + variantName
+				if self.dataEnumVariants.contains matchVariantKey
+					if first
+						out += self.indentText + 'if (_match.tag == ' + matchType + '::Tag::' + variantName + ') {\n'
+					else
+						out += self.indentText + 'else if (_match.tag == ' + matchType + '::Tag::' + variantName + ') {\n'
+					self.consumeStatementEnd
+					self.skipNewlines
+					self.indent += 1
+					out += self.emitDataBindings matchType variantName pattern
+					out += self.parseBlock
+					self.indent -= 1
+					out += self.indentText + '}\n'
+				else
+					if first
+						out += self.indentText + 'if (_match == ' + self.valueCode pattern + ') {\n'
+					else
+						out += self.indentText + 'else if (_match == ' + self.valueCode pattern + ') {\n'
+					self.consumeStatementEnd
+					self.skipNewlines
+					self.indent += 1
+					out += self.parseBlock
+					self.indent -= 1
+					out += self.indentText + '}\n'
+				first = false
+			self.skipNewlines
+		self.consume TokenKind.Dedent 'expected match end'
+		self.indent -= 1
+		out += self.indentText + '}\n'
+		return out
+
+	private emitDataBindings matchType;string variantName;string pattern;CExpr, string
+		out string;
+		out += self.indentText + 'auto& _payload = std::get<' + matchType + '_' + variantName + '>(_match.data);\n'
+		bindings = pattern.text.split s','
+		for name in bindings
+			if name.length isgt 0
+				out += self.indentText + 'auto& ' + name + ' = _payload.' + name + ';\n'
+				self.localTypes.set name 'auto'
+		return out
+
+
+impl Codegen
+	private controlFlowIsParsedDuringCodegen, bool
+		return true

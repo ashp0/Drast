@@ -1,0 +1,6 @@
+// # TEST: integer zero literal
+// # EXPECT: pass
+
+main, int
+	zero = 0
+	return zero

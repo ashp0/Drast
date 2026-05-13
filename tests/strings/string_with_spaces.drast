@@ -1,0 +1,6 @@
+// # TEST: string literal with spaces
+// # EXPECT: pass
+
+main, int
+	text = s'hello wide world'
+	return text.length

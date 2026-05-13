@@ -1,0 +1,9 @@
+// # TEST: while true with break
+// # EXPECT: pass
+
+main, int
+	count = 0
+	while true
+		count += 1
+		break
+	return count

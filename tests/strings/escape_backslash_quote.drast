@@ -1,0 +1,6 @@
+// # TEST: backslash and double quote escapes
+// # EXPECT: pass
+
+main, int
+	text = s'path\with\quote"'
+	return text.length

@@ -1,0 +1,11 @@
+// # TEST: string runtime field and method helpers
+// # EXPECT: pass
+
+use std
+
+main, int
+	text = s'  Hello There  '
+	trimmed = text.trim
+	lowered = trimmed.lowercase
+	parts = lowered.splitWhitespace
+	return parts.length

@@ -1,0 +1,10 @@
+// # TEST: map set and get helpers
+// # EXPECT: pass
+
+use std
+
+main, int
+	counts map`[string int];
+	counts.set s'apple' 3
+	value = counts.get s'apple'
+	return 0

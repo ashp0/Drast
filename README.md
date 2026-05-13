@@ -1,31 +1,40 @@
 # Drast
 
-Drast is a small compiler toolchain project for a custom language with examples, a parser, lexer, and code generation components.
+Drast is a small self-hosted compiler toolchain project for a custom language with examples, a lexer, parser, AST model, and C++ code generation components.
 
 ## Overview
 
-- `src/` contains the compiler implementation in C++.
+- `src/` contains the compiler implementation in `.drast`.
 - `runtime/` contains runtime support headers.
 - `Examples/` contains sample `.drast` programs you can run or use for testing.
-- `build/` contains generated build artifacts.
+- `tests/` contains compiler regression fixtures.
+- `SYNTAX.md` documents the implemented language syntax.
 
 ## Build
 
 To build the project, run:
 
 ```sh
-make
+xmake
 ```
 
-This will compile the compiler tools and generate build artifacts in `build/`.
+This bootstraps the compiler from the prebuilt seed binary, transpiles the Drast source to generated C++, and compiles the primary `transpiler` target.
+
+Useful targets:
+
+```sh
+xmake build bootstrap
+xmake build self-host
+xmake build test
+xmake project -k xcode
+```
 
 ## Run examples
 
-Use the compiler or run example scripts from the `Examples/` folder. For example:
+Use the compiler or inspect sample programs from the `Examples/` folder. For example:
 
 ```sh
-# Example: compile or inspect a sample program
-cat Examples/hello.drast
+xmake run -w . transpiler Examples/hello.drast
 ```
 
 ## Example code snippets
@@ -67,5 +76,5 @@ View the full set of sample programs in the repository:
 
 ## Notes
 
-- `src/main.cpp` is the compiler entry point.
+- `src/main.drast` is the compiler entry point.
 - `runtime/drast_runtime.hpp` contains runtime support types and helpers.

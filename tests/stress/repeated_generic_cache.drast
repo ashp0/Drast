@@ -1,0 +1,251 @@
+// # TEST: repeated generic parsing and constructor cache stress
+// # EXPECT: pass
+
+use std
+
+struct CacheBox`[T]
+	value T
+
+wrap0`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap1`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap2`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap3`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap4`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap5`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap6`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap7`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap8`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap9`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap10`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap11`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap12`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap13`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap14`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap15`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap16`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap17`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap18`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap19`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap20`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap21`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap22`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap23`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap24`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap25`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap26`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap27`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap28`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap29`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap30`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap31`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap32`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap33`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap34`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap35`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap36`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap37`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap38`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap39`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap40`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap41`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap42`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap43`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap44`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap45`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap46`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap47`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap48`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap49`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap50`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap51`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap52`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap53`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap54`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap55`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap56`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap57`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap58`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap59`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap60`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap61`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap62`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap63`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap64`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap65`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap66`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap67`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap68`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap69`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap70`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap71`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap72`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap73`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap74`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap75`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap76`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap77`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap78`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+wrap79`[T] value;T, CacheBox`[T]
+	return CacheBox`[T][value]
+
+main, int
+	box = wrap79`[int] 79
+	return box.value

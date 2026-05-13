@@ -1,0 +1,8 @@
+// # TEST: array indexing expression
+// # EXPECT: pass
+
+use std
+
+main, int
+	items = {10 20 30}
+	return items{1}

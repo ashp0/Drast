@@ -1,35 +1,449 @@
 use std
-use transpiler
+use token
+use lexer
+use ast
+use parser
+use codegen
+use features/use_statements
+use features/function_declaration
+use features/structs
+use features/enums
+use features/impl_blocks
+use features/types
+use features/control_flow
+use features/expressions
+use features/variables
+use features/literals
+
+struct BuildOptions
+	command string
+	entry string
+	output string
+	compiler string
+	noRuntime bool
+	noAutoDiscover bool
+	debug bool
+	verbose bool
+	extraFlags {string}
+
+struct BuildLayout
+	root string
+	sourceDir string
+	objectDir string
+	executable string
+
+struct SourceUnit
+	path string
+	ast AST
+
+impl BuildOptions
+	init
+		self.command = 'build'
+		self.entry = ''
+		self.output = ''
+		self.compiler = ''
+		self.noRuntime = false
+		self.noAutoDiscover = false
+		self.debug = false
+		self.verbose = false
+
+impl BuildLayout
+	init
+		self.root = ''
+		self.sourceDir = ''
+		self.objectDir = ''
+		self.executable = ''
 
 main, int
 	if args.length islteq 1
-		println 'Did not find file.'
+		printHelp
 		return 1
+	first = arg 1
+	if first == 'help' or first == '--help' or first == '-h'
+		printHelp
+		return 0
+	if first == 'clean'
+		return cleanBuild
+	if selfIsSubcommand first
+		options = parseOptions first 2
+		return runSelectedCommand options
+	if legacyOutputRequested
+		return runLegacyTranspile
+	options = parseOptions 'build' 1
+	return runSelectedCommand options
+
+printHelp
+	println 'Usage: drast <command> [entry] [options] [-- compiler-flags]'
+	println ''
+	println 'Commands:'
+	println '  build [entry]       discover, transpile, compile, and link'
+	println '  transpile [entry]   discover and write C++ sources only'
+	println '  run [entry]         build and execute the output binary'
+	println '  clean               delete .drast/build in the current directory'
+	println '  help                print this help'
+	println ''
+	println 'Options:'
+	println '  -o <path>           output directory for build/transpile'
+	println '  --compiler <path>   C++ compiler path or executable name'
+	println '  --debug             use -O0 -g instead of -O2'
+	println '  --verbose           print compiler commands'
+	println '  --no-auto-discover  compile only the explicit import graph'
+	println '  --no-runtime        keep the legacy no-runtime transpile behavior'
+
+selfIsSubcommand text;string, bool
+	return text == 'build' or text == 'transpile' or text == 'run'
+
+legacyOutputRequested, bool
+	i = 1
+	while i islt args.length
+		current = arg i
+		if current == '-o' or current == '--output'
+			return true
+		if current == '--'
+			return false
+		i += 1
+	return false
+
+parseOptions command;string start;int, BuildOptions
+	options BuildOptions;
+	options.command = command
+	i = start
+	afterDashDash = false
+	while i islt args.length
+		current = arg i
+		if afterDashDash
+			options.extraFlags += current
+		elif current == '--'
+			afterDashDash = true
+		elif current == '-o' or current == '--output'
+			i += 1
+			outPath = arg i
+			options.output = absoluteFromCwd outPath
+		elif current == '--compiler'
+			i += 1
+			options.compiler = arg i
+		elif current == '--no-runtime'
+			options.noRuntime = true
+		elif current == '--no-auto-discover'
+			options.noAutoDiscover = true
+		elif current == '--debug'
+			options.debug = true
+		elif current == '--verbose'
+			options.verbose = true
+		elif current == '--path'
+			i += 1
+		elif options.entry.length == 0
+			options.entry = absoluteFromCwd current
+		else
+			options.extraFlags += current
+		i += 1
+	if options.entry.length == 0
+		cwd = currentDir
+		options.entry = pathJoin cwd 'main.drast'
+	options.entry = normalizePath options.entry
+	return options
+
+absoluteFromCwd path;string, string
+	if isAbsolutePath path
+		return normalizePath path
+	cwd = currentDir
+	joined = pathJoin cwd path
+	return normalizePath joined
+
+runSelectedCommand options;BuildOptions, int
+	if options.command == 'transpile'
+		return runTranspileCommand options
+	if options.command == 'build'
+		return runBuildCommand options false
+	if options.command == 'run'
+		return runBuildCommand options true
+	printHelp
+	return 1
+
+runLegacyTranspile, int
 	input string;
 	output string;
 	noRuntime = false
 	i = 1
 	while i islt args.length
 		current = arg i
-		if current == '-o'
+		if current == '-o' or current == '--output'
 			i += 1
 			output = arg i
 		elif current == '--no-runtime'
 			noRuntime = true
 		elif current == '--path'
 			i += 1
-			// The v2 resolver already uses the source file's directory. The
-			// option is accepted for CLI compatibility with drastc.
+		elif current == '--'
+			i = args.length
 		else
 			input = current
 		i += 1
 	if input.length == 0
+		reportError '' 1 1 'Did not find file.'
+		emitErrors
 		return 1
-	transpiler Transpiler;
-	transpiler.setNoRuntime noRuntime
-	cpp = transpiler.transpileFile input
+	parser Parser;
+	parser.setNoRuntime noRuntime
+	ast AST;
+	ast = parser.parseFile input
+	if hasErrors
+		emitErrors
+		return 1
+	codegen Codegen;
+	cpp = codegen.emit ast
 	if output.length isgt 0
-		writeFile output cpp
+		if not writeFile output cpp
+			reportError output 1 1 'failed to write output'
+			emitErrors
+			return 1
 	else
 		print cpp
 	return 0
+
+runTranspileCommand options;BuildOptions, int
+	layout = makeLayout options
+	sources = transpileProject options layout
+	if hasErrors
+		emitErrors
+		return 1
+	return 0
+
+runBuildCommand options;BuildOptions runAfter;bool, int
+	layout = makeLayout options
+	sources = transpileProject options layout
+	if hasErrors
+		emitErrors
+		return 1
+	cppPaths = cppPathsForSources options layout sources
+	includeDirs = sourceIncludeDirs sources
+	cwd = currentDir
+	appendUniqueString includeDirs cwd
+	entryDir = pathDirname options.entry
+	appendUniqueString includeDirs entryDir
+	status = compileAndLink options layout sources cppPaths includeDirs
+	if status isne 0
+		return status
+	if runAfter
+		return runExecutable layout.executable options.verbose
+	return 0
+
+makeLayout options;BuildOptions, BuildLayout
+	layout BuildLayout;
+	projectRoot = pathDirname options.entry
+	if options.output.length isgt 0
+		layout.root = options.output
+	else
+		layout.root = pathJoin projectRoot '.drast/build'
+	if options.command == 'transpile' and options.output.length isgt 0
+		layout.sourceDir = layout.root
+	else
+		layout.sourceDir = pathJoin layout.root 'src'
+	layout.objectDir = pathJoin layout.root 'obj'
+	entryStem = pathStem options.entry
+	layout.executable = pathJoin layout.root entryStem
+	return layout
+
+transpileProject options;BuildOptions layout;BuildLayout, {string}
+	clearErrors
+	projectRoot = pathDirname options.entry
+	if not fileExists options.entry
+		reportError options.entry 1 1 'entry file not found'
+		empty {string};
+		return empty
+	autoDiscover = not options.noAutoDiscover
+	sources = orderDrastSources options.entry projectRoot autoDiscover
+	if hasErrors
+		return sources
+	if sources.length == 0
+		reportError options.entry 1 1 'no Drast source files found'
+		return sources
+	parser Parser;
+	parser.setNoRuntime options.noRuntime
+	parser.predeclareProjectFiles sources
+	units {SourceUnit};
+	all AST;
+	all.noRuntime = options.noRuntime
+	for source in sources
+		unit SourceUnit;
+		unit.path = source
+		unit.ast = parser.parseSingleFile source
+		units += unit
+		all = mergeAst all unit.ast
+	if hasErrors
+		return sources
+	ensureDir layout.sourceDir
+	ensureDir layout.root
+	codegen Codegen;
+	cppPaths {string};
+	for unit in units
+		cppPath = sourceOutputPath projectRoot unit.path layout.sourceDir '.cpp'
+		cppPaths += cppPath
+		if targetMissingOrOlder unit.path cppPath
+			cppDir = pathDirname cppPath
+			ensureDir cppDir
+			cpp = codegen.emitUnit unit.ast all
+			if not writeFile cppPath cpp
+				reportError cppPath 1 1 'failed to write generated C++'
+	writeGeneratedXmake layout cppPaths sources
+	return sources
+
+cppPathsForSources options;BuildOptions layout;BuildLayout sources;{string}, {string}
+	projectRoot = pathDirname options.entry
+	out {string};
+	for source in sources
+		out += sourceOutputPath projectRoot source layout.sourceDir '.cpp'
+	return out
+
+mergeAst left;AST right;AST, AST
+	out = left
+	if right.usesStd
+		out.usesStd = true
+	if right.noRuntime
+		out.noRuntime = true
+	for line in right.includeLines
+		if not containsString out.includeLines line
+			out.includeLines += line
+	for st in right.structs
+		out.structs += st
+	for en in right.enums
+		out.enums += en
+	for proto in right.protocols
+		out.protocols += proto
+	for fn in right.functions
+		out.functions += fn
+	for m in right.methods
+		out.methods += m
+	for g in right.globals
+		out.globals += g
+	return out
+
+containsString values;{string} needle;string, bool
+	for value in values
+		if value == needle
+			return true
+	return false
+
+appendUniqueString values;~{string} value;string
+	if not containsString values value
+		values += value
+
+writeGeneratedXmake layout;BuildLayout cppPaths;{string} sources;{string}
+	includeDirs = sourceIncludeDirs sources
+	cwd = currentDir
+	appendUniqueString includeDirs cwd
+	xm string;
+	xm += 'set_project("drast-generated")\n'
+	xm += 'set_languages("c++17")\n\n'
+	xm += 'target("app")\n'
+	xm += '    set_kind("binary")\n'
+	xm += '    set_toolset("cxx", "clang++")\n'
+	xm += '    set_toolset("ld", "clang++")\n'
+	for dir in includeDirs
+		xm += '    add_includedirs([[' + dir + ']])\n'
+	for cpp in cppPaths
+		xm += '    add_files([[' + cpp + ']])\n'
+	ensureDir layout.root
+	xmakePath = pathJoin layout.root 'xmake.lua'
+	writeFile xmakePath xm
+
+compileAndLink options;BuildOptions layout;BuildLayout sources;{string} cppPaths;{string} includeDirs;{string}, int
+	compiler = selectCompiler options
+	if compiler.length == 0
+		emitErrors
+		return 1
+	ensureDir layout.objectDir
+	objects {string};
+	projectRoot = pathDirname options.entry
+	i = 0
+	while i islt cppPaths.length
+		cpp = cppPaths{i}
+		source = sources{i}
+		obj = sourceOutputPath projectRoot source layout.objectDir '.o'
+		objects += obj
+		if targetMissingOrOlder cpp obj
+			objDir = pathDirname obj
+			ensureDir objDir
+			compileArgs = compileArguments options cpp obj includeDirs
+			status = runProcess compiler compileArgs options.verbose
+			if status isne 0
+				return status
+		i += 1
+	if shouldLink layout.executable objects
+		exeDir = pathDirname layout.executable
+		ensureDir exeDir
+		linkArgs = linkArguments options objects layout.executable
+		status = runProcess compiler linkArgs options.verbose
+		if status isne 0
+			return status
+	return 0
+
+selectCompiler options;BuildOptions, string
+	if options.compiler.length isgt 0
+		found = findExecutable options.compiler
+		if found.length isgt 0
+			return found
+		message = 'compiler not found: ' + options.compiler
+		reportError options.entry 1 1 message
+		return ''
+	envCompiler = getEnv 'DRAST_CXX'
+	if envCompiler.length isgt 0
+		found = findExecutable envCompiler
+		if found.length isgt 0
+			return found
+		message = 'compiler from DRAST_CXX not found: ' + envCompiler
+		reportError options.entry 1 1 message
+		return ''
+	clang = findExecutable 'clang++'
+	if clang.length isgt 0
+		return clang
+	gcc = findExecutable 'g++'
+	if gcc.length isgt 0
+		return gcc
+	reportError options.entry 1 1 'no C++ compiler found; pass --compiler or set DRAST_CXX'
+	return ''
+
+compileArguments options;BuildOptions cpp;string obj;string includeDirs;{string}, {string}
+	out {string};
+	out += '-std=c++17'
+	if options.debug
+		out += '-O0'
+		out += '-g'
+	else
+		out += '-O2'
+	for dir in includeDirs
+		out += '-I' + dir
+	for flag in options.extraFlags
+		out += flag
+	out += '-c'
+	out += cpp
+	out += '-o'
+	out += obj
+	return out
+
+linkArguments options;BuildOptions objects;{string} executable;string, {string}
+	out {string};
+	for obj in objects
+		out += obj
+	for flag in options.extraFlags
+		out += flag
+	out += '-o'
+	out += executable
+	return out
+
+shouldLink executable;string objects;{string}, bool
+	if not fileExists executable
+		return true
+	for obj in objects
+		if targetMissingOrOlder obj executable
+			return true
+	return false
+
+cleanBuild, int
+	cwd = currentDir
+	buildDir = pathJoin cwd '.drast/build'
+	if removeDirRecursive buildDir
+		return 0
+	reportError buildDir 1 1 'failed to remove build directory'
+	emitErrors
+	return 1

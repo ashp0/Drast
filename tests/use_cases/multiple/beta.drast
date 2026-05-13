@@ -1,0 +1,5 @@
+// # TEST: existing use case multiple beta.drast
+// # EXPECT: pass
+
+beta, string
+	return 'multi-b'

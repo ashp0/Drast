@@ -1,0 +1,23 @@
+use file native_add.hpp
+use '../shared/tools'
+
+/* Block comments can nest.
+	/* Inner comment */
+*/
+
+struct Box`[T]
+	value T
+
+main, int
+	letter = 'D'
+	message = s'Drast says \'hello\'\n'
+	items = {1 2 3}
+	empty = {int}
+	box = @[Box 42]
+	pointer = ~box
+	deref = `pointer
+	if message.length isgt 0
+		println message
+	else
+		nothing
+	return 0

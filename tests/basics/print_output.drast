@@ -1,0 +1,9 @@
+// # TEST: print and println runtime calls
+// # EXPECT: pass
+
+use std
+
+main, int
+	print s'hello'
+	println s' world'
+	return 0

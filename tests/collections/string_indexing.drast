@@ -1,0 +1,7 @@
+// # TEST: string indexing yields char
+// # EXPECT: pass
+
+main, int
+	text = s'abc'
+	letter = text{1}
+	return 0

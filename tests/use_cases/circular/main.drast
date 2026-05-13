@@ -1,0 +1,10 @@
+// # TEST: existing use case circular main.drast
+// # EXPECT: error
+// # ERROR_CONTAINS: circular import
+
+use std
+use a
+
+main, int
+	println fromA
+	return 0

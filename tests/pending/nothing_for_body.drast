@@ -1,0 +1,7 @@
+// # TEST: pending nothing as for body
+// # EXPECT: pass
+
+main, int
+	for i in 0 until 1
+		nothing
+	return 0

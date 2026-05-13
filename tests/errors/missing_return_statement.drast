@@ -1,0 +1,6 @@
+// # TEST: missing return in non void function is rejected
+// # EXPECT: error
+// # ERROR_CONTAINS: return
+
+main, int
+	value = 1

@@ -1,0 +1,9 @@
+// # TEST: existing use case single main.drast
+// # EXPECT: pass
+
+use std
+use helper
+
+main, int
+	println greeting
+	return 0

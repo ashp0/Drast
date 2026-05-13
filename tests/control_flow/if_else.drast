@@ -1,0 +1,8 @@
+// # TEST: if else branches
+// # EXPECT: pass
+
+main, int
+	if false
+		return 1
+	else
+		return 0

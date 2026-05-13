@@ -1,0 +1,56 @@
+impl Parser
+	private parseUse
+		path string;
+		quoted = false
+		if self.check TokenKind.StringLiteral or self.check TokenKind.CharLiteral
+			path = self.advance.text
+			quoted = true
+		else
+			if self.check TokenKind.Identifier and self.peekCurrent.text == 'file'
+				self.advance
+				quoted = true
+			while not self.check TokenKind.Newline and not self.check TokenKind.End
+				t = self.advance
+				path += t.text
+		self.consumeStatementEnd
+		if path.length == 0
+			reportError self.currentFile self.peekCurrent.location.line self.peekCurrent.location.column 'empty use path'
+			return
+		if path == 'std'
+			self.usesStd = true
+			return
+		if path == 'no_runtime'
+			self.noRuntime = true
+			return
+		if self.isHeaderPath path
+			line string;
+			if quoted
+				line = '#include "' + path + '"\n'
+			else
+				line = '#include <' + path + '>\n'
+			if not self.hasIncludeLine line
+				self.ast.includeLines += line
+			return
+		resolved = self.resolveModule path
+		if resolved.length isgt 0
+			if self.followImports
+				self.loadFile resolved
+		else
+			message = 'module not found: ' + path
+			reportError self.currentFile self.peekCurrent.location.line self.peekCurrent.location.column message
+
+	private hasIncludeLine line;string, bool
+		for existing in self.ast.includeLines
+			if existing == line
+				return true
+		return false
+
+
+impl Codegen
+	private emitIncludes ast;AST, string
+		out string;
+		if ast.usesStd
+			out += '#include "runtime/drast_runtime.hpp"\n'
+		for line in ast.includeLines
+			out += line
+		return out

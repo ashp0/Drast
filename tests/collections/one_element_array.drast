@@ -1,0 +1,8 @@
+// # TEST: one element array literal
+// # EXPECT: pass
+
+use std
+
+main, int
+	items = {7}
+	return items{0}

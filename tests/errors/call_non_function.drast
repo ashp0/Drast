@@ -1,0 +1,8 @@
+// # TEST: calling non function value is rejected
+// # EXPECT: error
+// # ERROR_CONTAINS: not a function
+
+main, int
+	value = 1
+	value 2
+	return 0

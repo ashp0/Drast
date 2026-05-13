@@ -1,0 +1,6 @@
+// # TEST: function parameter requires semicolon before type
+// # EXPECT: error
+// # ERROR_CONTAINS: expected param semicolon
+
+add value int, int
+	return value

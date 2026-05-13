@@ -1,0 +1,8 @@
+// # TEST: try requires following catch
+// # EXPECT: error
+// # ERROR_CONTAINS: expected catch
+
+main, int
+	try
+		value = 1
+	return 0

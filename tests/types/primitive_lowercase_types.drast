@@ -1,0 +1,14 @@
+// # TEST: lowercase primitive type annotations
+// # EXPECT: pass
+
+use std
+
+main, int
+	count int = 1
+	ratio float = 1.5
+	precise double = 2.25
+	flag bool = true
+	letter char = 'z'
+	name string = s'Drast'
+	size usize = 0
+	return count

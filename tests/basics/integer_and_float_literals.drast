@@ -1,0 +1,7 @@
+// # TEST: integer and float literals
+// # EXPECT: pass
+
+main, int
+	whole = 42
+	fraction = 3.5
+	return whole

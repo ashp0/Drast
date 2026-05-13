@@ -1,0 +1,7 @@
+// # TEST: unterminated string literal is rejected
+// # EXPECT: error
+// # ERROR_CONTAINS: unterminated string literal
+
+main, int
+	text = 'unterminated
+	return 0

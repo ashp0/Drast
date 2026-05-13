@@ -1,0 +1,11 @@
+// # TEST: foreach loop over array
+// # EXPECT: pass
+
+use std
+
+main, int
+	values = {1 2 3}
+	total = 0
+	for value in values
+		total += value
+	return total

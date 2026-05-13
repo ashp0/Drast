@@ -1,0 +1,8 @@
+// # TEST: reference and pointer expression round trip
+// # EXPECT: pass
+
+main, int
+	value = 5
+	pointer = ~value
+	copy = `pointer
+	return copy

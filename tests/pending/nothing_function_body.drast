@@ -1,0 +1,9 @@
+// # TEST: pending function with only nothing body
+// # EXPECT: pass
+
+doNothing
+	nothing
+
+main, int
+	doNothing
+	return 0

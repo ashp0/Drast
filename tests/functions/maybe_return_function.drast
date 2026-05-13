@@ -1,0 +1,9 @@
+// # TEST: function returning maybe value
+// # EXPECT: pass
+
+parseKnown, maybe int
+	return 7
+
+main, int
+	value = parseKnown
+	return 0

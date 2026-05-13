@@ -1,0 +1,7 @@
+// # TEST: variable inference from integer expressions
+// # EXPECT: pass
+
+main, int
+	left = 20
+	right = 22
+	return left + right

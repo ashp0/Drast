@@ -1,0 +1,133 @@
+impl Parser
+	private parseStruct isFileprivate;bool
+		nameTok = self.consume TokenKind.Identifier 'expected struct name'
+		st CStruct;
+		st.name = nameTok.text
+		st.isFileprivate = isFileprivate
+		if self.currentMatch TokenKind.Backtick
+			self.consume TokenKind.LeftBracket 'expected `[`'
+			while not self.check TokenKind.RightBracket and not self.check TokenKind.End
+				if self.currentMatch TokenKind.Comma
+					continue
+				paramTok = self.consume TokenKind.Identifier 'expected generic param'
+				st.typeParams += paramTok.text
+			self.consume TokenKind.RightBracket 'expected `]`'
+		self.consumeStatementEnd
+		self.skipNewlines
+		self.consume TokenKind.Indent 'expected struct block'
+		while not self.check TokenKind.Dedent and not self.check TokenKind.End
+			visibility = 'public'
+			if self.currentMatch TokenKind.Private
+				visibility = 'private'
+			elif self.currentMatch TokenKind.Preview
+				visibility = 'preview'
+			elif self.currentMatch TokenKind.Fileprivate
+				visibility = 'fileprivate'
+			field CField;
+			fieldTok = self.consume TokenKind.Identifier 'expected field name'
+			field.name = fieldTok.text
+			field.visibility = visibility
+			t = self.parseType
+			field.typeText = t.text
+			field.sourceType = t.sourceName
+			st.fields += field
+			fieldKey = st.name + '.' + field.name
+			self.structFieldTypes.set fieldKey field.typeText
+			self.currentMatch TokenKind.Semicolon
+			self.consumeStatementEnd
+			self.skipNewlines
+		self.consume TokenKind.Dedent 'expected end struct'
+		self.ast.structs += st
+
+
+impl Codegen
+	private emitsStructs ast;AST, bool
+		return ast.structs.length isgt 0
+
+impl Codegen
+	private emitForwardStruct st;CStruct, string
+		out string;
+		out.reserve 128
+		if st.typeParams.length isgt 0
+			out += self.templatePrefix st.typeParams
+		out += 'struct ' + st.name + ';\n'
+		return out
+
+	private emitStruct st;CStruct ast;AST, string
+		out string;
+		out.reserve 2048
+		if st.typeParams.length isgt 0
+			out += self.templatePrefix st.typeParams
+		out += 'struct ' + st.name
+		proto = self.protocolFor ast st.name
+		if proto.length isgt 0
+			out += ' : public ' + proto
+		out += ' {\n'
+		for en in ast.enums
+			prefix = st.name + '.'
+			if en.name.startsWith prefix
+				innerName = en.name.substring prefix.length en.name.length
+				out += '    enum class ' + innerName + ' {\n'
+				for v in en.variants
+					out += '        ' + v.name + ',\n'
+				out += '    };\n'
+		ctorFieldCount = self.constructorFieldCount st
+		hasInit = self.hasMethod ast st.name 'init'
+		if ctorFieldCount isgt 0 and not hasInit
+			out += '    ' + st.name + '() = default;\n'
+			out += '    ' + st.name + '('
+			i = 0
+			for f in st.fields
+				if f.visibility == 'private'
+					continue
+				if i isgt 0
+					out += ', '
+				out += f.typeText + ' ' + f.name
+				i += 1
+			out += ') : '
+			i = 0
+			for f in st.fields
+				if f.visibility == 'private'
+					continue
+				if i isgt 0
+					out += ', '
+				out += f.name + '(' + self.constructorFieldValue f + ')'
+				i += 1
+			out += ' {}\n'
+		for f in st.fields
+			if f.visibility == 'private'
+				continue
+			out += '    ' + f.typeText + ' ' + f.name + ';\n'
+		privateOpened = false
+		for f in st.fields
+			if f.visibility == 'private'
+				if not privateOpened
+					out += '  private:\n'
+					privateOpened = true
+				out += '    ' + f.typeText + ' ' + f.name + ';\n'
+		if privateOpened
+			out += '  public:\n'
+		for m in ast.methods
+			if m.host == st.name and m.name isne '__protocol'
+				if m.isOperator
+					continue
+				if m.name == 'init'
+					out += '    ' + st.name + '(' + self.paramList m false + ');\n'
+				elif m.name == 'deinit'
+					out += '    ~' + st.name + '();\n'
+				else
+					out += '    ' + m.returnText + ' ' + m.name + '(' + self.paramList m false + ');\n'
+		out += '};\n'
+		return out
+
+	private constructorFieldCount st;CStruct, usize
+		count usize = 0
+		for f in st.fields
+			if f.visibility isne 'private'
+				count += 1
+		return count
+
+	private constructorFieldValue f;CField, string
+		if self.shouldMoveValueType f.typeText
+			return 'std::move(' + f.name + ')'
+		return f.name

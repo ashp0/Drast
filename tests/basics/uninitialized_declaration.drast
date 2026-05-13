@@ -1,0 +1,7 @@
+// # TEST: uninitialized declaration followed by assignment
+// # EXPECT: pass
+
+main, int
+	result int;
+	result = 5
+	return result

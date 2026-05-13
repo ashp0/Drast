@@ -1,0 +1,16 @@
+// # TEST: existing use case generic main.drast
+// # EXPECT: pass
+
+use std
+
+struct Box`[T]
+	value T
+
+impl Box
+	get, T
+		return self.value
+
+main, int
+	box = Box`[int][41]
+	println box.get
+	return 0

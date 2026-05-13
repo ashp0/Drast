@@ -1,0 +1,10 @@
+// # TEST: existing use case header main.drast
+// # EXPECT: pass
+
+use std
+use file native_add.hpp
+
+main, int
+	answer = native_add_ten 32
+	println answer
+	return 0

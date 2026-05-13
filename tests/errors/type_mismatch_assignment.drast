@@ -1,0 +1,8 @@
+// # TEST: type mismatch in assignment is rejected
+// # EXPECT: error
+// # ERROR_CONTAINS: type mismatch
+
+main, int
+	count int = 1
+	count = s'wrong'
+	return count

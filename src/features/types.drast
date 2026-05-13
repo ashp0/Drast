@@ -1,0 +1,303 @@
+impl Parser
+	private parseType, CType
+		out CType;
+		if self.currentMatch TokenKind.Tilde
+			out = self.parseType
+			out.isReference = true
+			out.text += '&'
+			return out
+		if self.currentMatch TokenKind.LeftBrace
+			inner = self.parseType
+			self.consume TokenKind.RightBrace 'expected array type close'
+			out.text = 'std::vector<' + inner.text + '>'
+			out.sourceName = inner.sourceName
+			out.isArray = true
+			return out
+		if self.currentMatch TokenKind.AtLeftBracket
+			inner = self.parseType
+			self.consume TokenKind.RightBracket 'expected heap type close'
+			out.text = 'std::shared_ptr<' + inner.text + '>'
+			out.sourceName = inner.sourceName
+			out.heapShared = true
+			return out
+		if self.currentMatch TokenKind.Variadic
+			self.consume TokenKind.LeftBracket 'expected variadic bracket'
+			inner = self.parseType
+			self.consume TokenKind.RightBracket 'expected variadic close'
+			out.text = 'std::initializer_list<' + inner.text + '>'
+			out.sourceName = inner.sourceName
+			out.isVariadic = true
+			return out
+		if self.currentMatch TokenKind.Tuple
+			types string;
+			first = true
+			while self.check TokenKind.Identifier
+				inner = self.parseType
+				if not first
+					types += ', '
+				types += inner.text
+				first = false
+			out.text = 'std::tuple<' + types + '>'
+			out.sourceName = 'tuple'
+			return out
+		typeTok = self.consume TokenKind.Identifier 'expected type name'
+		name = typeTok.text
+		sourceName = name
+		while true
+			if self.currentMatch TokenKind.Dot
+				partTok = self.consume TokenKind.Identifier 'expected dotted type'
+				part = partTok.text
+				name += '::' + part
+				sourceName += s'.' + part
+			elif self.currentMatch TokenKind.DoubleColon
+				partTok = self.consume TokenKind.Identifier 'expected namespaced type'
+				part = partTok.text
+				name += '::' + part
+				sourceName += '::' + part
+			else
+				break
+		if self.check TokenKind.Backtick and [self.peek 1].kind == TokenKind.LeftBracket
+			self.advance
+			self.advance
+			genericText string;
+			first = true
+			while not self.check TokenKind.RightBracket and not self.check TokenKind.End
+				if self.currentMatch TokenKind.Comma
+					continue
+				inner = self.parseType
+				if not first
+					genericText += ', '
+				genericText += inner.text
+				first = false
+			self.consume TokenKind.RightBracket 'expected generic type close'
+			if name == 'map'
+				// Drast generic arguments are space-separated, but after parsing
+				// they are already comma-separated.
+				name = 'std::unordered_map<' + genericText + '>'
+			else
+				name = self.typeName name + '<' + genericText + '>'
+		else
+			name = self.typeName name
+		while self.currentMatch TokenKind.Backtick
+			name += '*'
+			out.pointerDepth += 1
+		out.text = name
+		out.sourceName = sourceName
+		return out
+
+	private typeName name;string, string
+		if name == 'int' or name == 'Int'
+			return 'int'
+		if name == 'uint' or name == 'UInt'
+			return 'unsigned int'
+		if name == 'float' or name == 'Float'
+			return 'float'
+		if name == 'double' or name == 'Double'
+			return 'double'
+		if name == 'bool' or name == 'Bool'
+			return 'bool'
+		if name == 'char' or name == 'Char'
+			return 'char'
+		if name == 'string' or name == 'String'
+			return 'std::string'
+		if name == 'usize'
+			return 'std::size_t'
+		if name == 'std::linked_list'
+			return 'std::list'
+		return self.qualifyName name
+
+	private isBuiltinType name;string, bool
+		return name == 'int' or name == 'Int' or name == 'uint' or name == 'UInt' or name == 'float' or name == 'Float' or name == 'double' or name == 'Double' or name == 'bool' or name == 'Bool' or name == 'char' or name == 'Char' or name == 'string' or name == 'String' or name == 'usize'
+
+	private isStdFunction name;string, bool
+		return name == 'print' or name == 'println' or name == 'printf' or name == 'getInput' or name == 'arg' or name == 'readFile' or name == 'writeFile' or name == 'fileExists' or name == 'args' or name == 'toString' or name == 'parseInt' or name == 'parseFloat' or name == 'charCode' or name == 'isAlpha' or name == 'isDigit' or name == 'isWhitespace' or name == 'clearErrors' or name == 'reportError' or name == 'errorCount' or name == 'hasErrors' or name == 'emitErrors' or self.isBuildRuntimeFunction name
+
+	private isBuildRuntimeFunction name;string, bool
+		return name == 'getEnv' or name == 'currentDir' or name == 'normalizePath' or name == 'isAbsolutePath' or name == 'pathJoin' or name == 'pathDirname' or name == 'pathBasename' or name == 'pathStem' or name == 'isDirectory' or name == 'ensureDir' or name == 'removeDirRecursive' or name == 'sourceNewerThanTarget' or name == 'targetMissingOrOlder' or name == 'sourceOutputPath' or name == 'sourceIncludeDirs' or name == 'discoverDrastSources' or name == 'moduleDependencies' or name == 'orderDrastSources' or name == 'findExecutable' or name == 'runProcess' or name == 'runExecutable'
+
+	private isTypeLike name;string, bool
+		if name.length == 0
+			return false
+		c = charCode name{0}
+		return c isgteq charCode 'A' and c islteq charCode 'Z'
+
+	private isUpperName name;string, bool
+		return self.isTypeLike name
+
+	private isVectorType typeText;string, bool
+		return typeText.startsWith 'std::vector<'
+
+	private vectorElementType typeText;string, string
+		prefix = 'std::vector<'
+		if typeText.startsWith prefix and typeText.endsWith s'>'
+			return typeText.substring prefix.length ;to [typeText.length - 1]
+		return ''
+
+	private isOptionalType typeText;string, bool
+		return typeText.startsWith 'std::optional<'
+
+	private optionalInnerType typeText;string, string
+		prefix = 'std::optional<'
+		if typeText.startsWith prefix and typeText.endsWith s'>'
+			return typeText.substring prefix.length ;to [typeText.length - 1]
+		return ''
+
+	private defaultValueForType typeText;string, string
+		if typeText == 'std::string'
+			return 'std::string{}'
+		if typeText == 'bool'
+			return 'false'
+		if typeText == 'int' or typeText == 'unsigned int' or typeText == 'float' or typeText == 'double'
+			return s'0'
+		return '{}'
+
+	private isHeapType typeText;string, bool
+		return typeText.startsWith 'std::shared_ptr<'
+
+	private baseTypeName typeText;string, string
+		out = typeText
+		while out.endsWith s'&' or out.endsWith s'*'
+			out = out.substring 0 ;to [out.length - 1]
+		prefix = 'std::shared_ptr<'
+		if out.startsWith prefix and out.endsWith s'>'
+			return out.substring prefix.length ;to [out.length - 1]
+		return out
+
+	private dereferenceType typeText;string, string
+		if typeText.endsWith s'*'
+			return typeText.substring 0 ;to [typeText.length - 1]
+		return typeText
+
+	private isIntegerCode text;string, bool
+		if text.length == 0
+			return false
+		i usize = 0
+		if text{0} == '-'
+			if text.length == 1
+				return false
+			i = 1
+		while i islt text.length
+			c = charCode text{i}
+			if c islt charCode '0' or c isgt charCode '9'
+				return false
+			i += 1
+		return true
+
+	private binaryOpTextForToken op;Token, string
+		if op.kind == TokenKind.Identifier
+			return self.comparisonWordOp op.text
+		return self.binaryOpText op.kind
+
+	private comparisonWordOp text;string, string
+		if text == 'isgte'
+			return '>='
+		if text == 'islte'
+			return '<='
+		if text == 'isgt'
+			return s'>'
+		if text == 'islt'
+			return s'<'
+		return ''
+
+	private binaryOpText kind;TokenKind, string
+		if kind == TokenKind.Plus
+			return s'+'
+		if kind == TokenKind.Minus
+			return s'-'
+		if kind == TokenKind.Star
+			return s'*'
+		if kind == TokenKind.Slash
+			return s'/'
+		if kind == TokenKind.Percent
+			return s'%'
+		if kind == TokenKind.EqualEqual or kind == TokenKind.Iseq
+			return '=='
+		if kind == TokenKind.Isne
+			return '!='
+		if kind == TokenKind.Islt
+			return s'<'
+		if kind == TokenKind.Isgt
+			return s'>'
+		if kind == TokenKind.Islteq
+			return '<='
+		if kind == TokenKind.Isgteq
+			return '>='
+		if kind == TokenKind.And
+			return '&&'
+		if kind == TokenKind.Or
+			return '||'
+		return ''
+
+	private qualifyName name;string, string
+		return name.replace s'.' '::'
+
+
+impl Codegen
+	private typeName name;string, string
+		if name == 'int' or name == 'Int'
+			return 'int'
+		if name == 'uint' or name == 'UInt'
+			return 'unsigned int'
+		if name == 'float' or name == 'Float'
+			return 'float'
+		if name == 'double' or name == 'Double'
+			return 'double'
+		if name == 'bool' or name == 'Bool'
+			return 'bool'
+		if name == 'char' or name == 'Char'
+			return 'char'
+		if name == 'string' or name == 'String'
+			return 'std::string'
+		if name == 'usize'
+			return 'std::size_t'
+		return self.qualifyName name
+
+impl Codegen
+	private qualifyName name;string, string
+		return name.replace s'.' '::'
+
+	private isNestedEnum name;string, bool
+		return name.contains s'.'
+
+	private templatePrefix params;{string}, string
+		out = 'template <'
+		i = 0
+		for p in params
+			if i isgt 0
+				out += ', '
+			out += 'typename ' + p
+			i += 1
+		out += '>\n'
+		return out
+
+	private templateName name;string params;{string}, string
+		out = name
+		if params.length isgt 0
+			out += '<'
+			i = 0
+			for p in params
+				if i isgt 0
+					out += ', '
+				out += p
+				i += 1
+			out += '>'
+		return out
+
+	private structTypeParams ast;AST name;string, {string}
+		empty {string};
+		for st in ast.structs
+			if st.name == name
+				return st.typeParams
+		return empty
+
+	private isCheapValueType typeText;string, bool
+		if typeText.endsWith s'&' or typeText.endsWith s'*'
+			return true
+		if typeText == 'bool' or typeText == 'char' or typeText == 'int' or typeText == 'unsigned int' or typeText == 'float' or typeText == 'double' or typeText == 'std::size_t' or typeText == 'TokenKind' or typeText == 'CStmt'
+			return true
+		if typeText.startsWith 'std::initializer_list<'
+			return true
+		return false
+
+	private shouldMoveValueType typeText;string, bool
+		return not self.isCheapValueType typeText

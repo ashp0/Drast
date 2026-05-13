@@ -1,0 +1,131 @@
+use std
+
+struct CParam
+	name string
+	typeText string
+	defaultCode string
+	hasDefault bool
+	isVariadic bool
+
+struct CField
+	name string
+	typeText string
+	sourceType string
+	visibility string
+
+struct CFunction
+	name string
+	returnText string
+	params {CParam}
+	body string
+	host string
+	visibility string
+	isMethod bool
+	isOperator bool
+	operatorSymbol string
+	typeParams {string}
+	nodiscardSuppressed bool
+
+struct CStruct
+	name string
+	fields {CField}
+	typeParams {string}
+	isFileprivate bool
+
+struct CVariant
+	name string
+	fields {CField}
+
+struct CEnum
+	name string
+	variants {CVariant}
+	isFileprivate bool
+	isData bool
+
+struct CProtocol
+	name string
+	methods {CFunction}
+
+struct CGlobal
+	name string
+	typeText string
+	initializer string
+	hasInitializer bool
+	isConst bool
+
+struct CExpr
+	code string
+	typeText string
+	kind string
+	text string
+	leftCode string
+	leftType string
+
+enum CStmt
+	NothingStmt;
+
+struct CType
+	text string
+	sourceName string
+	isReference bool
+	isVariadic bool
+	isArray bool
+	pointerDepth int
+	heapShared bool
+
+impl CParam
+	init
+		self.hasDefault = false
+		self.isVariadic = false
+
+impl CFunction
+	init
+		self.isMethod = false
+		self.isOperator = false
+		self.nodiscardSuppressed = false
+
+impl CStruct
+	init
+		self.isFileprivate = false
+
+impl CEnum
+	init
+		self.isFileprivate = false
+		self.isData = false
+
+impl CGlobal
+	init
+		self.hasInitializer = false
+		self.isConst = false
+
+impl CType
+	init
+		self.isReference = false
+		self.isVariadic = false
+		self.isArray = false
+		self.pointerDepth = 0
+
+struct AST
+	usesStd bool
+	noRuntime bool
+	includeLines {string}
+	structs {CStruct}
+	enums {CEnum}
+	protocols {CProtocol}
+	functions {CFunction}
+	methods {CFunction}
+	globals {CGlobal}
+
+impl AST
+	init
+		self.usesStd = false
+		self.noRuntime = false
+
+	deinit
+		self.includeLines.clear
+		self.structs.clear
+		self.enums.clear
+		self.protocols.clear
+		self.functions.clear
+		self.methods.clear
+		self.globals.clear

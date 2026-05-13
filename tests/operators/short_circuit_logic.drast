@@ -1,0 +1,9 @@
+// # TEST: and or short circuit expressions
+// # EXPECT: pass
+
+main, int
+	left = false and [1 / 0 isgt 0]
+	right = true or [1 / 0 isgt 0]
+	if not left and right
+		return 0
+	return 1

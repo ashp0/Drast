@@ -1,0 +1,44 @@
+impl Parser
+	private escapeString text;string, string
+		out string;
+		out.reserve text.length
+		i usize = 0
+		while i islt text.length
+			c = text{i}
+			if c == '\\'
+				out += '\\\\'
+			elif charCode c == 0
+				out += '\\0'
+			elif c == '"'
+				out += '\\"'
+			elif c == '\n'
+				out += '\\n'
+			elif c == '\t'
+				out += '\\t'
+			elif c == '\r'
+				out += '\\r'
+			else
+				out += c
+			i += 1
+		return out
+
+	private escapeChar text;string, string
+		if text.length == 0
+			return '\\0'
+		if charCode text{0} == 0
+			return '\\0'
+		if text == s'\\'
+			return '\\\\'
+		if text == s'\''
+			return '\\\''
+		if text == s'\n'
+			return '\\n'
+		if text == s'\t'
+			return '\\t'
+		if text == s'\r'
+			return '\\r'
+		return text
+
+impl Codegen
+	private literalsAreEmittedInFunctionBodies, bool
+		return true

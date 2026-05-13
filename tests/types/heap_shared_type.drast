@@ -1,0 +1,11 @@
+// # TEST: shared heap allocation type constructor
+// # EXPECT: pass
+
+use std
+
+struct Box
+	value int
+
+main, int
+	box = @[Box 7]
+	return box.value

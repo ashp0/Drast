@@ -1,0 +1,8 @@
+// # TEST: local variable shadows a global name
+// # EXPECT: pass
+
+answer = 1
+
+main, int
+	answer = 2
+	return answer

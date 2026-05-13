@@ -1,0 +1,8 @@
+// # TEST: boolean literals and negation
+// # EXPECT: pass
+
+main, int
+	ok = true and not false
+	if ok
+		return 0
+	return 1

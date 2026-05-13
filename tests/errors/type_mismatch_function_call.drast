@@ -1,0 +1,9 @@
+// # TEST: type mismatch in function call is rejected
+// # EXPECT: error
+// # ERROR_CONTAINS: type mismatch
+
+add left;int right;int, int
+	return left + right
+
+main, int
+	return add s'one' 2

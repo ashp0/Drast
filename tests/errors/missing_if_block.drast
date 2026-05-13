@@ -1,0 +1,7 @@
+// # TEST: if statement requires indented block
+// # EXPECT: error
+// # ERROR_CONTAINS: empty block body
+
+main, int
+	if true
+	return 0

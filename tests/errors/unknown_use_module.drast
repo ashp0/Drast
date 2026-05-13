@@ -1,0 +1,8 @@
+// # TEST: unknown module use is rejected
+// # EXPECT: error
+// # ERROR_CONTAINS: module not found
+
+use definitely_missing_module
+
+main, int
+	return 0

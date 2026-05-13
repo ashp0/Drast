@@ -1,0 +1,9 @@
+// # TEST: existing use case null_char main.drast
+// # EXPECT: pass
+
+use std
+
+main, int
+	code = charCode '\0'
+	println code
+	return 0

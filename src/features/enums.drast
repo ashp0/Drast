@@ -1,0 +1,188 @@
+impl Parser
+	private parseEnum isFileprivate;bool
+		nameTok = self.consume TokenKind.Identifier 'expected enum name'
+		name = nameTok.text
+		while self.currentMatch TokenKind.Dot
+			nestedTok = self.consume TokenKind.Identifier 'expected nested enum name'
+			name += s'.' + nestedTok.text
+		en CEnum;
+		en.name = name
+		en.isFileprivate = isFileprivate
+		self.consumeStatementEnd
+		self.skipNewlines
+		self.consume TokenKind.Indent 'expected enum block'
+		while not self.check TokenKind.Dedent and not self.check TokenKind.End
+			while self.check TokenKind.Identifier
+				variant CVariant;
+				variant.name = self.advance.text
+				if self.check TokenKind.Identifier and [self.peek 1].kind == TokenKind.Semicolon
+					while self.check TokenKind.Identifier and [self.peek 1].kind == TokenKind.Semicolon
+						field CField;
+						field.name = self.advance.text
+						self.consume TokenKind.Semicolon 'expected enum payload field semicolon'
+						t = self.parseType
+						field.typeText = t.text
+						field.sourceType = t.sourceName
+						variant.fields += field
+					en.isData = true
+					variantKey = name + '.' + variant.name
+					self.dataEnumVariants.set variantKey '1'
+				else
+					while self.check TokenKind.Identifier
+						variant.name += s'_' + self.advance.text
+				en.variants += variant
+				self.enumVariants.set variant.name name
+				if not self.currentMatch TokenKind.Semicolon
+					break
+			self.consumeStatementEnd
+			self.skipNewlines
+		self.consume TokenKind.Dedent 'expected enum end'
+		self.ast.enums += en
+
+	private predeclareFunctions
+		i usize = 0
+		depth = 0
+		lineStart = true
+		while i islt self.tokens.length
+			k = self.tokens{i}.kind
+			if k == TokenKind.Newline
+				lineStart = true
+			elif k == TokenKind.Indent
+				depth += 1
+				lineStart = true
+			elif k == TokenKind.Dedent
+				depth -= 1
+				lineStart = true
+			elif depth == 0 and lineStart and k == TokenKind.Identifier
+				name = self.tokens{i}.text
+				if self.looksLikeTopLevelFunction i
+					self.functionReturns.set name 'auto'
+				lineStart = false
+			elif k isne TokenKind.End
+				lineStart = false
+			i += 1
+
+	private looksLikeTopLevelFunction start;usize, bool
+		i = start + 1
+		while i islt self.tokens.length
+			k = self.tokens{i}.kind
+			if k == TokenKind.Newline or k == TokenKind.End or k == TokenKind.Indent or k == TokenKind.Dedent
+				return true
+			if k == TokenKind.Equal or k == TokenKind.Const
+				return false
+			i += 1
+		return true
+
+	private predeclareEnums
+		i usize = 0
+		depth = 0
+		while i islt self.tokens.length
+			k = self.tokens{i}.kind
+			if k == TokenKind.Indent
+				depth += 1
+			elif k == TokenKind.Dedent
+				depth -= 1
+			elif depth == 0 and k == TokenKind.Enum
+				i += 1
+				enumName string;
+				if i islt self.tokens.length and self.tokens{i}.kind == TokenKind.Identifier
+					enumName = self.tokens{i}.text
+					i += 1
+					while i + 1 islt self.tokens.length and self.tokens{i}.kind == TokenKind.Dot and self.tokens{i + 1}.kind == TokenKind.Identifier
+						enumName += s'.' + self.tokens{i + 1}.text
+						i += 2
+					while i islt self.tokens.length and self.tokens{i}.kind isne TokenKind.Indent
+						i += 1
+					if i islt self.tokens.length and self.tokens{i}.kind == TokenKind.Indent
+						i += 1
+						variant string;
+						while i islt self.tokens.length and self.tokens{i}.kind isne TokenKind.Dedent
+							if self.tokens{i}.kind == TokenKind.Identifier
+								if variant.length == 0
+									variant = self.tokens{i}.text
+								else
+									variant += s'_' + self.tokens{i}.text
+							elif self.tokens{i}.kind == TokenKind.Semicolon or self.tokens{i}.kind == TokenKind.Newline
+								if variant.length isgt 0
+									self.enumVariants.set variant enumName
+									variant = ''
+							i += 1
+						if variant.length isgt 0
+							self.enumVariants.set variant enumName
+			i += 1
+
+
+impl Codegen
+	private emitsEnums ast;AST, bool
+		return ast.enums.length isgt 0
+
+impl Codegen
+	private emitEnum en;CEnum, string
+		if en.isData
+			return self.emitDataEnum en
+		out = 'enum class ' + self.qualifyName en.name + ' {\n'
+		out.reserve 512
+		for v in en.variants
+			out += '    ' + v.name + ',\n'
+		out += '};\n'
+		return out
+
+	private emitDataEnum en;CEnum, string
+		name = self.qualifyName en.name
+		out string;
+		out.reserve 2048
+		for v in en.variants
+			if v.fields.length isgt 0
+				out += 'struct ' + name + '_' + v.name + ' {\n'
+				for f in v.fields
+					if f.sourceType == en.name
+						out += '    std::unique_ptr<' + name + '> ' + f.name + ';\n'
+					else
+						out += '    ' + f.typeText + ' ' + f.name + ';\n'
+				out += '};\n'
+		out += 'struct ' + name + ' {\n'
+		out += '    enum class Tag {\n'
+		for v in en.variants
+			out += '        ' + v.name + ',\n'
+		out += '    };\n'
+		out += '    Tag tag;\n'
+		out += '    std::variant<'
+		i = 0
+		for v in en.variants
+			if i isgt 0
+				out += ', '
+			if v.fields.length == 0
+				out += 'std::monostate'
+			else
+				out += name + '_' + v.name
+			i += 1
+		out += '> data;\n'
+		for v in en.variants
+			out += '    static ' + name + ' ' + v.name + '('
+			i = 0
+			for f in v.fields
+				if i isgt 0
+					out += ', '
+				out += f.typeText + ' ' + f.name
+				i += 1
+			out += ') {\n'
+			out += '        ' + name + ' _out;\n'
+			out += '        _out.tag = Tag::' + v.name + ';\n'
+			if v.fields.length == 0
+				out += '        _out.data = std::monostate{};\n'
+			else
+				out += '        _out.data = ' + name + '_' + v.name + '{'
+				i = 0
+				for f in v.fields
+					if i isgt 0
+						out += ', '
+					if f.sourceType == en.name
+						out += 'std::make_unique<' + name + '>(std::move(' + f.name + '))'
+					else
+						out += 'std::move(' + f.name + ')'
+					i += 1
+				out += '};\n'
+			out += '        return _out;\n'
+			out += '    }\n'
+		out += '};\n'
+		return out

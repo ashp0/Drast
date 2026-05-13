@@ -1,0 +1,6 @@
+// # TEST: addition subtraction multiplication division
+// # EXPECT: pass
+
+main, int
+	value = 10 + 5 - 3 * 2 / 1
+	return value

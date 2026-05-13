@@ -1,0 +1,9 @@
+// # TEST: nested for loops
+// # EXPECT: pass
+
+main, int
+	total = 0
+	for i in 0 until 3
+		for j in 0 until 2
+			total += i + j
+	return total

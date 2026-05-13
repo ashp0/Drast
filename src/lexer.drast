@@ -177,7 +177,7 @@ impl Lexer
 				return self.makeToken TokenKind.EqualEqual '==' start
 			return self.makeToken TokenKind.Equal s'=' start
 
-		// TODO: Try not to rely on the runtime for error reporting.
+		// Lexer diagnostics use the shared runtime store so callers can emit all errors together.
 		reportError self.fileName self.line self.column 'unexpected character'
 		return self.makeToken TokenKind.End '' start
 
@@ -345,6 +345,8 @@ impl Lexer
 			return TokenKind.Operator
 		if text == 'maybe'
 			return TokenKind.Maybe
+		if text == 'nothing'
+			return TokenKind.Nothing
 		if text == 'true'
 			return TokenKind.True
 		if text == 'false'
@@ -415,7 +417,7 @@ impl Lexer
 		while true
 			c = self.peekChar 0
 			if c == 0 or c == charCode '\n'
-				// TODO: Try not to rely on the runtime for error reporting.
+				// Lexer diagnostics use the shared runtime store so callers can emit all errors together.
 				reportError self.fileName self.line self.column 'unterminated string literal'
 				return self.makeToken TokenKind.StringLiteral text start
 			if c == charCode '\\'
@@ -432,7 +434,7 @@ impl Lexer
 				elif e == charCode '"'
 					text += '"'
 				elif e == charCode '0'
-					text += '\0'
+					text += Char[0]
 				elif e == charCode 'r'
 					text += '\r'
 				else

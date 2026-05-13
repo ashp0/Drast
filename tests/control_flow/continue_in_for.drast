@@ -1,0 +1,10 @@
+// # TEST: continue inside for loop
+// # EXPECT: pass
+
+main, int
+	total = 0
+	for i in 0 to 4
+		if i iseq 2
+			continue
+		total += i
+	return total

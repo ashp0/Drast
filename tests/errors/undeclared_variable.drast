@@ -1,0 +1,6 @@
+// # TEST: undeclared variable is rejected
+// # EXPECT: error
+// # ERROR_CONTAINS: undeclared
+
+main, int
+	return missingValue

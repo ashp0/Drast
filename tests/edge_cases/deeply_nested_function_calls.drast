@@ -1,0 +1,8 @@
+// # TEST: deeply nested function calls with grouping
+// # EXPECT: pass
+
+inc value;int, int
+	return value + 1
+
+main, int
+	return inc (inc (inc (inc (inc (inc (inc (inc 0)))))))

@@ -1,0 +1,6 @@
+// # TEST: newline and tab escapes
+// # EXPECT: pass
+
+main, int
+	text = s'line\n\tindent'
+	return text.length

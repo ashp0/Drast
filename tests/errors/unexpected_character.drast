@@ -1,0 +1,7 @@
+// # TEST: unexpected character is rejected
+// # EXPECT: error
+// # ERROR_CONTAINS: unexpected character
+
+main, int
+	value = 1 $ 2
+	return value

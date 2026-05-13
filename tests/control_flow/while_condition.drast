@@ -1,0 +1,8 @@
+// # TEST: while with condition
+// # EXPECT: pass
+
+main, int
+	i = 0
+	while i islt 3
+		i += 1
+	return i

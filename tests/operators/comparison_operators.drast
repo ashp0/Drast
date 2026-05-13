@@ -1,0 +1,8 @@
+// # TEST: comparison word operators
+// # EXPECT: pass
+
+main, int
+	ok = 1 islt 2 and 2 isgt 1 and 2 islteq 2 and 3 isgteq 3 and 4 isne 5 and 6 iseq 6
+	if ok
+		return 0
+	return 1

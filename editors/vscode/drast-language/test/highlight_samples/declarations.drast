@@ -1,0 +1,17 @@
+use std
+
+answer = 42
+limit const = 100
+name string = s'Drast'
+result int;
+
+increment value;int, int discard
+	return value + 1
+
+createPoint x;int;0 y;int;0, tuple Int Int
+	return tuple x y
+
+parse text;string, maybe int
+	if text.length iseq 0
+		return nil
+	return text.asInt

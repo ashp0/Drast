@@ -1,0 +1,8 @@
+// # TEST: discard return marker is accepted
+// # EXPECT: pass
+
+compute, int discard
+	return 1
+
+main, int
+	return compute

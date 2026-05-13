@@ -1,0 +1,8 @@
+// # TEST: call function before its definition
+// # EXPECT: pass
+
+main, int
+	return later
+
+later, int
+	return 0

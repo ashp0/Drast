@@ -1,0 +1,6 @@
+// # TEST: string concatenation with plus
+// # EXPECT: pass
+
+main, int
+	text = s'hello ' + s'world'
+	return text.length

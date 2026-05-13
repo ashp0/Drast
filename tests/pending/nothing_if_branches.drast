@@ -1,0 +1,9 @@
+// # TEST: pending nothing in if and else branches
+// # EXPECT: pass
+
+main, int
+	if true
+		nothing
+	else
+		nothing
+	return 0

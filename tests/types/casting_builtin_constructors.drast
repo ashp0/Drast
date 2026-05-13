@@ -1,0 +1,10 @@
+// # TEST: builtin constructor casts
+// # EXPECT: pass
+
+use std
+
+main, int
+	floatValue = Float[s'3.5']
+	integerValue = Int[3.0]
+	stringValue = String[s'ok']
+	return integerValue

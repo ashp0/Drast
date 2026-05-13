@@ -1,0 +1,6 @@
+// # TEST: null and carriage return escapes
+// # EXPECT: pass
+
+main, int
+	text = s'a\0\rb'
+	return text.length

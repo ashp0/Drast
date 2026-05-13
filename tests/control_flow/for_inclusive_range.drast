@@ -1,0 +1,8 @@
+// # TEST: inclusive range for loop
+// # EXPECT: pass
+
+main, int
+	total = 0
+	for i in 1 to 3
+		total += i
+	return total

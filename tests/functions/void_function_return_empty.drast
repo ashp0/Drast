@@ -1,0 +1,10 @@
+// # TEST: function returning void with bare return
+// # EXPECT: pass
+
+stopEarly flag;bool
+	if flag
+		return
+
+main, int
+	stopEarly true
+	return 0

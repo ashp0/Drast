@@ -1,0 +1,6 @@
+// # TEST: negative number literals through unary minus
+// # EXPECT: pass
+
+main, int
+	minus = -123
+	return minus + 123

@@ -1,0 +1,11 @@
+// # TEST: existing use case pointers main.drast
+// # EXPECT: pass
+
+use std
+
+main, int
+	value = 25
+	pointer = ~value
+	deref = `pointer
+	println deref
+	return 0

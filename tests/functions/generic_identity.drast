@@ -1,0 +1,8 @@
+// # TEST: generic identity function
+// # EXPECT: pass
+
+identity`[T] value;T, T
+	return value
+
+main, int
+	return identity`[int] 7

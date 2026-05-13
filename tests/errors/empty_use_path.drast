@@ -1,0 +1,8 @@
+// # TEST: empty use path is rejected
+// # EXPECT: error
+// # ERROR_CONTAINS: empty use path
+
+use
+
+main, int
+	return 0

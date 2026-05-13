@@ -1,0 +1,63 @@
+{
+  "name": "drast-language",
+  "displayName": "Drast Language Support",
+  "description": "Syntax highlighting, completions, and language server for the Drast programming language.",
+  "version": "0.1.0",
+  "publisher": "drast",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onLanguage:drast"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "drast",
+        "aliases": [
+          "Drast",
+          "drast"
+        ],
+        "extensions": [
+          ".drast"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./icons/drast-file-icon.png",
+          "dark": "./icons/drast-file-icon.png"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "drast",
+        "scopeName": "source.drast",
+        "path": "./syntaxes/drast.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "drast.restartServer",
+        "title": "Drast: Restart Language Server"
+      }
+    ]
+  },
+  "main": "./out/extension.js",
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1",
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-textdocument": "^1.0.12"
+  },
+  "devDependencies": {
+    "@types/node": "^25.7.0",
+    "@types/vscode": "^1.80.0",
+    "typescript": "^6.0.3"
+  }
+}

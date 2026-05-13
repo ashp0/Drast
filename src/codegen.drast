@@ -1,0 +1,174 @@
+use std
+use ast
+
+struct Codegen
+	private stateless bool
+
+impl Codegen
+	init
+		self.stateless = true
+
+	emit ast;AST, string
+		if not self.stateless
+			self.stateless = true
+		return self.emitProgram ast
+
+	emitUnit unit;AST all;AST, string
+		body string;
+		body.reserve 16384
+		for st in all.structs
+			body += self.emitForwardStruct st
+		for en in all.enums
+			if en.isData
+				body += 'struct ' + self.qualifyName en.name + ';\n'
+		if all.structs.length isgt 0 or all.enums.length isgt 0
+			body += '\n'
+		for proto in all.protocols
+			body += self.emitProtocol proto
+			body += '\n'
+		for en in all.enums
+			if not self.isNestedEnum en.name
+				body += self.emitEnum en
+				body += '\n'
+		for st in all.structs
+			body += self.emitStruct st all
+			body += '\n'
+		for g in all.globals
+			if self.unitHasGlobal unit g.name
+				if g.isConst
+					body += 'extern const '
+				body += g.typeText + ' ' + g.name
+				if g.hasInitializer
+					body += ' = ' + g.initializer
+				body += ';\n'
+			else
+				body += 'extern '
+				if g.isConst
+					body += 'const '
+				body += g.typeText + ' ' + g.name + ';\n'
+		if all.globals.length isgt 0
+			body += '\n'
+		for m in unit.methods
+			if m.name isne '__protocol'
+				body += self.emitFunctionDefinition m true all
+				body += '\n'
+		for fn in all.functions
+			if fn.name isne 'main'
+				body += self.emitForwardFunction fn
+		if all.functions.length isgt 0
+			body += '\n'
+		for fn in unit.functions
+			if fn.name isne 'main'
+				body += self.emitFunctionDefinition fn false all
+				body += '\n'
+		for fn in unit.functions
+			if fn.name == 'main'
+				body += self.emitFunctionDefinition fn false all
+				body += '\n'
+		out string;
+		out.reserve 32768
+		out += self.emitIncludeBlock all body
+		out += body
+		return out
+
+	private emitProgram ast;AST, string
+		body string;
+		body.reserve 16384
+		for st in ast.structs
+			body += self.emitForwardStruct st
+		for en in ast.enums
+			if en.isData
+				body += 'struct ' + self.qualifyName en.name + ';\n'
+		if ast.structs.length isgt 0 or ast.enums.length isgt 0
+			body += '\n'
+		for proto in ast.protocols
+			body += self.emitProtocol proto
+			body += '\n'
+		for en in ast.enums
+			if not self.isNestedEnum en.name
+				body += self.emitEnum en
+				body += '\n'
+		for st in ast.structs
+			body += self.emitStruct st ast
+			body += '\n'
+		for g in ast.globals
+			if g.isConst
+				body += 'const '
+			body += g.typeText + ' ' + g.name
+			if g.hasInitializer
+				body += ' = ' + g.initializer
+			body += ';\n'
+		if ast.globals.length isgt 0
+			body += '\n'
+		for m in ast.methods
+			if m.name isne '__protocol'
+				body += self.emitFunctionDefinition m true ast
+				body += '\n'
+		for fn in ast.functions
+			if fn.name isne 'main'
+				body += self.emitForwardFunction fn
+		if ast.functions.length isgt 0
+			body += '\n'
+		for fn in ast.functions
+			if fn.name isne 'main'
+				body += self.emitFunctionDefinition fn false ast
+				body += '\n'
+		for fn in ast.functions
+			if fn.name == 'main'
+				body += self.emitFunctionDefinition fn false ast
+				body += '\n'
+		out string;
+		out.reserve 32768
+		out += self.emitIncludeBlock ast body
+		out += body
+		return out
+
+	private unitHasGlobal unit;AST name;string, bool
+		for g in unit.globals
+			if g.name == name
+				return true
+		return false
+
+	private emitIncludeBlock ast;AST body;string, string
+		out string;
+		out.reserve 512
+		if ast.usesStd
+			if ast.noRuntime
+				out += self.emitStandardIncludes body
+			else
+				out += '#include "runtime/drast_runtime.hpp"\n'
+		for line in ast.includeLines
+			out += line
+		if out.length isgt 0
+			out += '\n'
+		return out
+
+	private emitStandardIncludes body;string, string
+		out string;
+		if body.contains 'std::cout' or body.contains 'std::cin' or body.contains 'std::cerr'
+			out += '#include <iostream>\n'
+		if body.contains 'std::size_t'
+			out += '#include <cstddef>\n'
+		if body.contains 'std::exception'
+			out += '#include <exception>\n'
+		if body.contains 'std::initializer_list<'
+			out += '#include <initializer_list>\n'
+		if body.contains 'std::list<'
+			out += '#include <list>\n'
+		if body.contains 'std::make_shared<' or body.contains 'std::make_unique<' or body.contains 'std::shared_ptr<' or body.contains 'std::unique_ptr<'
+			out += '#include <memory>\n'
+		if body.contains 'std::optional<' or body.contains 'std::nullopt'
+			out += '#include <optional>\n'
+		if body.contains 'std::string'
+			out += '#include <string>\n'
+		if body.contains 'std::tuple<' or body.contains 'std::make_tuple'
+			out += '#include <tuple>\n'
+		if body.contains 'std::unordered_map<'
+			out += '#include <unordered_map>\n'
+		if body.contains 'std::move('
+			out += '#include <utility>\n'
+		if body.contains 'std::variant<' or body.contains 'std::monostate'
+			out += '#include <variant>\n'
+		if body.contains 'std::vector<'
+			out += '#include <vector>\n'
+		return out

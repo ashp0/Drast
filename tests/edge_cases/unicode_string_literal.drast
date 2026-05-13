@@ -1,0 +1,6 @@
+// # TEST: unicode text inside string literal
+// # EXPECT: pass
+
+main, int
+	text = s'café λ'
+	return text.length

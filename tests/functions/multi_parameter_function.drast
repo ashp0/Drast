@@ -1,0 +1,8 @@
+// # TEST: multi parameter function
+// # EXPECT: pass
+
+add left;int right;int, int
+	return left + right
+
+main, int
+	return add 20 22

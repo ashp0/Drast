@@ -1,0 +1,6 @@
+// # TEST: empty string literal
+// # EXPECT: pass
+
+main, int
+	text = s''
+	return text.length

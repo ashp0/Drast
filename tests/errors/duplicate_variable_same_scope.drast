@@ -1,0 +1,8 @@
+// # TEST: duplicate variable declaration in same scope is rejected
+// # EXPECT: error
+// # ERROR_CONTAINS: duplicate
+
+main, int
+	value int = 1
+	value int = 2
+	return value

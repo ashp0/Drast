@@ -1,0 +1,6 @@
+// # TEST: minimum signed 32 bit integer literal expression
+// # EXPECT: pass
+
+main, int
+	minValue = -2147483648
+	return 0

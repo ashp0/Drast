@@ -1,0 +1,11 @@
+// # TEST: maybe return type accepts nil
+// # EXPECT: pass
+
+use std
+
+findNumber, maybe int
+	return nil
+
+main, int
+	maybeValue = findNumber
+	return 0

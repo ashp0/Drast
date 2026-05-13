@@ -4,20 +4,26 @@
 #include <cctype>
 #include <cstdlib>
 #include <exception>
+#include <filesystem>
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include <list>
 #include <memory>
 #include <optional>
 #include <random>
+#include <set>
 #include <sstream>
 #include <string>
+#include <sys/wait.h>
 #include <tuple>
 #include <type_traits>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <variant>
 #include <vector>
+#include <unistd.h>
 
 namespace drast {
 
@@ -335,6 +341,338 @@ inline bool writeFile(const std::string &path, const std::string &contents) {
     return static_cast<bool>(out);
 }
 
+inline std::string getEnv(const std::string &name) {
+    const char *value = std::getenv(name.c_str());
+    return value ? std::string(value) : std::string();
+}
+
+inline std::string normalizePath(const std::string &path) {
+    if (path.empty()) return ".";
+    return std::filesystem::path(path).lexically_normal().string();
+}
+
+inline std::string currentDir() {
+    std::error_code ec;
+    auto cwd = std::filesystem::current_path(ec);
+    if (ec) return ".";
+    return cwd.lexically_normal().string();
+}
+
+inline bool isAbsolutePath(const std::string &path) {
+    return std::filesystem::path(path).is_absolute();
+}
+
+inline std::string pathJoin(const std::string &left, const std::string &right) {
+    if (left.empty()) return normalizePath(right);
+    if (right.empty()) return normalizePath(left);
+    return (std::filesystem::path(left) / std::filesystem::path(right))
+        .lexically_normal()
+        .string();
+}
+
+inline std::string pathDirname(const std::string &path) {
+    auto parent = std::filesystem::path(path).parent_path();
+    if (parent.empty()) return ".";
+    return parent.lexically_normal().string();
+}
+
+inline std::string pathBasename(const std::string &path) {
+    return std::filesystem::path(path).filename().string();
+}
+
+inline std::string pathStem(const std::string &path) {
+    return std::filesystem::path(path).stem().string();
+}
+
+inline bool isDirectory(const std::string &path) {
+    std::error_code ec;
+    return std::filesystem::is_directory(path, ec);
+}
+
+inline bool ensureDir(const std::string &path) {
+    if (path.empty()) return false;
+    std::error_code ec;
+    if (std::filesystem::exists(path, ec)) return std::filesystem::is_directory(path, ec);
+    return std::filesystem::create_directories(path, ec) || std::filesystem::is_directory(path, ec);
+}
+
+inline bool removeDirRecursive(const std::string &path) {
+    std::error_code ec;
+    if (!std::filesystem::exists(path, ec)) return true;
+    std::filesystem::remove_all(path, ec);
+    return !ec;
+}
+
+inline bool sourceNewerThanTarget(const std::string &source,
+                                  const std::string &target) {
+    std::error_code ec;
+    if (!std::filesystem::exists(target, ec)) return true;
+    if (!std::filesystem::exists(source, ec)) return false;
+    auto source_time = std::filesystem::last_write_time(source, ec);
+    if (ec) return true;
+    auto target_time = std::filesystem::last_write_time(target, ec);
+    if (ec) return true;
+    return source_time > target_time;
+}
+
+inline bool targetMissingOrOlder(const std::string &source,
+                                 const std::string &target) {
+    return sourceNewerThanTarget(source, target);
+}
+
+inline std::string sanitizePathFragment(const std::string &text) {
+    std::string out;
+    for (char ch : text) {
+        if (std::isalnum(static_cast<unsigned char>(ch)) || ch == '_' || ch == '-' ||
+            ch == '.') {
+            out += ch;
+        } else {
+            out += '_';
+        }
+    }
+    if (out.empty()) return "external";
+    return out;
+}
+
+inline std::string sourceOutputPath(const std::string &root,
+                                    const std::string &source,
+                                    const std::string &out_dir,
+                                    const std::string &extension) {
+    std::error_code ec;
+    auto root_abs = std::filesystem::absolute(root, ec).lexically_normal();
+    if (ec) root_abs = std::filesystem::path(root).lexically_normal();
+    auto source_abs = std::filesystem::absolute(source, ec).lexically_normal();
+    if (ec) source_abs = std::filesystem::path(source).lexically_normal();
+    auto rel = std::filesystem::relative(source_abs, root_abs, ec);
+    bool external = ec || rel.empty() || rel.is_absolute();
+    if (!external) {
+        auto rel_text = rel.generic_string();
+        external = rel_text == ".." || rel_text.rfind("../", 0) == 0;
+    }
+    if (external) {
+        rel = std::filesystem::path("_external") / sanitizePathFragment(source_abs.string());
+    }
+    rel.replace_extension(extension);
+    return (std::filesystem::path(out_dir) / rel).lexically_normal().string();
+}
+
+inline std::vector<std::string> sourceIncludeDirs(const std::vector<std::string> &sources) {
+    std::set<std::string> dirs;
+    for (const auto &source : sources) dirs.insert(pathDirname(source));
+    return std::vector<std::string>(dirs.begin(), dirs.end());
+}
+
+inline bool isHeaderPath(const std::string &path) {
+    auto ext = std::filesystem::path(path).extension().string();
+    return ext == ".h" || ext == ".hpp" || ext == ".hh" || ext == ".hxx";
+}
+
+inline std::vector<std::string> discoverDrastSources(const std::string &root) {
+    std::vector<std::string> out;
+    std::error_code ec;
+    if (!std::filesystem::exists(root, ec)) return out;
+    std::filesystem::recursive_directory_iterator it(
+        root, std::filesystem::directory_options::skip_permission_denied, ec);
+    std::filesystem::recursive_directory_iterator end;
+    while (!ec && it != end) {
+        const auto &entry = *it;
+        auto name = entry.path().filename().string();
+        if (entry.is_directory(ec) && (name == ".drast" || name == ".git")) {
+            it.disable_recursion_pending();
+        } else if (entry.is_regular_file(ec) && entry.path().extension() == ".drast") {
+            out.push_back(entry.path().lexically_normal().string());
+        }
+        it.increment(ec);
+    }
+    std::sort(out.begin(), out.end());
+    out.erase(std::unique(out.begin(), out.end()), out.end());
+    return out;
+}
+
+inline std::string trim(const std::string &text);
+
+inline std::string stripLineComment(const std::string &line) {
+    bool quoted = false;
+    char quote = '\0';
+    bool escaped = false;
+    for (std::size_t i = 0; i + 1 < line.size(); ++i) {
+        char ch = line[i];
+        if (escaped) {
+            escaped = false;
+            continue;
+        }
+        if (quoted && ch == '\\') {
+            escaped = true;
+            continue;
+        }
+        if (quoted) {
+            if (ch == quote) quoted = false;
+            continue;
+        }
+        if (ch == '\'' || ch == '"') {
+            quoted = true;
+            quote = ch;
+            continue;
+        }
+        if (ch == '/' && line[i + 1] == '/') return line.substr(0, i);
+    }
+    return line;
+}
+
+inline std::optional<std::string> parseUsePath(const std::string &line,
+                                               bool *header_hint = nullptr) {
+    if (header_hint) *header_hint = false;
+    std::string text = trim(stripLineComment(line));
+    if (text.rfind("use", 0) != 0) return std::nullopt;
+    if (text.size() > 3 && !std::isspace(static_cast<unsigned char>(text[3]))) {
+        return std::nullopt;
+    }
+    text = trim(text.substr(3));
+    if (text.rfind("file", 0) == 0 &&
+        (text.size() == 4 || std::isspace(static_cast<unsigned char>(text[4])))) {
+        if (header_hint) *header_hint = true;
+        text = trim(text.substr(4));
+    }
+    if (text.empty()) return std::nullopt;
+    if (text.front() == '\'' || text.front() == '"') {
+        char quote = text.front();
+        std::string out;
+        bool escaped = false;
+        for (std::size_t i = 1; i < text.size(); ++i) {
+            char ch = text[i];
+            if (escaped) {
+                out += ch;
+                escaped = false;
+                continue;
+            }
+            if (ch == '\\') {
+                escaped = true;
+                continue;
+            }
+            if (ch == quote) return out;
+            out += ch;
+        }
+        return out;
+    }
+    std::string out;
+    for (char ch : text) {
+        if (std::isspace(static_cast<unsigned char>(ch))) break;
+        out += ch;
+    }
+    if (out.empty()) return std::nullopt;
+    return out;
+}
+
+inline std::string resolveDrastModule(const std::string &from_file,
+                                      const std::string &raw_path) {
+    std::filesystem::path candidate;
+    if (std::filesystem::path(raw_path).is_absolute()) {
+        candidate = raw_path;
+    } else {
+        candidate = std::filesystem::path(pathDirname(from_file)) / raw_path;
+    }
+    candidate = candidate.lexically_normal();
+    std::error_code ec;
+    if (candidate.extension() != ".drast") {
+        auto with_ext = candidate;
+        with_ext += ".drast";
+        if (std::filesystem::exists(with_ext, ec)) {
+            return with_ext.lexically_normal().string();
+        }
+    }
+    if (std::filesystem::exists(candidate, ec)) return candidate.string();
+    return "";
+}
+
+inline std::vector<std::string> moduleDependencies(const std::string &source) {
+    std::vector<std::string> deps;
+    std::istringstream in(readFile(source));
+    std::string line;
+    while (std::getline(in, line)) {
+        bool header_hint = false;
+        auto raw = parseUsePath(line, &header_hint);
+        if (!raw) continue;
+        if (*raw == "std" || *raw == "no_runtime") continue;
+        if (header_hint || isHeaderPath(*raw)) continue;
+        auto resolved = resolveDrastModule(source, *raw);
+        if (!resolved.empty()) deps.push_back(normalizePath(resolved));
+    }
+    std::sort(deps.begin(), deps.end());
+    deps.erase(std::unique(deps.begin(), deps.end()), deps.end());
+    return deps;
+}
+
+inline std::vector<std::string> orderDrastSources(const std::string &entry,
+                                                  const std::string &root,
+                                                  bool auto_discover) {
+    std::set<std::string> candidates;
+    std::string normalized_entry = normalizePath(entry);
+    candidates.insert(normalized_entry);
+    if (auto_discover) {
+        for (const auto &source : discoverDrastSources(root)) {
+            candidates.insert(normalizePath(source));
+        }
+    }
+
+    std::unordered_map<std::string, int> state;
+    std::vector<std::string> ordered;
+    std::function<void(const std::string &)> visit = [&](const std::string &source) {
+        auto normalized = normalizePath(source);
+        int seen = state[normalized];
+        if (seen == 2) return;
+        if (seen == 1) {
+            reportError(normalized, 1, 1, "circular import: " + normalized);
+            return;
+        }
+        if (!fileExists(normalized)) {
+            reportError(normalized, 1, 1, "module not found: " + normalized);
+            return;
+        }
+        state[normalized] = 1;
+        std::istringstream in(readFile(normalized));
+        std::string line;
+        while (std::getline(in, line)) {
+            bool header_hint = false;
+            auto raw = parseUsePath(line, &header_hint);
+            if (!raw) continue;
+            if (*raw == "std" || *raw == "no_runtime") continue;
+            if (header_hint || isHeaderPath(*raw)) continue;
+            auto dep = resolveDrastModule(normalized, *raw);
+            if (dep.empty()) {
+                reportError(normalized, 1, 1, "module not found: " + *raw);
+                continue;
+            }
+            dep = normalizePath(dep);
+            candidates.insert(dep);
+            visit(dep);
+        }
+        state[normalized] = 2;
+        ordered.push_back(normalized);
+    };
+
+    visit(normalized_entry);
+    std::vector<std::string> sorted(candidates.begin(), candidates.end());
+    for (const auto &source : sorted) visit(source);
+    ordered.erase(std::unique(ordered.begin(), ordered.end()), ordered.end());
+    return ordered;
+}
+
+inline std::string findExecutable(const std::string &name) {
+    if (name.empty()) return "";
+    if (name.find('/') != std::string::npos) {
+        return access(name.c_str(), X_OK) == 0 ? name : std::string();
+    }
+    std::string path = getEnv("PATH");
+    std::stringstream in(path);
+    std::string dir;
+    while (std::getline(in, dir, ':')) {
+        if (dir.empty()) dir = ".";
+        auto candidate = (std::filesystem::path(dir) / name).string();
+        if (access(candidate.c_str(), X_OK) == 0) return candidate;
+    }
+    return "";
+}
+
 inline std::string shell_quote(const std::string &text) {
     std::string out = "'";
     for (char ch : text) {
@@ -343,6 +681,26 @@ inline std::string shell_quote(const std::string &text) {
     }
     out += "'";
     return out;
+}
+
+inline int runProcess(const std::string &program,
+                      const std::vector<std::string> &arguments,
+                      bool verbose = false) {
+    std::string command = shell_quote(program);
+    for (const auto &argument : arguments) {
+        command += " ";
+        command += shell_quote(argument);
+    }
+    if (verbose) std::cerr << command << '\n';
+    int status = std::system(command.c_str());
+    if (status == -1) return 1;
+    if (WIFEXITED(status)) return WEXITSTATUS(status);
+    return status == 0 ? 0 : 1;
+}
+
+inline int runExecutable(const std::string &program, bool verbose = false) {
+    std::vector<std::string> arguments;
+    return runProcess(program, arguments, verbose);
 }
 
 // Note: THIS SHOULD BE REMOVED.
@@ -397,6 +755,97 @@ std::optional<T> make_optional_cast(const T &value) {
 }
 
 } // namespace drast
+
+inline std::string currentDir = drast::currentDir();
+
+inline std::string getEnv(const std::string &name) {
+    return drast::getEnv(name);
+}
+
+inline std::string normalizePath(const std::string &path) {
+    return drast::normalizePath(path);
+}
+
+inline bool isAbsolutePath(const std::string &path) {
+    return drast::isAbsolutePath(path);
+}
+
+inline std::string pathJoin(const std::string &left, const std::string &right) {
+    return drast::pathJoin(left, right);
+}
+
+inline std::string pathDirname(const std::string &path) {
+    return drast::pathDirname(path);
+}
+
+inline std::string pathBasename(const std::string &path) {
+    return drast::pathBasename(path);
+}
+
+inline std::string pathStem(const std::string &path) {
+    return drast::pathStem(path);
+}
+
+inline bool isDirectory(const std::string &path) {
+    return drast::isDirectory(path);
+}
+
+inline bool ensureDir(const std::string &path) {
+    return drast::ensureDir(path);
+}
+
+inline bool removeDirRecursive(const std::string &path) {
+    return drast::removeDirRecursive(path);
+}
+
+inline bool sourceNewerThanTarget(const std::string &source,
+                                  const std::string &target) {
+    return drast::sourceNewerThanTarget(source, target);
+}
+
+inline bool targetMissingOrOlder(const std::string &source,
+                                 const std::string &target) {
+    return drast::targetMissingOrOlder(source, target);
+}
+
+inline std::string sourceOutputPath(const std::string &root,
+                                    const std::string &source,
+                                    const std::string &out_dir,
+                                    const std::string &extension) {
+    return drast::sourceOutputPath(root, source, out_dir, extension);
+}
+
+inline std::vector<std::string> sourceIncludeDirs(const std::vector<std::string> &sources) {
+    return drast::sourceIncludeDirs(sources);
+}
+
+inline std::vector<std::string> discoverDrastSources(const std::string &root) {
+    return drast::discoverDrastSources(root);
+}
+
+inline std::vector<std::string> moduleDependencies(const std::string &source) {
+    return drast::moduleDependencies(source);
+}
+
+inline std::vector<std::string> orderDrastSources(const std::string &entry,
+                                                  const std::string &root,
+                                                  bool auto_discover) {
+    return drast::orderDrastSources(entry, root, auto_discover);
+}
+
+inline std::string findExecutable(const std::string &name) {
+    return drast::findExecutable(name);
+}
+
+inline int runProcess(const std::string &program,
+                      const std::vector<std::string> &arguments,
+                      bool verbose = false) {
+    return drast::runProcess(program, arguments, verbose);
+}
+
+inline int runExecutable(const std::string &program, bool verbose = false) {
+    return drast::runExecutable(program, verbose);
+}
 
 inline std::string isn(const std::string &suffix) {
     return "isn" + suffix;

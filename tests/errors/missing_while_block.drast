@@ -1,0 +1,7 @@
+// # TEST: while statement requires indented block
+// # EXPECT: error
+// # ERROR_CONTAINS: empty block body
+
+main, int
+	while true
+	return 0

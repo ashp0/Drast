@@ -1,0 +1,7 @@
+// # TEST: unsupported bitwise word operator is rejected
+// # EXPECT: error
+// # ERROR_CONTAINS: expected end of statement
+
+main, int
+	value = 1 shl 2
+	return value

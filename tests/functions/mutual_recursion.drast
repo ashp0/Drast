@@ -1,0 +1,17 @@
+// # TEST: mutually recursive functions
+// # EXPECT: pass
+
+isEven n;int, bool
+	if n iseq 0
+		return true
+	return isOdd [n - 1]
+
+isOdd n;int, bool
+	if n iseq 0
+		return false
+	return isEven [n - 1]
+
+main, int
+	if isEven 4
+		return 0
+	return 1

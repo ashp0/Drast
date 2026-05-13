@@ -1,0 +1,8 @@
+// # TEST: labeled call arguments are accepted and ignored
+// # EXPECT: pass
+
+combine left;int right;int, int
+	return left + right
+
+main, int
+	return combine ;left 20 ;right 22

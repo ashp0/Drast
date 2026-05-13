@@ -1,0 +1,11 @@
+// # TEST: tuple type constructor return
+// # EXPECT: pass
+
+use std
+
+pair, tuple Int String
+	return tuple 1 s'one'
+
+main, int
+	created = pair
+	return 0

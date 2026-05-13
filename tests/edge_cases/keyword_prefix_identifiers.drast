@@ -1,0 +1,8 @@
+// # TEST: identifiers that start with keywords
+// # EXPECT: pass
+
+main, int
+	fork = 1
+	while2 = 2
+	iffy = 3
+	return fork + while2 + iffy

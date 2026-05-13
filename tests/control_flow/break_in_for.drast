@@ -1,0 +1,9 @@
+// # TEST: break inside for loop
+// # EXPECT: pass
+
+main, int
+	seen = 0
+	for i in 0 to 10
+		seen = i
+		break
+	return seen

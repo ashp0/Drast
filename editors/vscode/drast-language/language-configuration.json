@@ -1,0 +1,79 @@
+{
+  "comments": {
+    "lineComment": "//",
+    "blockComment": [
+      "/*",
+      "*/"
+    ]
+  },
+  "brackets": [
+    [
+      "{",
+      "}"
+    ],
+    [
+      "[",
+      "]"
+    ],
+    [
+      "(",
+      ")"
+    ]
+  ],
+  "autoClosingPairs": [
+    {
+      "open": "{",
+      "close": "}"
+    },
+    {
+      "open": "[",
+      "close": "]"
+    },
+    {
+      "open": "(",
+      "close": ")"
+    },
+    {
+      "open": "'",
+      "close": "'",
+      "notIn": [
+        "string",
+        "comment"
+      ]
+    },
+    {
+      "open": "\"",
+      "close": "\"",
+      "notIn": [
+        "string",
+        "comment"
+      ]
+    }
+  ],
+  "surroundingPairs": [
+    [
+      "{",
+      "}"
+    ],
+    [
+      "[",
+      "]"
+    ],
+    [
+      "(",
+      ")"
+    ],
+    [
+      "'",
+      "'"
+    ],
+    [
+      "\"",
+      "\""
+    ]
+  ],
+  "indentationRules": {
+    "increaseIndentPattern": "^\\s*(?:(?:if|elif|else|while|for|match|default|try|catch|struct|enum|impl|protocol)\\b.*|fileprivate\\s+(?:struct|enum)\\b.*|(?:private|preview)\\s+(?:operator\\[[^\\]]+\\]|[A-Za-z_]\\w*)\\b(?:(?![=]).)*|operator\\[[^\\]]+\\].*|[A-Za-z_]\\w*(?:`\\[[^\\]]*\\])?(?:(?![=;]).)*(?:,.*)?)(?:\\s*//.*)?$"
+  },
+  "wordPattern": "(-?\\d*\\.\\d\\w*)|([^`~!@#%^&*()=+[{\\]}|;:'\",.<>/?\\s]+)"
+}

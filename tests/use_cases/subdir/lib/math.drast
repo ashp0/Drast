@@ -1,0 +1,5 @@
+// # TEST: existing use case subdir lib math.drast
+// # EXPECT: pass
+
+doubleValue value;int, int
+	return value * 2

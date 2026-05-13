@@ -1,0 +1,100 @@
+impl Parser
+	private parseProtocol
+		proto CProtocol;
+		protoTok = self.consume TokenKind.Identifier 'expected protocol name'
+		proto.name = protoTok.text
+		self.consumeStatementEnd
+		self.skipNewlines
+		self.consume TokenKind.Indent 'expected protocol block'
+		while not self.check TokenKind.Dedent and not self.check TokenKind.End
+			fn = self.parseFunction '' true
+			proto.methods += fn
+			self.skipNewlines
+		self.consume TokenKind.Dedent 'expected protocol end'
+		self.ast.protocols += proto
+
+	private parseImpl
+		hostTok = self.consume TokenKind.Identifier 'expected impl host'
+		host = hostTok.text
+		protocolName string;
+		if self.currentMatch TokenKind.As
+			protocolTok = self.consume TokenKind.Identifier 'expected protocol name'
+			protocolName = protocolTok.text
+		self.consumeStatementEnd
+		self.skipNewlines
+		self.consume TokenKind.Indent 'expected impl block'
+		oldHost = self.currentHost
+		self.currentHost = host
+		while not self.check TokenKind.Dedent and not self.check TokenKind.End
+			visibility = 'public'
+			if self.currentMatch TokenKind.Private
+				visibility = 'private'
+			elif self.currentMatch TokenKind.Preview
+				visibility = 'preview'
+			if self.currentMatch TokenKind.Operator
+				fn = self.parseOperator host
+				fn.visibility = visibility
+				self.ast.methods += fn
+			else
+				fn = self.parseFunction host true
+				fn.visibility = visibility
+				self.ast.methods += fn
+				methodKey = host + '.' + fn.name
+				self.methodReturns.set methodKey fn.returnText
+			self.skipNewlines
+		self.consume TokenKind.Dedent 'expected impl end'
+		self.currentHost = oldHost
+		// Protocol conformance is tracked through a synthetic method marker.
+		if protocolName.length isgt 0
+			marker CFunction;
+			marker.name = '__protocol'
+			marker.host = host
+			marker.returnText = protocolName
+			marker.isMethod = true
+			self.ast.methods += marker
+
+	private parseOperator host;string, CFunction
+		fn CFunction;
+		fn.host = host
+		fn.isMethod = true
+		fn.isOperator = true
+		fn.name = 'operator'
+		self.consume TokenKind.LeftBracket 'expected operator bracket'
+		while not self.check TokenKind.RightBracket and not self.check TokenKind.End
+			fn.operatorSymbol += self.advance.text
+		self.consume TokenKind.RightBracket 'expected operator close'
+		fn.name += fn.operatorSymbol
+		self.parseFunctionTail fn
+		if fn.returnText.length == 0
+			if fn.operatorSymbol == '=='
+				fn.returnText = 'bool'
+			else
+				fn.returnText = 'void'
+		return fn
+
+
+impl Codegen
+	private emitsImplBlocks ast;AST, bool
+		return ast.methods.length isgt 0
+
+impl Codegen
+	private emitProtocol proto;CProtocol, string
+		out = 'struct ' + proto.name + ' {\n'
+		out.reserve 512
+		out += '    virtual ~' + proto.name + '() = default;\n'
+		for fn in proto.methods
+			out += '    virtual ' + fn.returnText + ' ' + fn.name + '(' + self.paramList fn false + ') = 0;\n'
+		out += '};\n'
+		return out
+
+	private protocolFor ast;AST host;string, string
+		for m in ast.methods
+			if m.host == host and m.name == '__protocol'
+				return m.returnText
+		return ''
+
+	private hasMethod ast;AST host;string name;string, bool
+		for m in ast.methods
+			if m.host == host and m.name == name
+				return true
+		return false

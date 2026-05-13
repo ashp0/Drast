@@ -1,0 +1,5 @@
+// # TEST: existing use case single helper.drast
+// # EXPECT: pass
+
+greeting, string
+	return 'single-ok'

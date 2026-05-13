@@ -1,0 +1,9 @@
+// # TEST: existing use case nested main.drast
+// # EXPECT: pass
+
+use std
+use outer
+
+main, int
+	println outerValue
+	return 0

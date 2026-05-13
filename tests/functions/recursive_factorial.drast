@@ -1,0 +1,10 @@
+// # TEST: recursive factorial function
+// # EXPECT: pass
+
+factorial n;int, int
+	if n islteq 1
+		return 1
+	return n * factorial [n - 1]
+
+main, int
+	return factorial 5

@@ -1,0 +1,8 @@
+// # TEST: existing use case circular b.drast
+// # EXPECT: error
+// # ERROR_CONTAINS: circular import
+
+use a
+
+fromB, string
+	return 'b'
