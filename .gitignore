@@ -1,4 +1,5 @@
 build/
+.drast/
 .vscode/
 .DS_Store
 dist/*

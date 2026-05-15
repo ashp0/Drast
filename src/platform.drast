@@ -1,0 +1,72 @@
+use std
+
+platformCurrentDir, string
+	return currentDir
+
+platformPathJoin left;string right;string, string
+	return pathJoin left right
+
+platformPathDirname path;string, string
+	return pathDirname path
+
+platformPathBasename path;string, string
+	return pathBasename path
+
+platformPathStem path;string, string
+	return pathStem path
+
+platformNormalizePath path;string, string
+	return normalizePath path
+
+platformIsAbsolute path;string, bool
+	return isAbsolutePath path
+
+platformFileExists path;string, bool
+	return fileExists path
+
+platformIsDirectory path;string, bool
+	return isDirectory path
+
+platformEnsureDir path;string, bool
+	return ensureDir path
+
+platformRemoveDirRecursive path;string, bool
+	return removeDirRecursive path
+
+platformReadFile path;string, string
+	return readFile path
+
+platformWriteFile path;string contents;string, bool
+	return writeFile path contents
+
+platformMakeWritable path;string, bool
+	return makePathWritable path
+
+platformMakeReadOnly path;string, bool
+	return makePathReadOnly path
+
+platformFindExecutable name;string, string
+	return findExecutable name
+
+platformRunProcess program;string arguments;{string} verbose;bool, int
+	return runProcess program arguments verbose
+
+platformRunShell command;string verbose;bool, int
+	arguments {string};
+	arguments += '-c'
+	arguments += command
+	return runProcess '/bin/sh' arguments verbose
+
+platformRunExecutable path;string verbose;bool, int
+	return runExecutable path verbose
+
+platformGetEnv name;string, string
+	return getEnv name
+
+platformAbsoluteFromRoot root;string path;string, string
+	if path.length == 0
+		return ''
+	if isAbsolutePath path
+		return normalizePath path
+	joined = pathJoin root path
+	return normalizePath joined

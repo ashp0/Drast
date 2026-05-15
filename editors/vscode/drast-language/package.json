@@ -1,63 +1,92 @@
 {
-  "name": "drast-language",
-  "displayName": "Drast Language Support",
-  "description": "Syntax highlighting, completions, and language server for the Drast programming language.",
-  "version": "0.1.0",
-  "publisher": "drast",
-  "engines": {
-    "vscode": "^1.80.0"
-  },
-  "categories": [
-    "Programming Languages"
-  ],
-  "activationEvents": [
-    "onLanguage:drast"
-  ],
-  "contributes": {
-    "languages": [
-      {
-        "id": "drast",
-        "aliases": [
-          "Drast",
-          "drast"
-        ],
-        "extensions": [
-          ".drast"
-        ],
-        "configuration": "./language-configuration.json",
-        "icon": {
-          "light": "./icons/drast-file-icon.png",
-          "dark": "./icons/drast-file-icon.png"
-        }
-      }
-    ],
-    "grammars": [
-      {
-        "language": "drast",
-        "scopeName": "source.drast",
-        "path": "./syntaxes/drast.tmLanguage.json"
-      }
-    ],
-    "commands": [
-      {
-        "command": "drast.restartServer",
-        "title": "Drast: Restart Language Server"
-      }
-    ]
-  },
-  "main": "./out/extension.js",
-  "scripts": {
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./"
-  },
-  "dependencies": {
-    "vscode-languageclient": "^9.0.1",
-    "vscode-languageserver": "^9.0.1",
-    "vscode-languageserver-textdocument": "^1.0.12"
-  },
-  "devDependencies": {
-    "@types/node": "^25.7.0",
-    "@types/vscode": "^1.80.0",
-    "typescript": "^6.0.3"
-  }
+	"name": "drast-language",
+	"displayName": "Drast Language Support",
+	"description": "Professional syntax highlighting, rich language intelligence, diagnostics, formatting, and snippets for the Drast programming language.",
+	"version": "0.2.0",
+	"publisher": "drast",
+	"icon": "icons/drast-extension-icon.png",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/ashp0/Drast.git",
+		"directory": "editors/vscode/drast-language"
+	},
+	"bugs": {
+		"url": "https://github.com/ashp0/Drast/issues"
+	},
+	"homepage": "https://github.com/ashp0/Drast/tree/main/editors/vscode/drast-language",
+	"engines": {
+		"vscode": "^1.120.0"
+	},
+	"categories": [
+		"Programming Languages"
+	],
+	"keywords": [
+		"Drast",
+		"language",
+		"syntax",
+		"formatter",
+		"autocomplete",
+		"C++ interop"
+	],
+	"galleryBanner": {
+		"color": "#111827",
+		"theme": "dark"
+	},
+	"activationEvents": [
+		"onLanguage:drast"
+	],
+	"contributes": {
+		"languages": [
+			{
+				"id": "drast",
+				"aliases": [
+					"Drast",
+					"drast"
+				],
+				"extensions": [
+					".drast"
+				],
+				"configuration": "./language-configuration.json",
+				"icon": {
+					"light": "./icons/drast-file-icon.png",
+					"dark": "./icons/drast-file-icon.png"
+				}
+			}
+		],
+		"grammars": [
+			{
+				"language": "drast",
+				"scopeName": "source.drast",
+				"path": "./syntaxes/drast.tmLanguage.json"
+			}
+		],
+		"snippets": [
+			{
+				"language": "drast",
+				"path": "./snippets/drast.code-snippets"
+			}
+		],
+		"commands": [
+			{
+				"command": "drast.restartServer",
+				"title": "Drast: Restart Language Server"
+			}
+		]
+	},
+	"main": "./out/extension.js",
+	"scripts": {
+		"compile": "tsc -p ./",
+		"watch": "tsc -watch -p ./",
+		"package": "vsce package"
+	},
+	"dependencies": {
+		"vscode-languageclient": "^9.0.1",
+		"vscode-languageserver": "^9.0.1",
+		"vscode-languageserver-textdocument": "^1.0.12"
+	},
+	"devDependencies": {
+		"@types/node": "^25.8.0",
+		"@types/vscode": "^1.120.0",
+		"typescript": "^6.0.3"
+	}
 }

@@ -1,0 +1,17 @@
+// # TEST: audit scalar and string match emission
+// # EXPECT: pass
+
+use std
+
+rankStatus status;string, int
+	match status
+		s'new'
+			return 1
+		s'active'
+			return 2
+		default
+			return 0
+
+main, int
+	status = s'active'
+	return rankStatus status

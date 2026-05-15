@@ -1,0 +1,22 @@
+// # TEST: audit generic functions and generic struct emission
+// # EXPECT: pass
+
+use std
+
+struct Box`[T]
+	value T
+
+identity`[T] value;T, T
+	return value
+with T as Copyable
+
+firstValue`[T] values;{T}, T
+	return values{0}
+with T as Copyable
+
+main, int
+	numbers = {10 20 30}
+	box = Box`[string][s'payload']
+	text = identity`[string] box.value
+	first = firstValue`[int] numbers
+	return first + text.length

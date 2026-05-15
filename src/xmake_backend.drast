@@ -1,0 +1,65 @@
+use std
+use platform
+use package
+
+writeXmakeProject target;BuildTarget xmakeDir;string outputPath;string cppPaths;{string} includeDirs;{string}, bool
+	if not platformEnsureDir xmakeDir
+		reportError xmakeDir 1 1 'failed to create xmake project directory'
+		return false
+	xmakeFile = platformPathJoin xmakeDir 'xmake.lua'
+	content = renderXmakeProject target outputPath cppPaths includeDirs
+	if not platformWriteFile xmakeFile content
+		reportError xmakeFile 1 1 'failed to write generated xmake.lua'
+		return false
+	return true
+
+runXmakeTarget xmakeDir;string targetName;string verbose;bool, int
+	xmake = platformFindExecutable 'xmake'
+	if xmake.length == 0
+		reportError xmakeDir 1 1 'xmake not found; install xmake or add it to PATH'
+		return 1
+	processArgs {string};
+	processArgs += '-P'
+	processArgs += xmakeDir
+	processArgs += '-y'
+	processArgs += '-b'
+	processArgs += targetName
+	return platformRunProcess xmake processArgs verbose
+
+renderXmakeProject target;BuildTarget outputPath;string cppPaths;{string} includeDirs;{string}, string
+	out string;
+	out.reserve 4096
+	out += 'set_project("drast-internal")\n'
+	out += 'set_languages("' + target.cxx + '")\n'
+	out += 'add_rules("mode.debug", "mode.release")\n'
+	out += '\n'
+	out += 'target(' + luaValue target.name + ')\n'
+	out += '    set_kind("binary")\n'
+	out += '    set_languages("' + target.cxx + '")\n'
+	out += '    set_toolset("cxx", "clang++")\n'
+	out += '    set_toolset("ld", "clang++")\n'
+	out += '    set_objectdir(path.join(os.projectdir(), "obj"))\n'
+	outputDir = platformPathDirname outputPath
+	outputName = platformPathBasename outputPath
+	out += '    set_targetdir(' + luaValue outputDir + ')\n'
+	out += '    set_filename(' + luaValue outputName + ')\n'
+	for dir in includeDirs
+		out += '    add_includedirs(' + luaValue dir + ')\n'
+	for define in target.defines
+		out += '    add_defines(' + luaValue define + ')\n'
+	for flag in target.cxxFlags
+		out += '    add_cxxflags(' + luaValue flag + ')\n'
+	for flag in target.ldFlags
+		out += '    add_ldflags(' + luaValue flag + ')\n'
+	for dir in target.linkDirs
+		out += '    add_linkdirs(' + luaValue dir + ')\n'
+	for link in target.links
+		out += '    add_links(' + luaValue link + ')\n'
+	for cpp in cppPaths
+		out += '    add_files(' + luaValue cpp + ')\n'
+	for cpp in target.cxxFiles
+		out += '    add_files(' + luaValue cpp + ')\n'
+	return out
+
+luaValue value;string, string
+	return '[[' + value + ']]'

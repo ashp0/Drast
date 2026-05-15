@@ -1,5 +1,8 @@
 #pragma once
 
+#include <sys/wait.h>
+#include <unistd.h>
+
 #include <algorithm>
 #include <cctype>
 #include <cstdlib>
@@ -15,7 +18,6 @@
 #include <set>
 #include <sstream>
 #include <string>
-#include <sys/wait.h>
 #include <tuple>
 #include <type_traits>
 #include <unordered_map>
@@ -23,830 +25,886 @@
 #include <utility>
 #include <variant>
 #include <vector>
-#include <unistd.h>
 
 namespace drast {
 
 struct CompileDiagnostic {
-    std::string file;
-    int line = 1;
-    int column = 1;
-    std::string message;
+	std::string file;
+	int line = 1;
+	int column = 1;
+	std::string message;
 };
 
-inline std::string formatDiagnostic(const CompileDiagnostic &diagnostic) {
-    std::ostringstream out;
-    out << "[";
-    if (!diagnostic.file.empty()) out << diagnostic.file << ":";
-    out << diagnostic.line << ":" << diagnostic.column << "] "
-        << diagnostic.message;
-    return out.str();
+inline std::string formatDiagnostic(const CompileDiagnostic& diagnostic) {
+	std::ostringstream out;
+	out << "[";
+	if (!diagnostic.file.empty())
+		out << diagnostic.file << ":";
+	out << diagnostic.line << ":" << diagnostic.column << "] " << diagnostic.message;
+	return out.str();
 }
 
-inline std::vector<CompileDiagnostic> &diagnostic_store() {
-    static std::vector<CompileDiagnostic> diagnostics;
-    return diagnostics;
+inline std::vector<CompileDiagnostic>& diagnostic_store() {
+	static std::vector<CompileDiagnostic> diagnostics;
+	return diagnostics;
 }
 
 inline void clearErrors() {
-    diagnostic_store().clear();
+	diagnostic_store().clear();
 }
 
-inline void reportError(const std::string &file, int line, int column,
-                        const std::string &message) {
-    diagnostic_store().push_back(CompileDiagnostic{file, line, column, message});
+inline void reportError(const std::string& file, int line, int column, const std::string& message) {
+	diagnostic_store().push_back(CompileDiagnostic{file, line, column, message});
 }
 
 inline int errorCount() {
-    return static_cast<int>(diagnostic_store().size());
+	return static_cast<int>(diagnostic_store().size());
 }
 
 inline bool hasErrors() {
-    return !diagnostic_store().empty();
+	return !diagnostic_store().empty();
 }
 
 inline void emitErrors() {
-    for (const CompileDiagnostic &diagnostic : diagnostic_store()) {
-        std::cerr << formatDiagnostic(diagnostic) << '\n';
-    }
+	for (const CompileDiagnostic& diagnostic : diagnostic_store()) {
+		std::cerr << formatDiagnostic(diagnostic) << '\n';
+	}
 }
 
 template <class... Ts>
 struct overloaded : Ts... {
-    using Ts::operator()...;
+	using Ts::operator()...;
 };
 template <class... Ts>
 overloaded(Ts...) -> overloaded<Ts...>;
 
 template <typename T>
-void write_one(const T &value) {
-    std::cout << value;
+void write_one(const T& value) {
+	std::cout << value;
 }
 
-inline void write_one(const std::exception &value) {
-    std::cout << value.what();
+inline void write_one(const std::exception& value) {
+	std::cout << value.what();
 }
 
 template <typename T>
-void write_one(const std::optional<T> &value) {
-    if (value) write_one(*value);
+void write_one(const std::optional<T>& value) {
+	if (value)
+		write_one(*value);
 }
 
 template <typename... Args>
-void print(const Args &...args) {
-    (write_one(args), ...);
+void print(const Args&... args) {
+	(write_one(args), ...);
 }
 
 template <typename... Args>
-void println(const Args &...args) {
-    print(args...);
-    std::cout << '\n';
+void println(const Args&... args) {
+	print(args...);
+	std::cout << '\n';
 }
 
-inline std::string getInput(const std::string &prompt = "") {
-    if (!prompt.empty()) std::cout << prompt;
-    std::string line;
-    std::getline(std::cin, line);
-    return line;
+inline std::string getInput(const std::string& prompt = "") {
+	if (!prompt.empty())
+		std::cout << prompt;
+	std::string line;
+	std::getline(std::cin, line);
+	return line;
 }
 
 inline float random_float(float lo, float hi) {
-    thread_local std::mt19937 rng{std::random_device{}()};
-    std::uniform_real_distribution<float> dist(lo, hi);
-    return dist(rng);
+	thread_local std::mt19937 rng{std::random_device{}()};
+	std::uniform_real_distribution<float> dist(lo, hi);
+	return dist(rng);
 }
 
 inline int random_int(int lo, int hi) {
-    thread_local std::mt19937 rng{std::random_device{}()};
-    std::uniform_int_distribution<int> dist(lo, hi);
-    return dist(rng);
+	thread_local std::mt19937 rng{std::random_device{}()};
+	std::uniform_int_distribution<int> dist(lo, hi);
+	return dist(rng);
 }
 
-inline std::optional<int> parse_int(const std::string &text) {
-    try {
-        size_t used = 0;
-        int value = std::stoi(text, &used);
-        if (used != text.size()) return std::nullopt;
-        return value;
-    } catch (...) {
-        return std::nullopt;
-    }
+inline std::optional<int> parse_int(const std::string& text) {
+	try {
+		size_t used = 0;
+		int value = std::stoi(text, &used);
+		if (used != text.size())
+			return std::nullopt;
+		return value;
+	} catch (...) {
+		return std::nullopt;
+	}
 }
 
 inline std::string lowercase(std::string text) {
-    std::transform(text.begin(), text.end(), text.begin(), [](unsigned char c) {
-        return static_cast<char>(std::tolower(c));
-    });
-    return text;
+	std::transform(text.begin(), text.end(), text.begin(),
+				   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+	return text;
 }
 
 template <typename T>
-std::string lowercase(const T &value) {
-    std::ostringstream out;
-    out << value;
-    return lowercase(out.str());
+std::string lowercase(const T& value) {
+	std::ostringstream out;
+	out << value;
+	return lowercase(out.str());
 }
 
-inline bool starts_with(const std::string &text, const std::string &prefix) {
-    return text.size() >= prefix.size() &&
-           text.compare(0, prefix.size(), prefix) == 0;
+inline bool starts_with(const std::string& text, const std::string& prefix) {
+	return text.size() >= prefix.size() && text.compare(0, prefix.size(), prefix) == 0;
 }
 
-inline bool ends_with(const std::string &text, const std::string &suffix) {
-    return text.size() >= suffix.size() &&
-           text.compare(text.size() - suffix.size(), suffix.size(), suffix) == 0;
+inline bool ends_with(const std::string& text, const std::string& suffix) {
+	return text.size() >= suffix.size() &&
+		   text.compare(text.size() - suffix.size(), suffix.size(), suffix) == 0;
 }
 
-inline bool contains(const std::string &text, const std::string &needle) {
-    return text.find(needle) != std::string::npos;
+inline bool contains(const std::string& text, const std::string& needle) {
+	return text.find(needle) != std::string::npos;
 }
 
 template <typename T>
-bool contains(const std::vector<T> &values, const T &needle) {
-    return std::find(values.begin(), values.end(), needle) != values.end();
+bool contains(const std::vector<T>& values, const T& needle) {
+	return std::find(values.begin(), values.end(), needle) != values.end();
 }
 
 template <typename K, typename V>
-bool contains(const std::unordered_map<K, V> &values, const K &key) {
-    return values.find(key) != values.end();
+bool contains(const std::unordered_map<K, V>& values, const K& key) {
+	return values.find(key) != values.end();
 }
 
-inline int find(const std::string &text, const std::string &needle) {
-    auto pos = text.find(needle);
-    if (pos == std::string::npos) return -1;
-    return static_cast<int>(pos);
+inline int find(const std::string& text, const std::string& needle) {
+	auto pos = text.find(needle);
+	if (pos == std::string::npos)
+		return -1;
+	return static_cast<int>(pos);
 }
 
-inline std::string replace_all(std::string text, const std::string &needle,
-                               const std::string &replacement) {
-    if (needle.empty()) return text;
-    std::size_t pos = 0;
-    while ((pos = text.find(needle, pos)) != std::string::npos) {
-        text.replace(pos, needle.size(), replacement);
-        pos += replacement.size();
-    }
-    return text;
+inline std::string replace_all(std::string text, const std::string& needle,
+							   const std::string& replacement) {
+	if (needle.empty())
+		return text;
+	std::size_t pos = 0;
+	while ((pos = text.find(needle, pos)) != std::string::npos) {
+		text.replace(pos, needle.size(), replacement);
+		pos += replacement.size();
+	}
+	return text;
 }
 
-inline std::string trim(const std::string &text) {
-    std::size_t first = 0;
-    while (first < text.size() &&
-           std::isspace(static_cast<unsigned char>(text[first]))) {
-        ++first;
-    }
-    std::size_t last = text.size();
-    while (last > first &&
-           std::isspace(static_cast<unsigned char>(text[last - 1]))) {
-        --last;
-    }
-    return text.substr(first, last - first);
+inline std::string trim(const std::string& text) {
+	std::size_t first = 0;
+	while (first < text.size() && std::isspace(static_cast<unsigned char>(text[first]))) {
+		++first;
+	}
+	std::size_t last = text.size();
+	while (last > first && std::isspace(static_cast<unsigned char>(text[last - 1]))) {
+		--last;
+	}
+	return text.substr(first, last - first);
 }
 
-inline std::vector<std::string> split(const std::string &text,
-                                      const std::string &delimiter) {
-    std::vector<std::string> parts;
-    if (delimiter.empty()) {
-        for (char ch : text) parts.emplace_back(1, ch);
-        return parts;
-    }
-    std::size_t start = 0;
-    while (true) {
-        std::size_t pos = text.find(delimiter, start);
-        if (pos == std::string::npos) {
-            parts.push_back(text.substr(start));
-            break;
-        }
-        parts.push_back(text.substr(start, pos - start));
-        start = pos + delimiter.size();
-    }
-    return parts;
+inline std::vector<std::string> split(const std::string& text, const std::string& delimiter) {
+	std::vector<std::string> parts;
+	if (delimiter.empty()) {
+		for (char ch : text)
+			parts.emplace_back(1, ch);
+		return parts;
+	}
+	std::size_t start = 0;
+	while (true) {
+		std::size_t pos = text.find(delimiter, start);
+		if (pos == std::string::npos) {
+			parts.push_back(text.substr(start));
+			break;
+		}
+		parts.push_back(text.substr(start, pos - start));
+		start = pos + delimiter.size();
+	}
+	return parts;
 }
 
-inline std::vector<std::string> split_whitespace(const std::string &text) {
-    std::istringstream in(text);
-    std::vector<std::string> words;
-    std::string word;
-    while (in >> word) words.push_back(word);
-    return words;
+inline std::vector<std::string> split_whitespace(const std::string& text) {
+	std::istringstream in(text);
+	std::vector<std::string> words;
+	std::string word;
+	while (in >> word)
+		words.push_back(word);
+	return words;
 }
 
 template <typename T>
-std::string toString(const T &value) {
-    std::ostringstream out;
-    out << value;
-    return out.str();
+std::string toString(const T& value) {
+	std::ostringstream out;
+	out << value;
+	return out.str();
 }
 
-inline std::optional<int> parseInt(const std::string &text) {
-    return parse_int(text);
+inline std::optional<int> parseInt(const std::string& text) {
+	return parse_int(text);
 }
 
-inline std::optional<double> parseFloat(const std::string &text) {
-    try {
-        size_t used = 0;
-        double value = std::stod(text, &used);
-        if (used != text.size()) return std::nullopt;
-        return value;
-    } catch (...) {
-        return std::nullopt;
-    }
+inline std::optional<double> parseFloat(const std::string& text) {
+	try {
+		size_t used = 0;
+		double value = std::stod(text, &used);
+		if (used != text.size())
+			return std::nullopt;
+		return value;
+	} catch (...) {
+		return std::nullopt;
+	}
 }
 
 inline int charCode(char ch) {
-    return static_cast<unsigned char>(ch);
+	return static_cast<unsigned char>(ch);
 }
 
-inline int charCode(const std::string &text) {
-    if (text.empty()) return 0;
-    return charCode(text.front());
+inline int charCode(const std::string& text) {
+	if (text.empty())
+		return 0;
+	return charCode(text.front());
 }
 
 inline bool isAlpha(char ch) {
-    return std::isalpha(static_cast<unsigned char>(ch)) != 0;
+	return std::isalpha(static_cast<unsigned char>(ch)) != 0;
 }
 
-inline bool isAlpha(const std::string &text) {
-    return text.size() == 1 && isAlpha(text.front());
+inline bool isAlpha(const std::string& text) {
+	return text.size() == 1 && isAlpha(text.front());
 }
 
 inline bool isDigit(char ch) {
-    return std::isdigit(static_cast<unsigned char>(ch)) != 0;
+	return std::isdigit(static_cast<unsigned char>(ch)) != 0;
 }
 
-inline bool isDigit(const std::string &text) {
-    return text.size() == 1 && isDigit(text.front());
+inline bool isDigit(const std::string& text) {
+	return text.size() == 1 && isDigit(text.front());
 }
 
 inline bool isWhitespace(char ch) {
-    return std::isspace(static_cast<unsigned char>(ch)) != 0;
+	return std::isspace(static_cast<unsigned char>(ch)) != 0;
 }
 
-inline bool isWhitespace(const std::string &text) {
-    return text.size() == 1 && isWhitespace(text.front());
+inline bool isWhitespace(const std::string& text) {
+	return text.size() == 1 && isWhitespace(text.front());
 }
 
 template <typename C>
-void remove_at(C &container, std::size_t index) {
-    if (index >= container.size()) return;
-    auto it = container.begin();
-    std::advance(it, static_cast<typename std::iterator_traits<decltype(it)>::difference_type>(index));
-    container.erase(it);
+void remove_at(C& container, std::size_t index) {
+	if (index >= container.size())
+		return;
+	auto it = container.begin();
+	std::advance(it,
+				 static_cast<typename std::iterator_traits<decltype(it)>::difference_type>(index));
+	container.erase(it);
 }
 
 template <typename C, typename T>
-void remove_value(C &container, const T &value) {
-    container.erase(std::remove(container.begin(), container.end(), value), container.end());
+void remove_value(C& container, const T& value) {
+	container.erase(std::remove(container.begin(), container.end(), value), container.end());
 }
 
-inline void playMP3(const std::string &) {}
-
-inline std::vector<std::string> &program_args_store() {
-    static std::vector<std::string> values;
-    return values;
+inline void playMP3(const std::string&) {
 }
 
-inline void setArgs(int argc, char **argv) {
-    auto &values = program_args_store();
-    values.clear();
-    for (int i = 0; i < argc; ++i) values.emplace_back(argv[i] ? argv[i] : "");
+inline std::vector<std::string>& program_args_store() {
+	static std::vector<std::string> values;
+	return values;
 }
 
-inline const std::vector<std::string> &args() {
-    return program_args_store();
+inline void setArgs(int argc, char** argv) {
+	auto& values = program_args_store();
+	values.clear();
+	for (int i = 0; i < argc; ++i)
+		values.emplace_back(argv[i] ? argv[i] : "");
+}
+
+inline const std::vector<std::string>& args() {
+	return program_args_store();
 }
 
 inline std::string arg(std::size_t index) {
-    const auto &values = program_args_store();
-    if (index >= values.size()) return "";
-    return values[index];
+	const auto& values = program_args_store();
+	if (index >= values.size())
+		return "";
+	return values[index];
 }
 
-inline bool fileExists(const std::string &path) {
-    std::ifstream in(path);
-    return static_cast<bool>(in);
+inline bool fileExists(const std::string& path) {
+	std::ifstream in(path);
+	return static_cast<bool>(in);
 }
 
-inline std::string readFile(const std::string &path) {
-    std::ifstream in(path, std::ios::binary);
-    if (!in) return "";
-    std::ostringstream ss;
-    ss << in.rdbuf();
-    return ss.str();
+inline std::string readFile(const std::string& path) {
+	std::ifstream in(path, std::ios::binary);
+	if (!in)
+		return "";
+	std::ostringstream ss;
+	ss << in.rdbuf();
+	return ss.str();
 }
 
-inline bool writeFile(const std::string &path, const std::string &contents) {
-    std::ofstream out(path, std::ios::binary);
-    if (!out) return false;
-    out << contents;
-    return static_cast<bool>(out);
+inline bool writeFile(const std::string& path, const std::string& contents) {
+	std::ofstream out(path, std::ios::binary);
+	if (!out)
+		return false;
+	out << contents;
+	return static_cast<bool>(out);
 }
 
-inline std::string getEnv(const std::string &name) {
-    const char *value = std::getenv(name.c_str());
-    return value ? std::string(value) : std::string();
+inline bool makePathWritable(const std::string& path) {
+	std::error_code ec;
+	if (!std::filesystem::exists(path, ec))
+		return true;
+	std::filesystem::permissions(path, std::filesystem::perms::owner_write,
+								 std::filesystem::perm_options::add, ec);
+	return !ec;
 }
 
-inline std::string normalizePath(const std::string &path) {
-    if (path.empty()) return ".";
-    return std::filesystem::path(path).lexically_normal().string();
+inline bool makePathReadOnly(const std::string& path) {
+	std::error_code ec;
+	if (!std::filesystem::exists(path, ec))
+		return false;
+	auto write_bits = std::filesystem::perms::owner_write |
+					  std::filesystem::perms::group_write |
+					  std::filesystem::perms::others_write;
+	std::filesystem::permissions(path, write_bits, std::filesystem::perm_options::remove, ec);
+	return !ec;
+}
+
+inline std::string getEnv(const std::string& name) {
+	const char* value = std::getenv(name.c_str());
+	return value ? std::string(value) : std::string();
+}
+
+inline std::string normalizePath(const std::string& path) {
+	if (path.empty())
+		return ".";
+	return std::filesystem::path(path).lexically_normal().string();
 }
 
 inline std::string currentDir() {
-    std::error_code ec;
-    auto cwd = std::filesystem::current_path(ec);
-    if (ec) return ".";
-    return cwd.lexically_normal().string();
+	std::error_code ec;
+	auto cwd = std::filesystem::current_path(ec);
+	if (ec)
+		return ".";
+	return cwd.lexically_normal().string();
 }
 
-inline bool isAbsolutePath(const std::string &path) {
-    return std::filesystem::path(path).is_absolute();
+inline bool isAbsolutePath(const std::string& path) {
+	return std::filesystem::path(path).is_absolute();
 }
 
-inline std::string pathJoin(const std::string &left, const std::string &right) {
-    if (left.empty()) return normalizePath(right);
-    if (right.empty()) return normalizePath(left);
-    return (std::filesystem::path(left) / std::filesystem::path(right))
-        .lexically_normal()
-        .string();
+inline std::string pathJoin(const std::string& left, const std::string& right) {
+	if (left.empty())
+		return normalizePath(right);
+	if (right.empty())
+		return normalizePath(left);
+	return (std::filesystem::path(left) / std::filesystem::path(right)).lexically_normal().string();
 }
 
-inline std::string pathDirname(const std::string &path) {
-    auto parent = std::filesystem::path(path).parent_path();
-    if (parent.empty()) return ".";
-    return parent.lexically_normal().string();
+inline std::string pathDirname(const std::string& path) {
+	auto parent = std::filesystem::path(path).parent_path();
+	if (parent.empty())
+		return ".";
+	return parent.lexically_normal().string();
 }
 
-inline std::string pathBasename(const std::string &path) {
-    return std::filesystem::path(path).filename().string();
+inline std::string pathBasename(const std::string& path) {
+	return std::filesystem::path(path).filename().string();
 }
 
-inline std::string pathStem(const std::string &path) {
-    return std::filesystem::path(path).stem().string();
+inline std::string pathStem(const std::string& path) {
+	return std::filesystem::path(path).stem().string();
 }
 
-inline bool isDirectory(const std::string &path) {
-    std::error_code ec;
-    return std::filesystem::is_directory(path, ec);
+inline bool isDirectory(const std::string& path) {
+	std::error_code ec;
+	return std::filesystem::is_directory(path, ec);
 }
 
-inline bool ensureDir(const std::string &path) {
-    if (path.empty()) return false;
-    std::error_code ec;
-    if (std::filesystem::exists(path, ec)) return std::filesystem::is_directory(path, ec);
-    return std::filesystem::create_directories(path, ec) || std::filesystem::is_directory(path, ec);
+inline bool ensureDir(const std::string& path) {
+	if (path.empty())
+		return false;
+	std::error_code ec;
+	if (std::filesystem::exists(path, ec))
+		return std::filesystem::is_directory(path, ec);
+	return std::filesystem::create_directories(path, ec) || std::filesystem::is_directory(path, ec);
 }
 
-inline bool removeDirRecursive(const std::string &path) {
-    std::error_code ec;
-    if (!std::filesystem::exists(path, ec)) return true;
-    std::filesystem::remove_all(path, ec);
-    return !ec;
+inline bool removeDirRecursive(const std::string& path) {
+	std::error_code ec;
+	if (!std::filesystem::exists(path, ec))
+		return true;
+	std::filesystem::remove_all(path, ec);
+	return !ec;
 }
 
-inline bool sourceNewerThanTarget(const std::string &source,
-                                  const std::string &target) {
-    std::error_code ec;
-    if (!std::filesystem::exists(target, ec)) return true;
-    if (!std::filesystem::exists(source, ec)) return false;
-    auto source_time = std::filesystem::last_write_time(source, ec);
-    if (ec) return true;
-    auto target_time = std::filesystem::last_write_time(target, ec);
-    if (ec) return true;
-    return source_time > target_time;
+inline bool sourceNewerThanTarget(const std::string& source, const std::string& target) {
+	std::error_code ec;
+	if (!std::filesystem::exists(target, ec))
+		return true;
+	if (!std::filesystem::exists(source, ec))
+		return false;
+	auto source_time = std::filesystem::last_write_time(source, ec);
+	if (ec)
+		return true;
+	auto target_time = std::filesystem::last_write_time(target, ec);
+	if (ec)
+		return true;
+	return source_time > target_time;
 }
 
-inline bool targetMissingOrOlder(const std::string &source,
-                                 const std::string &target) {
-    return sourceNewerThanTarget(source, target);
+inline bool targetMissingOrOlder(const std::string& source, const std::string& target) {
+	return sourceNewerThanTarget(source, target);
 }
 
-inline std::string sanitizePathFragment(const std::string &text) {
-    std::string out;
-    for (char ch : text) {
-        if (std::isalnum(static_cast<unsigned char>(ch)) || ch == '_' || ch == '-' ||
-            ch == '.') {
-            out += ch;
-        } else {
-            out += '_';
-        }
-    }
-    if (out.empty()) return "external";
-    return out;
+inline std::string sanitizePathFragment(const std::string& text) {
+	std::string out;
+	for (char ch : text) {
+		if (std::isalnum(static_cast<unsigned char>(ch)) || ch == '_' || ch == '-' || ch == '.') {
+			out += ch;
+		} else {
+			out += '_';
+		}
+	}
+	if (out.empty())
+		return "external";
+	return out;
 }
 
-inline std::string sourceOutputPath(const std::string &root,
-                                    const std::string &source,
-                                    const std::string &out_dir,
-                                    const std::string &extension) {
-    std::error_code ec;
-    auto root_abs = std::filesystem::absolute(root, ec).lexically_normal();
-    if (ec) root_abs = std::filesystem::path(root).lexically_normal();
-    auto source_abs = std::filesystem::absolute(source, ec).lexically_normal();
-    if (ec) source_abs = std::filesystem::path(source).lexically_normal();
-    auto rel = std::filesystem::relative(source_abs, root_abs, ec);
-    bool external = ec || rel.empty() || rel.is_absolute();
-    if (!external) {
-        auto rel_text = rel.generic_string();
-        external = rel_text == ".." || rel_text.rfind("../", 0) == 0;
-    }
-    if (external) {
-        rel = std::filesystem::path("_external") / sanitizePathFragment(source_abs.string());
-    }
-    rel.replace_extension(extension);
-    return (std::filesystem::path(out_dir) / rel).lexically_normal().string();
+inline std::string sourceOutputPath(const std::string& root, const std::string& source,
+									const std::string& out_dir, const std::string& extension) {
+	std::error_code ec;
+	auto root_abs = std::filesystem::absolute(root, ec).lexically_normal();
+	if (ec)
+		root_abs = std::filesystem::path(root).lexically_normal();
+	auto source_abs = std::filesystem::absolute(source, ec).lexically_normal();
+	if (ec)
+		source_abs = std::filesystem::path(source).lexically_normal();
+	auto rel = std::filesystem::relative(source_abs, root_abs, ec);
+	bool external = ec || rel.empty() || rel.is_absolute();
+	if (!external) {
+		auto rel_text = rel.generic_string();
+		external = rel_text == ".." || rel_text.rfind("../", 0) == 0;
+	}
+	if (external) {
+		rel = std::filesystem::path("_external") / sanitizePathFragment(source_abs.string());
+	}
+	rel.replace_extension(extension);
+	return (std::filesystem::path(out_dir) / rel).lexically_normal().string();
 }
 
-inline std::vector<std::string> sourceIncludeDirs(const std::vector<std::string> &sources) {
-    std::set<std::string> dirs;
-    for (const auto &source : sources) dirs.insert(pathDirname(source));
-    return std::vector<std::string>(dirs.begin(), dirs.end());
+inline std::vector<std::string> sourceIncludeDirs(const std::vector<std::string>& sources) {
+	std::set<std::string> dirs;
+	for (const auto& source : sources)
+		dirs.insert(pathDirname(source));
+	return std::vector<std::string>(dirs.begin(), dirs.end());
 }
 
-inline bool isHeaderPath(const std::string &path) {
-    auto ext = std::filesystem::path(path).extension().string();
-    return ext == ".h" || ext == ".hpp" || ext == ".hh" || ext == ".hxx";
+inline bool isHeaderPath(const std::string& path) {
+	auto ext = std::filesystem::path(path).extension().string();
+	return ext == ".h" || ext == ".hpp" || ext == ".hh" || ext == ".hxx";
 }
 
-inline std::vector<std::string> discoverDrastSources(const std::string &root) {
-    std::vector<std::string> out;
-    std::error_code ec;
-    if (!std::filesystem::exists(root, ec)) return out;
-    std::filesystem::recursive_directory_iterator it(
-        root, std::filesystem::directory_options::skip_permission_denied, ec);
-    std::filesystem::recursive_directory_iterator end;
-    while (!ec && it != end) {
-        const auto &entry = *it;
-        auto name = entry.path().filename().string();
-        if (entry.is_directory(ec) && (name == ".drast" || name == ".git")) {
-            it.disable_recursion_pending();
-        } else if (entry.is_regular_file(ec) && entry.path().extension() == ".drast") {
-            out.push_back(entry.path().lexically_normal().string());
-        }
-        it.increment(ec);
-    }
-    std::sort(out.begin(), out.end());
-    out.erase(std::unique(out.begin(), out.end()), out.end());
-    return out;
+inline std::vector<std::string> discoverDrastSources(const std::string& root) {
+	std::vector<std::string> out;
+	std::error_code ec;
+	if (!std::filesystem::exists(root, ec))
+		return out;
+	std::filesystem::recursive_directory_iterator it(
+		root, std::filesystem::directory_options::skip_permission_denied, ec);
+	std::filesystem::recursive_directory_iterator end;
+	while (!ec && it != end) {
+		const auto& entry = *it;
+		auto name = entry.path().filename().string();
+		if (entry.is_directory(ec) && (name == ".drast" || name == ".git")) {
+			it.disable_recursion_pending();
+		} else if (entry.is_regular_file(ec) && entry.path().extension() == ".drast") {
+			out.push_back(entry.path().lexically_normal().string());
+		}
+		it.increment(ec);
+	}
+	std::sort(out.begin(), out.end());
+	out.erase(std::unique(out.begin(), out.end()), out.end());
+	return out;
 }
 
-inline std::string trim(const std::string &text);
+inline std::string trim(const std::string& text);
 
-inline std::string stripLineComment(const std::string &line) {
-    bool quoted = false;
-    char quote = '\0';
-    bool escaped = false;
-    for (std::size_t i = 0; i + 1 < line.size(); ++i) {
-        char ch = line[i];
-        if (escaped) {
-            escaped = false;
-            continue;
-        }
-        if (quoted && ch == '\\') {
-            escaped = true;
-            continue;
-        }
-        if (quoted) {
-            if (ch == quote) quoted = false;
-            continue;
-        }
-        if (ch == '\'' || ch == '"') {
-            quoted = true;
-            quote = ch;
-            continue;
-        }
-        if (ch == '/' && line[i + 1] == '/') return line.substr(0, i);
-    }
-    return line;
+inline std::string stripLineComment(const std::string& line) {
+	bool quoted = false;
+	char quote = '\0';
+	bool escaped = false;
+	for (std::size_t i = 0; i + 1 < line.size(); ++i) {
+		char ch = line[i];
+		if (escaped) {
+			escaped = false;
+			continue;
+		}
+		if (quoted && ch == '\\') {
+			escaped = true;
+			continue;
+		}
+		if (quoted) {
+			if (ch == quote)
+				quoted = false;
+			continue;
+		}
+		if (ch == '\'' || ch == '"') {
+			quoted = true;
+			quote = ch;
+			continue;
+		}
+		if (ch == '/' && line[i + 1] == '/')
+			return line.substr(0, i);
+	}
+	return line;
 }
 
-inline std::optional<std::string> parseUsePath(const std::string &line,
-                                               bool *header_hint = nullptr) {
-    if (header_hint) *header_hint = false;
-    std::string text = trim(stripLineComment(line));
-    if (text.rfind("use", 0) != 0) return std::nullopt;
-    if (text.size() > 3 && !std::isspace(static_cast<unsigned char>(text[3]))) {
-        return std::nullopt;
-    }
-    text = trim(text.substr(3));
-    if (text.rfind("file", 0) == 0 &&
-        (text.size() == 4 || std::isspace(static_cast<unsigned char>(text[4])))) {
-        if (header_hint) *header_hint = true;
-        text = trim(text.substr(4));
-    }
-    if (text.empty()) return std::nullopt;
-    if (text.front() == '\'' || text.front() == '"') {
-        char quote = text.front();
-        std::string out;
-        bool escaped = false;
-        for (std::size_t i = 1; i < text.size(); ++i) {
-            char ch = text[i];
-            if (escaped) {
-                out += ch;
-                escaped = false;
-                continue;
-            }
-            if (ch == '\\') {
-                escaped = true;
-                continue;
-            }
-            if (ch == quote) return out;
-            out += ch;
-        }
-        return out;
-    }
-    std::string out;
-    for (char ch : text) {
-        if (std::isspace(static_cast<unsigned char>(ch))) break;
-        out += ch;
-    }
-    if (out.empty()) return std::nullopt;
-    return out;
+inline std::optional<std::string> parseUsePath(const std::string& line,
+											   bool* header_hint = nullptr) {
+	if (header_hint)
+		*header_hint = false;
+	std::string text = trim(stripLineComment(line));
+	if (text.rfind("use", 0) != 0)
+		return std::nullopt;
+	if (text.size() > 3 && !std::isspace(static_cast<unsigned char>(text[3]))) {
+		return std::nullopt;
+	}
+	text = trim(text.substr(3));
+	if (text.rfind("file", 0) == 0 &&
+		(text.size() == 4 || std::isspace(static_cast<unsigned char>(text[4])))) {
+		if (header_hint)
+			*header_hint = true;
+		text = trim(text.substr(4));
+	}
+	if (text.empty())
+		return std::nullopt;
+	if (text.front() == '\'' || text.front() == '"') {
+		char quote = text.front();
+		std::string out;
+		bool escaped = false;
+		for (std::size_t i = 1; i < text.size(); ++i) {
+			char ch = text[i];
+			if (escaped) {
+				out += ch;
+				escaped = false;
+				continue;
+			}
+			if (ch == '\\') {
+				escaped = true;
+				continue;
+			}
+			if (ch == quote)
+				return out;
+			out += ch;
+		}
+		return out;
+	}
+	std::string out;
+	for (char ch : text) {
+		if (std::isspace(static_cast<unsigned char>(ch)))
+			break;
+		out += ch;
+	}
+	if (out.empty())
+		return std::nullopt;
+	return out;
 }
 
-inline std::string resolveDrastModule(const std::string &from_file,
-                                      const std::string &raw_path) {
-    std::filesystem::path candidate;
-    if (std::filesystem::path(raw_path).is_absolute()) {
-        candidate = raw_path;
-    } else {
-        candidate = std::filesystem::path(pathDirname(from_file)) / raw_path;
-    }
-    candidate = candidate.lexically_normal();
-    std::error_code ec;
-    if (candidate.extension() != ".drast") {
-        auto with_ext = candidate;
-        with_ext += ".drast";
-        if (std::filesystem::exists(with_ext, ec)) {
-            return with_ext.lexically_normal().string();
-        }
-    }
-    if (std::filesystem::exists(candidate, ec)) return candidate.string();
-    return "";
+inline std::string resolveDrastModule(const std::string& from_file, const std::string& raw_path) {
+	std::filesystem::path candidate;
+	if (std::filesystem::path(raw_path).is_absolute()) {
+		candidate = raw_path;
+	} else {
+		candidate = std::filesystem::path(pathDirname(from_file)) / raw_path;
+	}
+	candidate = candidate.lexically_normal();
+	std::error_code ec;
+	if (candidate.extension() != ".drast") {
+		auto with_ext = candidate;
+		with_ext += ".drast";
+		if (std::filesystem::exists(with_ext, ec)) {
+			return with_ext.lexically_normal().string();
+		}
+	}
+	if (std::filesystem::exists(candidate, ec))
+		return candidate.string();
+	return "";
 }
 
-inline std::vector<std::string> moduleDependencies(const std::string &source) {
-    std::vector<std::string> deps;
-    std::istringstream in(readFile(source));
-    std::string line;
-    while (std::getline(in, line)) {
-        bool header_hint = false;
-        auto raw = parseUsePath(line, &header_hint);
-        if (!raw) continue;
-        if (*raw == "std" || *raw == "no_runtime") continue;
-        if (header_hint || isHeaderPath(*raw)) continue;
-        auto resolved = resolveDrastModule(source, *raw);
-        if (!resolved.empty()) deps.push_back(normalizePath(resolved));
-    }
-    std::sort(deps.begin(), deps.end());
-    deps.erase(std::unique(deps.begin(), deps.end()), deps.end());
-    return deps;
+inline std::vector<std::string> moduleDependencies(const std::string& source) {
+	std::vector<std::string> deps;
+	std::istringstream in(readFile(source));
+	std::string line;
+	while (std::getline(in, line)) {
+		bool header_hint = false;
+		auto raw = parseUsePath(line, &header_hint);
+		if (!raw)
+			continue;
+		if (*raw == "std" || *raw == "no_runtime")
+			continue;
+		if (header_hint || isHeaderPath(*raw))
+			continue;
+		auto resolved = resolveDrastModule(source, *raw);
+		if (!resolved.empty())
+			deps.push_back(normalizePath(resolved));
+	}
+	std::sort(deps.begin(), deps.end());
+	deps.erase(std::unique(deps.begin(), deps.end()), deps.end());
+	return deps;
 }
 
-inline std::vector<std::string> orderDrastSources(const std::string &entry,
-                                                  const std::string &root,
-                                                  bool auto_discover) {
-    std::set<std::string> candidates;
-    std::string normalized_entry = normalizePath(entry);
-    candidates.insert(normalized_entry);
-    if (auto_discover) {
-        for (const auto &source : discoverDrastSources(root)) {
-            candidates.insert(normalizePath(source));
-        }
-    }
+inline std::vector<std::string> orderDrastSources(const std::string& entry, const std::string& root,
+												  bool auto_discover) {
+	std::set<std::string> candidates;
+	std::string normalized_entry = normalizePath(entry);
+	candidates.insert(normalized_entry);
+	if (auto_discover) {
+		for (const auto& source : discoverDrastSources(root)) {
+			candidates.insert(normalizePath(source));
+		}
+	}
 
-    std::unordered_map<std::string, int> state;
-    std::vector<std::string> ordered;
-    std::function<void(const std::string &)> visit = [&](const std::string &source) {
-        auto normalized = normalizePath(source);
-        int seen = state[normalized];
-        if (seen == 2) return;
-        if (seen == 1) {
-            reportError(normalized, 1, 1, "circular import: " + normalized);
-            return;
-        }
-        if (!fileExists(normalized)) {
-            reportError(normalized, 1, 1, "module not found: " + normalized);
-            return;
-        }
-        state[normalized] = 1;
-        std::istringstream in(readFile(normalized));
-        std::string line;
-        while (std::getline(in, line)) {
-            bool header_hint = false;
-            auto raw = parseUsePath(line, &header_hint);
-            if (!raw) continue;
-            if (*raw == "std" || *raw == "no_runtime") continue;
-            if (header_hint || isHeaderPath(*raw)) continue;
-            auto dep = resolveDrastModule(normalized, *raw);
-            if (dep.empty()) {
-                reportError(normalized, 1, 1, "module not found: " + *raw);
-                continue;
-            }
-            dep = normalizePath(dep);
-            candidates.insert(dep);
-            visit(dep);
-        }
-        state[normalized] = 2;
-        ordered.push_back(normalized);
-    };
+	std::unordered_map<std::string, int> state;
+	std::vector<std::string> ordered;
+	std::function<void(const std::string&)> visit = [&](const std::string& source) {
+		auto normalized = normalizePath(source);
+		int seen = state[normalized];
+		if (seen == 2)
+			return;
+		if (seen == 1) {
+			reportError(normalized, 1, 1, "circular import: " + normalized);
+			return;
+		}
+		if (!fileExists(normalized)) {
+			reportError(normalized, 1, 1, "module not found: " + normalized);
+			return;
+		}
+		state[normalized] = 1;
+		std::istringstream in(readFile(normalized));
+		std::string line;
+		while (std::getline(in, line)) {
+			bool header_hint = false;
+			auto raw = parseUsePath(line, &header_hint);
+			if (!raw)
+				continue;
+			if (*raw == "std" || *raw == "no_runtime")
+				continue;
+			if (header_hint || isHeaderPath(*raw))
+				continue;
+			auto dep = resolveDrastModule(normalized, *raw);
+			if (dep.empty()) {
+				reportError(normalized, 1, 1, "module not found: " + *raw);
+				continue;
+			}
+			dep = normalizePath(dep);
+			candidates.insert(dep);
+			visit(dep);
+		}
+		state[normalized] = 2;
+		ordered.push_back(normalized);
+	};
 
-    visit(normalized_entry);
-    std::vector<std::string> sorted(candidates.begin(), candidates.end());
-    for (const auto &source : sorted) visit(source);
-    ordered.erase(std::unique(ordered.begin(), ordered.end()), ordered.end());
-    return ordered;
+	visit(normalized_entry);
+	std::vector<std::string> sorted(candidates.begin(), candidates.end());
+	for (const auto& source : sorted)
+		visit(source);
+	ordered.erase(std::unique(ordered.begin(), ordered.end()), ordered.end());
+	return ordered;
 }
 
-inline std::string findExecutable(const std::string &name) {
-    if (name.empty()) return "";
-    if (name.find('/') != std::string::npos) {
-        return access(name.c_str(), X_OK) == 0 ? name : std::string();
-    }
-    std::string path = getEnv("PATH");
-    std::stringstream in(path);
-    std::string dir;
-    while (std::getline(in, dir, ':')) {
-        if (dir.empty()) dir = ".";
-        auto candidate = (std::filesystem::path(dir) / name).string();
-        if (access(candidate.c_str(), X_OK) == 0) return candidate;
-    }
-    return "";
+inline std::string findExecutable(const std::string& name) {
+	if (name.empty())
+		return "";
+	if (name.find('/') != std::string::npos) {
+		return access(name.c_str(), X_OK) == 0 ? name : std::string();
+	}
+	std::string path = getEnv("PATH");
+	std::stringstream in(path);
+	std::string dir;
+	while (std::getline(in, dir, ':')) {
+		if (dir.empty())
+			dir = ".";
+		auto candidate = (std::filesystem::path(dir) / name).string();
+		if (access(candidate.c_str(), X_OK) == 0)
+			return candidate;
+	}
+	return "";
 }
 
-inline std::string shell_quote(const std::string &text) {
-    std::string out = "'";
-    for (char ch : text) {
-        if (ch == '\'') out += "'\\''";
-        else out += ch;
-    }
-    out += "'";
-    return out;
+inline std::string shell_quote(const std::string& text) {
+	std::string out = "'";
+	for (char ch : text) {
+		if (ch == '\'')
+			out += "'\\''";
+		else
+			out += ch;
+	}
+	out += "'";
+	return out;
 }
 
-inline int runProcess(const std::string &program,
-                      const std::vector<std::string> &arguments,
-                      bool verbose = false) {
-    std::string command = shell_quote(program);
-    for (const auto &argument : arguments) {
-        command += " ";
-        command += shell_quote(argument);
-    }
-    if (verbose) std::cerr << command << '\n';
-    int status = std::system(command.c_str());
-    if (status == -1) return 1;
-    if (WIFEXITED(status)) return WEXITSTATUS(status);
-    return status == 0 ? 0 : 1;
+inline int runProcess(const std::string& program, const std::vector<std::string>& arguments,
+					  bool verbose = false) {
+	std::string command = shell_quote(program);
+	for (const auto& argument : arguments) {
+		command += " ";
+		command += shell_quote(argument);
+	}
+	if (verbose)
+		std::cerr << command << '\n';
+	int status = std::system(command.c_str());
+	if (status == -1)
+		return 1;
+	if (WIFEXITED(status))
+		return WEXITSTATUS(status);
+	return status == 0 ? 0 : 1;
 }
 
-inline int runExecutable(const std::string &program, bool verbose = false) {
-    std::vector<std::string> arguments;
-    return runProcess(program, arguments, verbose);
+inline int runExecutable(const std::string& program, bool verbose = false) {
+	std::vector<std::string> arguments;
+	return runProcess(program, arguments, verbose);
 }
 
-// Note: THIS SHOULD BE REMOVED.
-// WE ARE SELF-HOSTING, this is never going to be needed now.
-inline int delegateToV1(int = 0) {
-    std::string command = shell_quote("./build/drastc");
-    const auto &values = args();
-    for (std::size_t i = 1; i < values.size(); ++i) {
-        command += " ";
-        command += shell_quote(values[i]);
-    }
-    int status = std::system(command.c_str());
-    return status == 0 ? 0 : 1;
-}
-
-inline std::size_t line_count(const std::string &text) {
-    if (text.empty()) return 0;
-    std::size_t count = 1;
-    for (char ch : text) {
-        if (ch == '\n') ++count;
-    }
-    return count;
+inline std::size_t line_count(const std::string& text) {
+	if (text.empty())
+		return 0;
+	std::size_t count = 1;
+	for (char ch : text) {
+		if (ch == '\n')
+			++count;
+	}
+	return count;
 }
 
 template <typename K, typename V, typename F>
-V map_get(const std::unordered_map<K, V> &values, const K &key,
-          const F &fallback) {
-    auto found = values.find(key);
-    if (found == values.end()) return V(fallback);
-    return found->second;
+V map_get(const std::unordered_map<K, V>& values, const K& key, const F& fallback) {
+	auto found = values.find(key);
+	if (found == values.end())
+		return V(fallback);
+	return found->second;
 }
 
 template <typename K, typename V>
-std::vector<K> map_keys(const std::unordered_map<K, V> &values) {
-    std::vector<K> keys;
-    keys.reserve(values.size());
-    for (const auto &entry : values) keys.push_back(entry.first);
-    return keys;
+std::vector<K> map_keys(const std::unordered_map<K, V>& values) {
+	std::vector<K> keys;
+	keys.reserve(values.size());
+	for (const auto& entry : values)
+		keys.push_back(entry.first);
+	return keys;
 }
 
 template <typename K, typename V>
-std::vector<V> map_values(const std::unordered_map<K, V> &values) {
-    std::vector<V> out;
-    out.reserve(values.size());
-    for (const auto &entry : values) out.push_back(entry.second);
-    return out;
+std::vector<V> map_values(const std::unordered_map<K, V>& values) {
+	std::vector<V> out;
+	out.reserve(values.size());
+	for (const auto& entry : values)
+		out.push_back(entry.second);
+	return out;
 }
 
 template <typename T>
-std::optional<T> make_optional_cast(const T &value) {
-    return value;
+std::optional<T> make_optional_cast(const T& value) {
+	return value;
 }
 
-} // namespace drast
+}  // namespace drast
 
 inline std::string currentDir = drast::currentDir();
 
-inline std::string getEnv(const std::string &name) {
-    return drast::getEnv(name);
+inline std::string getEnv(const std::string& name) {
+	return drast::getEnv(name);
 }
 
-inline std::string normalizePath(const std::string &path) {
-    return drast::normalizePath(path);
+inline std::string normalizePath(const std::string& path) {
+	return drast::normalizePath(path);
 }
 
-inline bool isAbsolutePath(const std::string &path) {
-    return drast::isAbsolutePath(path);
+inline bool isAbsolutePath(const std::string& path) {
+	return drast::isAbsolutePath(path);
 }
 
-inline std::string pathJoin(const std::string &left, const std::string &right) {
-    return drast::pathJoin(left, right);
+inline std::string pathJoin(const std::string& left, const std::string& right) {
+	return drast::pathJoin(left, right);
 }
 
-inline std::string pathDirname(const std::string &path) {
-    return drast::pathDirname(path);
+inline std::string pathDirname(const std::string& path) {
+	return drast::pathDirname(path);
 }
 
-inline std::string pathBasename(const std::string &path) {
-    return drast::pathBasename(path);
+inline std::string pathBasename(const std::string& path) {
+	return drast::pathBasename(path);
 }
 
-inline std::string pathStem(const std::string &path) {
-    return drast::pathStem(path);
+inline std::string pathStem(const std::string& path) {
+	return drast::pathStem(path);
 }
 
-inline bool isDirectory(const std::string &path) {
-    return drast::isDirectory(path);
+inline bool isDirectory(const std::string& path) {
+	return drast::isDirectory(path);
 }
 
-inline bool ensureDir(const std::string &path) {
-    return drast::ensureDir(path);
+inline bool ensureDir(const std::string& path) {
+	return drast::ensureDir(path);
 }
 
-inline bool removeDirRecursive(const std::string &path) {
-    return drast::removeDirRecursive(path);
+inline bool removeDirRecursive(const std::string& path) {
+	return drast::removeDirRecursive(path);
 }
 
-inline bool sourceNewerThanTarget(const std::string &source,
-                                  const std::string &target) {
-    return drast::sourceNewerThanTarget(source, target);
+inline bool makePathWritable(const std::string& path) {
+	return drast::makePathWritable(path);
 }
 
-inline bool targetMissingOrOlder(const std::string &source,
-                                 const std::string &target) {
-    return drast::targetMissingOrOlder(source, target);
+inline bool makePathReadOnly(const std::string& path) {
+	return drast::makePathReadOnly(path);
 }
 
-inline std::string sourceOutputPath(const std::string &root,
-                                    const std::string &source,
-                                    const std::string &out_dir,
-                                    const std::string &extension) {
-    return drast::sourceOutputPath(root, source, out_dir, extension);
+inline bool sourceNewerThanTarget(const std::string& source, const std::string& target) {
+	return drast::sourceNewerThanTarget(source, target);
 }
 
-inline std::vector<std::string> sourceIncludeDirs(const std::vector<std::string> &sources) {
-    return drast::sourceIncludeDirs(sources);
+inline bool targetMissingOrOlder(const std::string& source, const std::string& target) {
+	return drast::targetMissingOrOlder(source, target);
 }
 
-inline std::vector<std::string> discoverDrastSources(const std::string &root) {
-    return drast::discoverDrastSources(root);
+inline std::string sourceOutputPath(const std::string& root, const std::string& source,
+									const std::string& out_dir, const std::string& extension) {
+	return drast::sourceOutputPath(root, source, out_dir, extension);
 }
 
-inline std::vector<std::string> moduleDependencies(const std::string &source) {
-    return drast::moduleDependencies(source);
+inline std::vector<std::string> sourceIncludeDirs(const std::vector<std::string>& sources) {
+	return drast::sourceIncludeDirs(sources);
 }
 
-inline std::vector<std::string> orderDrastSources(const std::string &entry,
-                                                  const std::string &root,
-                                                  bool auto_discover) {
-    return drast::orderDrastSources(entry, root, auto_discover);
+inline std::vector<std::string> discoverDrastSources(const std::string& root) {
+	return drast::discoverDrastSources(root);
 }
 
-inline std::string findExecutable(const std::string &name) {
-    return drast::findExecutable(name);
+inline std::vector<std::string> moduleDependencies(const std::string& source) {
+	return drast::moduleDependencies(source);
 }
 
-inline int runProcess(const std::string &program,
-                      const std::vector<std::string> &arguments,
-                      bool verbose = false) {
-    return drast::runProcess(program, arguments, verbose);
+inline std::vector<std::string> orderDrastSources(const std::string& entry, const std::string& root,
+												  bool auto_discover) {
+	return drast::orderDrastSources(entry, root, auto_discover);
 }
 
-inline int runExecutable(const std::string &program, bool verbose = false) {
-    return drast::runExecutable(program, verbose);
+inline std::string findExecutable(const std::string& name) {
+	return drast::findExecutable(name);
 }
 
-inline std::string isn(const std::string &suffix) {
-    return "isn" + suffix;
+inline int runProcess(const std::string& program, const std::vector<std::string>& arguments,
+					  bool verbose = false) {
+	return drast::runProcess(program, arguments, verbose);
+}
+
+inline int runExecutable(const std::string& program, bool verbose = false) {
+	return drast::runExecutable(program, verbose);
+}
+
+inline std::string isn(const std::string& suffix) {
+	return "isn" + suffix;
 }

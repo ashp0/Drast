@@ -1,0 +1,10 @@
+set_project("drast-generated")
+set_languages("c++17")
+
+target("app")
+    set_kind("binary")
+    set_toolset("cxx", "clang++")
+    set_toolset("ld", "clang++")
+    add_includedirs([[/Users/ashwinpaudel/Documents/Drast/tests/audit_cpp_codegen/cases/protocols_and_operators]])
+    add_includedirs([[/Users/ashwinpaudel/Documents/Drast]])
+    add_files([[/Users/ashwinpaudel/Documents/Drast/tests/audit_cpp_codegen/generated/protocols_and_operators/main.cpp]])

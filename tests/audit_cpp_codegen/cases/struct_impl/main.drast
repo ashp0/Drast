@@ -1,0 +1,30 @@
+// # TEST: audit struct constructors and impl method emission
+// # EXPECT: pass
+
+use std
+
+struct Ledger
+	title string
+	entries {int}
+	private cached int
+
+impl Ledger
+	init title;string entries;{int}
+		self.title = title
+		self.entries = entries
+		self.cached = 0
+
+	total, int
+		sum = 0
+		for entry in self.entries
+			sum += entry
+		return sum
+
+	rename next;string
+		self.title = next
+
+main, int
+	entries = {5 7 11}
+	ledger = Ledger[s'q2' entries]
+	ledger.rename s'q3'
+	return ledger.total

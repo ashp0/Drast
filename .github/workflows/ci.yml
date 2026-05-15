@@ -1,0 +1,54 @@
+name: Drast CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install xmake
+        run: |
+          brew update
+          brew install xmake
+
+      - name: Bootstrap compiler
+        run: ./bootstrap.sh --check
+
+      - name: Run package tests
+        run: ./.drast/build/bin/drast build test
+
+      - name: Archive main binary
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: drast-darwin-arm64-${{ github.sha }}
+          path: .drast/build/bin/drast
+
+      - name: Prepare release assets
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          version="${GITHUB_REF_NAME}"
+          mkdir -p "releases/${version}/darwin-arm64"
+          cp .drast/build/bin/drast "releases/${version}/darwin-arm64/drast"
+          chmod +x "releases/${version}/darwin-arm64/drast"
+          (cd "releases/${version}/darwin-arm64" && shasum -a 256 drast > drast.sha256)
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            releases/${{ github.ref_name }}/darwin-arm64/drast
+            releases/${{ github.ref_name }}/darwin-arm64/drast.sha256

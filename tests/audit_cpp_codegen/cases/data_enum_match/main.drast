@@ -1,0 +1,20 @@
+// # TEST: audit data enum construction and match emission
+// # EXPECT: pass
+
+use std
+
+enum Message
+	Text body;string
+	Count amount;int
+
+describe message;~Message, string
+	match message
+		Message.Text body
+			return body
+		Message.Count amount
+			return s'count'
+
+main, int
+	message = Message.Text[s'hello']
+	description = describe message
+	return description.length

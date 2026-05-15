@@ -1,0 +1,22 @@
+// # TEST: audit optional and try/catch emission
+// # EXPECT: pass
+
+use std
+
+findEven value;int, maybe int
+	if value % 2 == 0
+		return value
+	else
+		return nil
+
+forceEven value;int, int
+	candidate = findEven value
+	try
+		return candidate.value
+	catch ;error
+		return 0
+
+main, int
+	first = forceEven 8
+	second = forceEven 9
+	return first + second

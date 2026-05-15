@@ -1,0 +1,331 @@
+use std
+use token
+use lexer
+use ast
+use parser
+use codegen
+use features/use_statements
+use features/function_declaration
+use features/structs
+use features/enums
+use features/impl_blocks
+use features/types
+use features/control_flow
+use features/expressions
+use features/variables
+use features/literals
+use platform
+use package
+use xmake_backend
+
+struct BuildGraph
+	manifest PackageManifest
+	root string
+
+struct BuildLayout
+	root string
+	generatedDir string
+	xmakeDir string
+	output string
+
+struct BuildResult
+	status int
+	target string
+	output string
+
+struct SourceUnit
+	path string
+	ast AST
+
+impl BuildGraph
+	init
+		self.root = ''
+
+impl BuildLayout
+	init
+		self.root = ''
+		self.generatedDir = ''
+		self.xmakeDir = ''
+		self.output = ''
+
+impl BuildResult
+	init
+		self.status = 0
+		self.target = ''
+		self.output = ''
+
+buildCurrentProject requestedTarget;string runAfter;bool, int
+	clearErrors
+	start = platformCurrentDir
+	root = findPackageRoot start
+	if root.length == 0
+		reportError start 1 1 'package.txt not found in current directory or any parent'
+		emitErrors
+		return 1
+	manifestPath = platformPathJoin root 'package.txt'
+	manifest = parsePackageFile manifestPath
+	if hasErrors
+		emitErrors
+		return 1
+	targetName = requestedTarget
+	if targetName.length == 0
+		targetName = manifest.defaultTarget
+	built {string};
+	visiting {string};
+	result = executeTarget manifest targetName runAfter built visiting
+	if hasErrors
+		emitErrors
+		return 1
+	return result.status
+
+findPackageRoot start;string, string
+	dir = platformNormalizePath start
+	if not platformIsDirectory dir
+		dir = platformPathDirname dir
+	while true
+		manifestPath = platformPathJoin dir 'package.txt'
+		if platformFileExists manifestPath
+			return dir
+		parent = platformPathDirname dir
+		if parent == dir or parent.length == 0
+			break
+		dir = parent
+	return ''
+
+executeTarget manifest;PackageManifest targetName;string runAfter;bool built;~{string} visiting;~{string}, BuildResult
+	result BuildResult;
+	result.target = targetName
+	if containsString built targetName
+		return result
+	if containsString visiting targetName
+		message = 'dependency cycle at target: ' + targetName
+		reportError manifest.path 1 1 message
+		result.status = 1
+		return result
+	idx = packageTargetIndex manifest targetName
+	if idx islt 0
+		message = 'unknown target: ' + targetName
+		reportError manifest.path 1 1 message
+		result.status = 1
+		return result
+	visiting += targetName
+	target = manifest.targets{idx}
+	for dep in target.dependencies
+		depResult = executeTarget manifest dep false built visiting
+		if depResult.status isne 0
+			result.status = depResult.status
+			removeString visiting targetName
+			return result
+	if target.kind == 'binary'
+		result = buildBinaryTarget manifest target runAfter
+	elif target.kind == 'command'
+		result = runCommandTarget manifest target
+	else
+		message = 'target kind is not implemented: ' + target.kind
+		reportError manifest.path 1 1 message
+		result.status = 1
+	if result.status == 0
+		built += targetName
+	removeString visiting targetName
+	return result
+
+buildBinaryTarget manifest;PackageManifest target;BuildTarget runAfter;bool, BuildResult
+	result BuildResult;
+	result.target = target.name
+	layout = makeBuildLayout manifest target
+	result.output = layout.output
+	if not runBuildCommands manifest target target.prebuild
+		result.status = 1
+		return result
+	entryPath = platformAbsoluteFromRoot manifest.root target.entry
+	if not platformFileExists entryPath
+		reportError entryPath 1 1 'entry file not found'
+		result.status = 1
+		return result
+	sourceRoot = platformPathDirname entryPath
+	sources = orderDrastSources entryPath sourceRoot false
+	if hasErrors
+		result.status = 1
+		return result
+	cppPaths = transpileSources manifest target layout entryPath sourceRoot sources
+	if hasErrors
+		result.status = 1
+		return result
+	includeDirs = buildIncludeDirs manifest target entryPath sources
+	resolvedTarget = resolveTargetPaths manifest target
+	if not writeXmakeProject resolvedTarget layout.xmakeDir layout.output cppPaths includeDirs
+		result.status = 1
+		return result
+	status = runXmakeTarget layout.xmakeDir target.name false
+	if status isne 0
+		result.status = status
+		return result
+	if not runBuildCommands manifest target target.postbuild
+		result.status = 1
+		return result
+	if runAfter
+		result.status = platformRunExecutable layout.output false
+	return result
+
+makeBuildLayout manifest;PackageManifest target;BuildTarget, BuildLayout
+	layout BuildLayout;
+	layout.root = platformPathJoin manifest.root '.drast/build'
+	if target.generated.length isgt 0
+		layout.generatedDir = platformAbsoluteFromRoot manifest.root target.generated
+	else
+		generatedPart = 'generated/' + target.name
+		layout.generatedDir = platformPathJoin layout.root generatedPart
+	layout.xmakeDir = platformPathJoin layout.root 'xmake'
+	if target.output.length isgt 0
+		layout.output = platformAbsoluteFromRoot manifest.root target.output
+	else
+		outputPart = 'bin/' + target.name
+		layout.output = platformPathJoin layout.root outputPart
+	return layout
+
+transpileSources manifest;PackageManifest target;BuildTarget layout;BuildLayout entryPath;string sourceRoot;string sources;{string}, {string}
+	parser Parser;
+	parser.predeclareProjectFiles sources
+	units {SourceUnit};
+	all AST;
+	for source in sources
+		unit SourceUnit;
+		unit.path = source
+		unit.ast = parser.parseSingleFile source
+		units += unit
+		all = mergeAst all unit.ast
+	if hasErrors
+		empty {string};
+		return empty
+	if not platformEnsureDir layout.generatedDir
+		reportError layout.generatedDir 1 1 'failed to create generated source directory'
+		empty {string};
+		return empty
+	codegen Codegen;
+	cppPaths {string};
+	for unit in units
+		cppPath = sourceOutputPath sourceRoot unit.path layout.generatedDir '.cpp'
+		cppPaths += cppPath
+		cppDir = platformPathDirname cppPath
+		if not platformEnsureDir cppDir
+			reportError cppDir 1 1 'failed to create generated source directory'
+			continue
+		if platformFileExists cppPath
+			platformMakeWritable cppPath
+		cpp = codegen.emitUnit unit.ast all
+		if not platformWriteFile cppPath cpp
+			reportError cppPath 1 1 'failed to write generated C++'
+			continue
+		if not platformMakeReadOnly cppPath
+			reportError cppPath 1 1 'failed to mark generated C++ read-only'
+	return cppPaths
+
+mergeAst left;AST right;AST, AST
+	out = left
+	if right.usesStd
+		out.usesStd = true
+	if right.noRuntime
+		out.noRuntime = true
+	for line in right.includeLines
+		if not containsString out.includeLines line
+			out.includeLines += line
+	for st in right.structs
+		out.structs += st
+	for en in right.enums
+		out.enums += en
+	for proto in right.protocols
+		out.protocols += proto
+	for fn in right.functions
+		out.functions += fn
+	for m in right.methods
+		out.methods += m
+	for g in right.globals
+		out.globals += g
+	return out
+
+buildIncludeDirs manifest;PackageManifest target;BuildTarget entryPath;string sources;{string}, {string}
+	includeDirs {string};
+	appendUniqueString includeDirs manifest.root
+	entryDir = platformPathDirname entryPath
+	appendUniqueString includeDirs entryDir
+	for dir in sourceIncludeDirs sources
+		appendUniqueString includeDirs dir
+	drastHome = platformGetEnv 'DRAST_HOME'
+	if drastHome.length isgt 0
+		appendUniqueString includeDirs drastHome
+	for dir in target.includes
+		absolute = platformAbsoluteFromRoot manifest.root dir
+		appendUniqueString includeDirs absolute
+	return includeDirs
+
+resolveTargetPaths manifest;PackageManifest target;BuildTarget, BuildTarget
+	out = target
+	out.cxxFiles.clear
+	out.linkDirs.clear
+	for file in target.cxxFiles
+		out.cxxFiles += platformAbsoluteFromRoot manifest.root file
+	for dir in target.linkDirs
+		out.linkDirs += platformAbsoluteFromRoot manifest.root dir
+	return out
+
+runCommandTarget manifest;PackageManifest target;BuildTarget, BuildResult
+	result BuildResult;
+	result.target = target.name
+	for command in target.commands
+		expanded = expandCommand manifest target command
+		status = platformRunShell expanded false
+		if status isne 0
+			result.status = status
+			return result
+	return result
+
+runBuildCommands manifest;PackageManifest target;BuildTarget commands;{string}, bool
+	for command in commands
+		expanded = expandCommand manifest target command
+		status = platformRunShell expanded false
+		if status isne 0
+			return false
+	return true
+
+expandCommand manifest;PackageManifest target;BuildTarget command;string, string
+	out = command
+	out = out.replace '{root}' manifest.root
+	out = out.replace '{package}' manifest.name
+	out = out.replace '{target}' target.name
+	currentOutput = targetOutputPath manifest target.name
+	out = out.replace '{output}' currentOutput
+	for item in manifest.targets
+		outputToken = '{output:' + item.name + '}'
+		targetToken = '{target:' + item.name + '}'
+		itemOutput = targetOutputPath manifest item.name
+		out = out.replace outputToken itemOutput
+		out = out.replace targetToken item.name
+	return out
+
+targetOutputPath manifest;PackageManifest targetName;string, string
+	target = packageTarget manifest targetName
+	if target.output.length isgt 0
+		return platformAbsoluteFromRoot manifest.root target.output
+	buildRoot = platformPathJoin manifest.root '.drast/build'
+	outputPart = 'bin/' + targetName
+	return platformPathJoin buildRoot outputPart
+
+containsString values;{string} needle;string, bool
+	for value in values
+		if value == needle
+			return true
+	return false
+
+appendUniqueString values;~{string} value;string
+	if value.length == 0
+		return
+	if not containsString values value
+		values += value
+
+removeString values;~{string} value;string
+	i = 0
+	while i islt values.length
+		if values{i} == value
+			values.removeAt i
+			return
+		i += 1
