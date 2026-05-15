@@ -1,0 +1,10 @@
+// # TEST: audit C++ header interop call emission
+// # EXPECT: pass
+
+use std
+use file header/native_audit.hpp
+
+main, int
+	label = s'native'
+	base = 10
+	return audit_label_score label base

@@ -1,0 +1,113 @@
+{
+	"Program entry point": {
+		"prefix": "main",
+		"body": [
+			"main, int",
+			"\t${1:return 0}"
+		],
+		"description": "Create a Drast program entry point."
+	},
+	"Function": {
+		"prefix": "function",
+		"body": [
+			"${1:name} ${2:param};${3:int}, ${4:int}",
+			"\t${5:return ${2}}"
+		],
+		"description": "Create a typed Drast function."
+	},
+	"Void function": {
+		"prefix": "voidfn",
+		"body": [
+			"${1:name} ${2:param};${3:int}",
+			"\t${4:nothing}"
+		],
+		"description": "Create a Drast function without an explicit return type."
+	},
+	"Struct": {
+		"prefix": "struct",
+		"body": [
+			"struct ${1:Name}",
+			"\t${2:field} ${3:int}"
+		],
+		"description": "Create a Drast struct."
+	},
+	"Simple enum": {
+		"prefix": "enum",
+		"body": [
+			"enum ${1:Name}",
+			"\t${2:First}; ${3:Second}; ${4:Third};"
+		],
+		"description": "Create a simple Drast enum."
+	},
+	"Data enum": {
+		"prefix": "dataenum",
+		"body": [
+			"enum ${1:Expr}",
+			"\t${2:Case} ${3:value};${4:int}"
+		],
+		"description": "Create a tagged data enum with a payload variant."
+	},
+	"Impl block": {
+		"prefix": "impl",
+		"body": [
+			"impl ${1:Type}",
+			"\t${2:method}, ${3:void}",
+			"\t\t${4:nothing}"
+		],
+		"description": "Create an impl block."
+	},
+	"Protocol": {
+		"prefix": "protocol",
+		"body": [
+			"protocol ${1:Name}",
+			"\t${2:method}, ${3:void}"
+		],
+		"description": "Create a Drast protocol."
+	},
+	"Protocol conformance": {
+		"prefix": "conformance",
+		"body": [
+			"impl ${1:Type} as ${2:Protocol}",
+			"\t${3:method}, ${4:void}",
+			"\t\t${5:nothing}"
+		],
+		"description": "Create a protocol conformance impl block."
+	},
+	"Match": {
+		"prefix": "match",
+		"body": [
+			"match ${1:value}",
+			"\t${2:Pattern}",
+			"\t\t${3:nothing}",
+			"\tdefault",
+			"\t\t${4:nothing}"
+		],
+		"description": "Create a Drast match expression."
+	},
+	"Try catch": {
+		"prefix": "try",
+		"body": [
+			"try",
+			"\t${1:nothing}",
+			"catch ;${2:error}",
+			"\t${3:println ${2}}"
+		],
+		"description": "Create a Drast try/catch block."
+	},
+	"Comptime block": {
+		"prefix": "comptime",
+		"body": [
+			"comptime",
+			"\t${1:nothing}"
+		],
+		"description": "Create a Drast comptime block."
+	},
+	"Operator overload": {
+		"prefix": "operator",
+		"body": [
+			"operator[${1:==}] ${2:left};${3:Type} ${4:right};${3:Type}, ${5:bool}",
+			"\t${6:return ${2} iseq ${4}}"
+		],
+		"description": "Create an overloaded Drast operator."
+	}
+}

@@ -1,0 +1,29 @@
+// # TEST: audit protocol conformance and operator emission
+// # EXPECT: pass
+
+use std
+
+protocol Shape
+	area, int
+
+struct Rect
+	width int
+	height int
+
+impl Rect as Shape
+	area, int
+		return self.width * self.height
+
+impl Rect
+	operator[==] left;Rect right;Rect, bool
+		return left.width == right.width and left.height == right.height
+
+sameShape left;Rect right;Rect, bool
+	return left == right
+
+main, int
+	a = Rect[3 4]
+	b = Rect[3 4]
+	if sameShape a b
+		return a.area
+	return 0

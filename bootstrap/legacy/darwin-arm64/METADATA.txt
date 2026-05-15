@@ -1,0 +1,6 @@
+name: legacy-darwin-arm64
+platform: darwin-arm64
+source: dist/drastc-darwin-arm64 from the pre-package build era
+sha256: f147f2bebe62f7a0226d721a88c04c781c300e7325fcda8bcb87d20deaed534c
+purpose: absolute last-resort seed for rebuilding Drast from source
+policy: never delete this binary; add newer seeds in releases/ instead

@@ -13,10 +13,19 @@
       "include": "#strings"
     },
     {
-      "include": "#numbers"
+      "include": "#imports"
     },
     {
       "include": "#declarations"
+    },
+    {
+      "include": "#matchArms"
+    },
+    {
+      "include": "#enumVariants"
+    },
+    {
+      "include": "#numbers"
     },
     {
       "include": "#keywords"
@@ -60,10 +69,6 @@
     "strings": {
       "patterns": [
         {
-          "name": "constant.character.literal.drast",
-          "match": "'(?:\\\\[nt\\\\'\"0r]|[^'\\\\\\n])'"
-        },
-        {
           "name": "string.quoted.single.forced.drast",
           "begin": "\\b(s)(')",
           "beginCaptures": {
@@ -85,6 +90,10 @@
               "include": "#escapes"
             }
           ]
+        },
+        {
+          "name": "constant.character.literal.drast",
+          "match": "'(?:\\\\[nt\\\\'\"0r]|[^'\\\\\\n])'"
         },
         {
           "name": "string.quoted.single.drast",
@@ -120,23 +129,11 @@
         }
       ]
     },
-    "numbers": {
-      "patterns": [
-        {
-          "name": "constant.numeric.float.drast",
-          "match": "\\b\\d+\\.\\d+\\b"
-        },
-        {
-          "name": "constant.numeric.integer.drast",
-          "match": "\\b\\d+\\b"
-        }
-      ]
-    },
-    "declarations": {
+    "imports": {
       "patterns": [
         {
           "name": "meta.import.drast",
-          "match": "^\\s*(use)\\b(?:\\s+(file)\\b)?(?:\\s+([^\\n]*?))?(?=\\s*(?://|$))",
+          "match": "^\\s*(use)\\b(?:\\s+(file)\\b)?(?:\\s+((?:'[^']+'|\"[^\"]+\"|[^\\s]+)))?(?:\\s+(as)\\s+([A-Za-z_]\\w*))?",
           "captures": {
             "1": {
               "name": "keyword.control.import.drast"
@@ -146,12 +143,22 @@
             },
             "3": {
               "name": "string.unquoted.import-path.drast"
+            },
+            "4": {
+              "name": "keyword.control.as.drast"
+            },
+            "5": {
+              "name": "entity.name.namespace.drast"
             }
           }
-        },
+        }
+      ]
+    },
+    "declarations": {
+      "patterns": [
         {
           "name": "meta.type.declaration.drast",
-          "match": "^\\s*(?:(fileprivate)\\s+)?(struct|enum|protocol|impl)\\s+([A-Za-z_]\\w*(?:\\.[A-Za-z_]\\w*)?)(?:\\s+(as)\\s+([A-Za-z_]\\w*))?",
+          "match": "^\\s*(?:(fileprivate)\\s+)?(struct|enum|protocol)\\s+([A-Za-z_]\\w*(?:\\.[A-Za-z_]\\w*)?)(`)(\\[)([^\\]]+)(\\])?",
           "captures": {
             "1": {
               "name": "storage.modifier.fileprivate.drast"
@@ -163,16 +170,55 @@
               "name": "entity.name.type.drast"
             },
             "4": {
-              "name": "keyword.control.as.drast"
+              "name": "punctuation.definition.generic.begin.drast"
             },
             "5": {
+              "name": "punctuation.section.brackets.begin.drast"
+            },
+            "6": {
+              "name": "entity.name.type.parameter.drast"
+            },
+            "7": {
+              "name": "punctuation.section.brackets.end.drast"
+            }
+          }
+        },
+        {
+          "name": "meta.type.declaration.drast",
+          "match": "^\\s*(?:(fileprivate)\\s+)?(struct|enum|protocol)\\s+([A-Za-z_]\\w*(?:\\.[A-Za-z_]\\w*)?)",
+          "captures": {
+            "1": {
+              "name": "storage.modifier.fileprivate.drast"
+            },
+            "2": {
+              "name": "storage.type.declaration.drast"
+            },
+            "3": {
+              "name": "entity.name.type.drast"
+            }
+          }
+        },
+        {
+          "name": "meta.impl.declaration.drast",
+          "match": "^\\s*(impl)\\s+([A-Za-z_]\\w*(?:\\.[A-Za-z_]\\w*)?)(?:\\s+(as)\\s+([A-Za-z_]\\w*(?:\\.[A-Za-z_]\\w*)?))?",
+          "captures": {
+            "1": {
+              "name": "storage.type.declaration.impl.drast"
+            },
+            "2": {
+              "name": "entity.name.type.drast"
+            },
+            "3": {
+              "name": "keyword.control.as.drast"
+            },
+            "4": {
               "name": "entity.other.inherited-class.drast"
             }
           }
         },
         {
           "name": "meta.operator.declaration.drast",
-          "match": "^\\s*(?:(private|preview)\\s+)?(operator)(\\[[^\\]]+\\])",
+          "match": "^\\s*(?:(private|preview)\\s+)?(operator)(\\[)([^\\]]+)(\\])",
           "captures": {
             "1": {
               "name": "storage.modifier.visibility.drast"
@@ -181,31 +227,64 @@
               "name": "keyword.declaration.operator.drast"
             },
             "3": {
+              "name": "punctuation.section.brackets.begin.drast"
+            },
+            "4": {
               "name": "entity.name.function.operator.drast"
+            },
+            "5": {
+              "name": "punctuation.section.brackets.end.drast"
             }
           }
         },
         {
           "name": "meta.function.declaration.drast",
-          "match": "^\\s*(?:(private|preview)\\s+)?([A-Za-z_]\\w*)(?=(?:`\\[[^\\]]*\\])?(?:(?![=]).)*(?:,|$))",
+          "match": "^\\s*(?:(private|preview)\\s+)?([A-Za-z_]\\w*)(`\\[[^\\]]+\\])?(?=\\s*(?:[A-Za-z_]\\w*;|,|$))",
           "captures": {
             "1": {
               "name": "storage.modifier.visibility.drast"
             },
             "2": {
               "name": "entity.name.function.drast"
+            },
+            "3": {
+              "name": "entity.name.type.parameter.drast"
+            }
+          }
+        },
+        {
+          "name": "meta.struct.field.drast",
+          "match": "^\\s*(?:(private|preview)\\s+)?([A-Za-z_]\\w*)\\s+((?:maybe\\s+)?(?:[A-Za-z_]\\w*(?:\\.[A-Za-z_]\\w*)?|\\{[^}]+\\}|~?[A-Za-z_]\\w*`?|@\\[[^\\]]+\\]|map`\\[[^\\]]+\\]|tuple\\s+.+))(;)?\\s*$",
+          "captures": {
+            "1": {
+              "name": "storage.modifier.visibility.drast"
+            },
+            "2": {
+              "name": "variable.other.member.drast"
+            },
+            "3": {
+              "name": "support.type.drast"
+            },
+            "4": {
+              "name": "punctuation.separator.semicolon.drast"
             }
           }
         },
         {
           "name": "variable.parameter.drast",
-          "match": "\\b([A-Za-z_]\\w*)(;)(?=[A-Za-z_~@{`])",
+          "match": "\\b([A-Za-z_]\\w*)(;)(?=[A-Za-z_~@{`])([^\\s,;\\]]+)?(?:;([^\\s,]+))?",
           "captures": {
             "1": {
               "name": "variable.parameter.drast"
             },
             "2": {
               "name": "punctuation.separator.parameter-type.drast"
+            },
+            "3": {
+              "name": "support.type.drast"
+            },
+            "4": {
+              "name": "constant.other.default-value.drast"
             }
           }
         },
@@ -223,11 +302,51 @@
         }
       ]
     },
+    "matchArms": {
+      "patterns": [
+        {
+          "name": "meta.match.arm.enum.drast",
+          "match": "^\\s*(?:([A-Za-z_]\\w*(?:\\.[A-Za-z_]\\w*)?)|(\\.[A-Za-z_]\\w*))\\b(?=\\s*(?:[A-Za-z_]\\w*\\s*)*$)",
+          "captures": {
+            "1": {
+              "name": "variable.other.enummember.drast"
+            },
+            "2": {
+              "name": "variable.other.enummember.shorthand.drast"
+            }
+          }
+        }
+      ]
+    },
+    "enumVariants": {
+      "patterns": [
+        {
+          "name": "variable.other.enummember.qualified.drast",
+          "match": "\\b([A-Z][A-Za-z_0-9]*(?:\\.[A-Z][A-Za-z_0-9]*)+)\\b"
+        },
+        {
+          "name": "variable.other.enummember.shorthand.drast",
+          "match": "(?<![A-Za-z_0-9])\\.[A-Z][A-Za-z_0-9]*\\b"
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.float.drast",
+          "match": "\\b\\d+\\.\\d+\\b"
+        },
+        {
+          "name": "constant.numeric.integer.drast",
+          "match": "\\b\\d+\\b"
+        }
+      ]
+    },
     "keywords": {
       "patterns": [
         {
           "name": "keyword.control.drast",
-          "match": "\\b(?:use|return|if|elif|else|while|for|break|continue|in|to|until|step|match|default|with|as|try|catch)\\b"
+          "match": "\\b(?:use|return|if|elif|else|while|for|break|continue|in|to|until|step|match|default|with|as|try|catch|comptime)\\b"
         },
         {
           "name": "storage.type.declaration.drast",
@@ -235,7 +354,7 @@
         },
         {
           "name": "storage.modifier.drast",
-          "match": "\\b(?:const|private|preview|fileprivate|discard)\\b"
+          "match": "\\b(?:const|private|preview|fileprivate|discard|throws)\\b"
         },
         {
           "name": "storage.type.constructor.drast",
@@ -247,7 +366,15 @@
         },
         {
           "name": "keyword.operator.word.drast",
-          "match": "\\b(?:iseq|isne|islt|isgt|islteq|isgteq|islte|isgte|and|or|not|shl|shr|bor|band|bxor)\\b"
+          "match": "\\b(?:iseq|isne|islt|isgt|islteq|isgteq|islte|isgte|and|or|not)\\b"
+        },
+        {
+          "name": "invalid.deprecated.fn.drast",
+          "match": "\\bfn\\b"
+        },
+        {
+          "name": "invalid.illegal.unsupported-operator.drast",
+          "match": "\\b(?:shl|shr|bor|band|bxor)\\b"
         }
       ]
     },
@@ -258,8 +385,12 @@
           "match": "\\b(?:int|Int|float|Float|double|Double|bool|Bool|char|Char|string|String|usize)\\b"
         },
         {
-          "name": "support.type.generic.drast",
+          "name": "support.type.generic.map.drast",
           "match": "\\bmap(?=`\\[)"
+        },
+        {
+          "name": "support.type.drast",
+          "match": "(?<=\\s|[;,{\\[~@])(?:[A-Z][A-Za-z_0-9]*(?:\\.[A-Z][A-Za-z_0-9]*)?)(?=\\b|`|\\])"
         }
       ]
     },
@@ -267,7 +398,7 @@
       "patterns": [
         {
           "name": "support.function.runtime.drast",
-          "match": "\\b(?:print|println|printf|getInput|arg|args|readFile|writeFile|fileExists|toString|parseInt|parseFloat|charCode|isAlpha|isDigit|isAlnum|isWhitespace|isUpper|isLower|errorCount|hasErrors|reportError|clearErrors)\\b"
+          "match": "\\b(?:print|println|printf|getInput|arg|args|readFile|writeFile|fileExists|toString|parseInt|parseFloat|charCode|isAlpha|isDigit|isAlnum|isWhitespace|isUpper|isLower|errorCount|hasErrors|reportError|clearErrors|emitErrors|playMP3)\\b"
         },
         {
           "name": "support.function.member.drast",
@@ -277,6 +408,10 @@
               "name": "punctuation.accessor.drast"
             }
           }
+        },
+        {
+          "name": "support.type.cpp.namespace.drast",
+          "match": "\\bstd::[A-Za-z_]\\w*\\b"
         }
       ]
     },
@@ -311,7 +446,15 @@
           "match": "~"
         },
         {
-          "name": "keyword.operator.pointer-or-generic.drast",
+          "name": "keyword.operator.dereference.drast",
+          "match": "`(?=[A-Za-z_])"
+        },
+        {
+          "name": "punctuation.definition.generic.drast",
+          "match": "`(?=\\[)"
+        },
+        {
+          "name": "keyword.operator.pointer.drast",
           "match": "`"
         }
       ]

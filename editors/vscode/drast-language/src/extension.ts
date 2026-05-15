@@ -48,6 +48,8 @@ const keywordDescriptions: Record<string, string> = {
   self: 'Current method receiver.',
   variadic: 'Type constructor for std::initializer_list.',
   tuple: 'Type and expression marker for std::tuple.',
+  comptime: 'Compile-time block marker used by newer Drast tooling.',
+  throws: 'Function effect marker for fallible signatures in newer Drast tooling.',
   iseq: 'Word equality operator.',
   isne: 'Word inequality operator.',
   islt: 'Word less-than operator.',
@@ -69,6 +71,41 @@ const keywordDescriptions: Record<string, string> = {
 
 const snippetSpecs = [
   {
+    label: 'main',
+    insertText: 'main, int\n\t${1:return 0}',
+    detail: 'Drast entry point snippet'
+  },
+  {
+    label: 'function',
+    insertText: '${1:name} ${2:param};${3:int}, ${4:int}\n\t${5:return ${2}}',
+    detail: 'Drast function snippet'
+  },
+  {
+    label: 'struct',
+    insertText: 'struct ${1:Name}\n\t${2:field} ${3:int}',
+    detail: 'Drast struct snippet'
+  },
+  {
+    label: 'enum',
+    insertText: 'enum ${1:Name}\n\t${2:First}; ${3:Second}; ${4:Third};',
+    detail: 'Drast enum snippet'
+  },
+  {
+    label: 'impl',
+    insertText: 'impl ${1:Type}\n\t${2:method}, ${3:void}\n\t\t${4:nothing}',
+    detail: 'Drast impl snippet'
+  },
+  {
+    label: 'protocol',
+    insertText: 'protocol ${1:Name}\n\t${2:method}, ${3:void}',
+    detail: 'Drast protocol snippet'
+  },
+  {
+    label: 'match',
+    insertText: 'match ${1:value}\n\t${2:Pattern}\n\t\t${3:nothing}\n\tdefault\n\t\t${4:nothing}',
+    detail: 'Drast match snippet'
+  },
+  {
     label: 'if',
     insertText: 'if ${1:condition}\n\t${2:body}',
     detail: 'Drast if snippet'
@@ -82,6 +119,16 @@ const snippetSpecs = [
     label: 'for',
     insertText: 'for ${1:item} in ${2:collection}\n\t${3:body}',
     detail: 'Drast for snippet'
+  },
+  {
+    label: 'try catch',
+    insertText: 'try\n\t${1:nothing}\ncatch ;${2:error}\n\t${3:println ${2}}',
+    detail: 'Drast try/catch snippet'
+  },
+  {
+    label: 'comptime',
+    insertText: 'comptime\n\t${1:nothing}',
+    detail: 'Drast comptime snippet'
   },
   {
     label: 'nothing',

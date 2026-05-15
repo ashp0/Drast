@@ -1,0 +1,24 @@
+// # TEST: audit reference, pointer, and heap shared pointer emission
+// # EXPECT: pass
+
+use std
+
+struct Node
+	value int
+	label string
+
+appendBang text;~string
+	text += s'!'
+
+readNode node;~Node, int
+	return node.value
+
+main, int
+	label = s'root'
+	appendBang label
+	pointer = ~label
+	copied = `pointer
+	stack = Node[7 copied]
+	heap = @[Node 9 copied]
+	alias = heap
+	return readNode stack + alias.value

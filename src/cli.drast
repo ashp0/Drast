@@ -1,0 +1,90 @@
+use std
+use platform
+use build_system
+use project_templates
+
+cliMain, int
+	if args.length islteq 1
+		printHelp
+		return 0
+	command = arg 1
+	if command == 'help' or command == '--help' or command == '-h'
+		printHelp
+		return 0
+	if command == 'init'
+		return handleInit
+	if command == 'build'
+		target = optionalArg 2
+		return buildCurrentProject target false
+	if command == 'run'
+		target = optionalArg 2
+		return buildCurrentProject target true
+	return buildCurrentProject command true
+
+optionalArg index;int, string
+	if args.length isgt index
+		return arg index
+	return ''
+
+printHelp
+	println [
+		'Usage: drast <command>',
+		'',
+		'Commands:',
+		'  init [ProjectName]  create a new Drast project',
+		'  build [target]      build the current package target',
+		'  run [target]        build and run the current package target',
+		'  <target>            build and run the named target',
+		'  help                print this help',
+		'',
+		'Projects are configured by package.txt. xmake is used internally for C++ builds.'
+	]
+
+handleInit, int
+	projectName = ''
+	if args.length isgt 2
+		projectName = arg 2
+	else
+		projectName = getInput 'Project name: '
+	projectName = projectName.trim
+	if projectName.length == 0
+		println 'Project name is required.'
+		return 1
+	return createProject projectName
+
+createProject projectName;string, int
+	cwd = platformCurrentDir
+	projectPath = platformPathJoin cwd projectName
+	if platformIsDirectory projectPath
+		message = 'Project already exists: ' + projectPath
+		println message
+		return 1
+	if not platformEnsureDir projectPath
+		message = 'Failed to create project directory: ' + projectPath
+		println message
+		return 1
+	mainPath = platformPathJoin projectPath 'main.drast'
+	packagePath = platformPathJoin projectPath 'package.txt'
+	ignorePath = platformPathJoin projectPath '.gitignore'
+	if not platformWriteFile mainPath defaultMainContent
+		message = 'Failed to write ' + mainPath
+		println message
+		return 1
+	packageContent = defaultPackageContent projectName
+	if not platformWriteFile packagePath packageContent
+		message = 'Failed to write ' + packagePath
+		println message
+		return 1
+	if not platformWriteFile ignorePath defaultProjectGitignore
+		message = 'Failed to write ' + ignorePath
+		println message
+		return 1
+	message = 'Created Drast package: ' + projectName
+	println message
+	message = 'Location: ' + projectPath
+	println message
+	println 'Next:'
+	message = '  cd ' + projectName
+	println message
+	println '  drast run'
+	return 0

@@ -1,0 +1,226 @@
+use std
+use platform
+
+struct BuildTarget
+	name string
+	kind string
+	entry string
+	output string
+	generated string
+	cxx string
+	dependencies {string}
+	includes {string}
+	cxxFiles {string}
+	links {string}
+	linkDirs {string}
+	defines {string}
+	cxxFlags {string}
+	ldFlags {string}
+	prebuild {string}
+	postbuild {string}
+	commands {string}
+
+struct PackageManifest
+	path string
+	root string
+	name string
+	version string
+	defaultTarget string
+	targets {BuildTarget}
+
+impl BuildTarget
+	init
+		self.name = ''
+		self.kind = 'binary'
+		self.entry = ''
+		self.output = ''
+		self.generated = ''
+		self.cxx = 'c++17'
+
+impl PackageManifest
+	init
+		self.path = ''
+		self.root = ''
+		self.name = ''
+		self.version = '0.1.0'
+		self.defaultTarget = ''
+
+parsePackageFile path;string, PackageManifest
+	manifest PackageManifest;
+	manifest.path = platformNormalizePath path
+	manifest.root = platformPathDirname manifest.path
+	if not platformFileExists manifest.path
+		reportError manifest.path 1 1 'package.txt not found'
+		return manifest
+	content = platformReadFile manifest.path
+	lines = content.split s'\n'
+	current BuildTarget;
+	hasCurrent = false
+	lineNo = 0
+	for rawLine in lines
+		lineNo += 1
+		line = rawLine.trim
+		if line.length == 0
+			continue
+		if line.startsWith s'#' or line.startsWith '//'
+			continue
+		parts = line.splitWhitespace
+		if parts.length == 0
+			continue
+		key = parts{0}
+		value = manifestRestAfterFirstWord line
+		if key == 'package'
+			if value.length == 0
+				reportError manifest.path lineNo 1 'package requires a name'
+			else
+				manifest.name = value
+		elif key == 'version'
+			if value.length == 0
+				reportError manifest.path lineNo 1 'version requires a value'
+			else
+				manifest.version = value
+		elif key == 'default'
+			if value.length == 0
+				reportError manifest.path lineNo 1 'default requires a target name'
+			else
+				manifest.defaultTarget = value
+		elif key == 'target'
+			if hasCurrent
+				manifestAppendTarget manifest current lineNo
+			current = BuildTarget[]
+			hasCurrent = true
+			if value.length == 0
+				reportError manifest.path lineNo 1 'target requires a name'
+			else
+				current.name = value
+		else
+			if not hasCurrent
+				message = 'field outside target: ' + key
+				reportError manifest.path lineNo 1 message
+			else
+				applyTargetField current key value manifest.path lineNo
+	if hasCurrent
+		manifestAppendTarget manifest current lineNo
+	validateManifest manifest
+	return manifest
+
+manifestRestAfterFirstWord text;string, string
+	i = 0
+	while i islt text.length
+		ch = text{i}
+		if ch == ' ' or ch == '\t'
+			break
+		i += 1
+	while i islt text.length
+		ch = text{i}
+		if ch == ' ' or ch == '\t'
+			i += 1
+		else
+			break
+	if i isgteq text.length
+		return ''
+	return text.substring i text.length
+
+manifestAppendTarget manifest;~PackageManifest target;BuildTarget lineNo;int
+	if target.name.length == 0
+		return
+	if packageTargetIndex manifest target.name isgteq 0
+		message = 'duplicate target: ' + target.name
+		reportError manifest.path lineNo 1 message
+		return
+	manifest.targets += target
+
+applyTargetField target;~BuildTarget key;string value;string file;string lineNo;int
+	if value.length == 0 and key isne 'command'
+		message = 'missing value for field: ' + key
+		reportError file lineNo 1 message
+		return
+	if key == 'kind'
+		target.kind = value
+	elif key == 'entry'
+		target.entry = value
+	elif key == 'output'
+		target.output = value
+	elif key == 'generated'
+		target.generated = value
+	elif key == 'cxx'
+		target.cxx = value
+	elif key == 'depends'
+		appendWords target.dependencies value
+	elif key == 'include'
+		target.includes += value
+	elif key == 'cxxfile'
+		target.cxxFiles += value
+	elif key == 'link'
+		target.links += value
+	elif key == 'linkdir'
+		target.linkDirs += value
+	elif key == 'define'
+		target.defines += value
+	elif key == 'cxxflag'
+		target.cxxFlags += value
+	elif key == 'ldflag'
+		target.ldFlags += value
+	elif key == 'prebuild'
+		target.prebuild += value
+	elif key == 'postbuild'
+		target.postbuild += value
+	elif key == 'command'
+		target.commands += value
+	else
+		message = 'unknown target field: ' + key
+		reportError file lineNo 1 message
+
+appendWords values;~{string} text;string
+	parts = text.splitWhitespace
+	for part in parts
+		if part.length isgt 0
+			values += part
+
+validateManifest manifest;PackageManifest
+	if manifest.name.length == 0
+		reportError manifest.path 1 1 'package name is required'
+	if manifest.targets.length == 0
+		reportError manifest.path 1 1 'at least one target is required'
+	if manifest.defaultTarget.length == 0 and manifest.targets.length isgt 0
+		reportError manifest.path 1 1 'default target is required'
+	if manifest.defaultTarget.length isgt 0 and packageTargetIndex manifest manifest.defaultTarget islt 0
+		message = 'default target not found: ' + manifest.defaultTarget
+		reportError manifest.path 1 1 message
+	for target in manifest.targets
+		validateTarget manifest target
+
+validateTarget manifest;PackageManifest target;BuildTarget
+	if target.kind == 'binary'
+		if target.entry.length == 0
+			message = 'binary target missing entry: ' + target.name
+			reportError manifest.path 1 1 message
+	elif target.kind == 'command'
+		if target.commands.length == 0
+			message = 'command target missing command: ' + target.name
+			reportError manifest.path 1 1 message
+	elif target.kind == 'library' or target.kind == 'embed'
+		message = 'target kind is reserved but not implemented yet: ' + target.kind
+		reportError manifest.path 1 1 message
+	else
+		message = 'unknown target kind: ' + target.kind
+		reportError manifest.path 1 1 message
+	for dep in target.dependencies
+		if packageTargetIndex manifest dep islt 0
+			message = 'unknown dependency ' + dep + ' for target ' + target.name
+			reportError manifest.path 1 1 message
+
+packageTargetIndex manifest;PackageManifest name;string, int
+	i = 0
+	while i islt manifest.targets.length
+		if manifest.targets{i}.name == name
+			return i
+		i += 1
+	return -1
+
+packageTarget manifest;PackageManifest name;string, BuildTarget
+	idx = packageTargetIndex manifest name
+	if idx isgteq 0
+		return manifest.targets{idx}
+	empty BuildTarget;
+	return empty

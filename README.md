@@ -1,80 +1,57 @@
 # Drast
 
-Drast is a small self-hosted compiler toolchain project for a custom language with examples, a lexer, parser, AST model, and C++ code generation components.
-
-## Overview
-
-- `src/` contains the compiler implementation in `.drast`.
-- `runtime/` contains runtime support headers.
-- `Examples/` contains sample `.drast` programs you can run or use for testing.
-- `tests/` contains compiler regression fixtures.
-- `SYNTAX.md` documents the implemented language syntax.
+Drast is a small self-hosted programming language toolchain. The compiler is written in Drast, transpiles to C++, and now builds through a Drast-native package workflow.
 
 ## Build
 
-To build the project, run:
+Drast projects are configured with `package.txt`. From this repository root:
 
 ```sh
-xmake
+./bootstrap.sh --check
+./.drast/build/bin/drast build
+./.drast/build/bin/drast build test
 ```
 
-This bootstraps the compiler from the prebuilt seed binary, transpiles the Drast source to generated C++, and compiles the primary `transpiler` target.
+The CLI invokes xmake internally for C++ compilation; users should not call xmake directly for normal Drast builds.
 
-Useful targets:
+## CLI
 
 ```sh
-xmake build bootstrap
-xmake build self-host
-xmake build test
-xmake project -k xcode
+drast init [ProjectName]
+drast build [target]
+drast run [target]
+drast <target>
+drast help
 ```
 
-## Run examples
+Generated C++ is written under `.drast/build/generated/<target>/` and marked read-only so hand edits are not lost silently on the next build.
 
-Use the compiler or inspect sample programs from the `Examples/` folder. For example:
+## Package Example
 
-```sh
-xmake run -w . transpiler Examples/hello.drast
+```txt
+package Hello
+version 0.1.0
+default hello
+
+target hello
+	kind binary
+	entry main.drast
+	output .drast/build/bin/hello
+	generated .drast/build/generated/hello
+	include .
+	cxx c++17
 ```
 
-## Example code snippets
+## Bootstrap And Releases
 
-### Hello world
+Self-hosting recovery is documented in [bootstrap/CHAIN.md](bootstrap/CHAIN.md). The pinned legacy seed lives in `bootstrap/legacy/darwin-arm64/` and release binaries live in `releases/<version>/<platform>/`.
 
-```drast
-print 'Hello, Drast!'
-```
+CI rebuilds Drast on every main-branch merge and archives the resulting binary. Tagged `v*` builds publish release assets to GitHub Releases.
 
-### Arithmetic and output
+## Repository Map
 
-```drast
-a = 5
-b = 10
-print a + b
-```
-
-### Conditionals
-
-```drast
-value = 7
-if value isgt 5
-  print 'Greater than five'
-else
-  print 'Five or less'
-```
-
-## Inspiration
-* The goal of Drast is to minimize the amount of times the shift-key is pressed when programming. I do not like having to parse a nice block of code, needing to type the right symbol and being slowed down by it. Additionally, I never liked the C++ syntax, full of these unnecessary symbols that add more friction to coding. And not just the C++ syntax, many other languages just add so many redundant symbols, it is absurd!
-* This programming language is going to be one I will use for a very long time in the future (although the future of coding is rough), I still would type using it. The long-term goals for this are direct C++ interoperability; so while other co-workers write in the ugly and bloated C++, I can swiftly write in Drast and at the end, transpile it down to the ugly C++ syntax and it is expected that everything will work. 
-* For right now, the goal is to get Drast to transpile itself which is almost near. After that, we can simply do a 1:1 refactoring of C++ to Drast code and all the features of Drast_CPP will be automatically included in Drast_Drast.
-
-## Where to find more examples
-
-View the full set of sample programs in the repository:
-
-- https://github.com/ashp0/Drast/tree/main/Examples
-
-## Notes
-
-- `src/main.drast` is the compiler entry point.
-- `runtime/drast_runtime.hpp` contains runtime support types and helpers.
+- `src/` contains the compiler, CLI, package parser, and build system.
+- `runtime/` contains runtime support used by generated C++.
+- `tests/` contains compiler fixtures plus CLI/package integration checks.
+- `Examples/` contains sample Drast programs.
+- `SYNTAX.md` documents the implemented language syntax.

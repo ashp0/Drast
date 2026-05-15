@@ -1,0 +1,30 @@
+// # TEST: audit functions and collection parameter emission
+// # EXPECT: pass
+
+use std
+
+struct Sample
+	name string
+	values {int}
+
+scoreName name;string, int
+	return name.length
+
+sumValues values;{int}, int
+	total = 0
+	for value in values
+		total += value
+	return total
+
+combine sample;Sample suffix;string, string
+	text = sample.name
+	text += suffix
+	return text
+
+main, int
+	values = {1 2 3 4}
+	sample = Sample[s'alpha' values]
+	total = sumValues values
+	total += scoreName sample.name
+	label = combine sample s'-done'
+	return total + label.length

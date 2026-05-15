@@ -25,6 +25,15 @@ impl Parser
 				ex = self.parseExpression
 				self.consumeStatementEnd
 				targetCode = self.valueCode target
+
+				// Experimenting with `\` operator for new lines.
+				// if
+				// \ op.kind == TokenKind.Equal and
+				// \ target.kind == 'Identifier' and
+				// \ not self.localTypes.contains target.text
+				// 	nothing
+
+
 				if op.kind == TokenKind.Equal and target.kind == 'Identifier' and not self.localTypes.contains target.text
 					t = ex.typeText
 					if t.length == 0
@@ -169,6 +178,14 @@ impl Parser
 
 	private isTypeStartKind kind;TokenKind, bool
 		return kind == TokenKind.Identifier or kind == TokenKind.LeftBrace or kind == TokenKind.Tilde or kind == TokenKind.AtLeftBracket or kind == TokenKind.Variadic or kind == TokenKind.Tuple
+
+		// return
+		// \ kind == TokenKind.Identifier or
+		// \ kind == TokenKind.LeftBrace or
+		// \ kind == TokenKind.Tilde or
+		// \ kind == TokenKind.AtLeftBracket or
+		// \ kind == TokenKind.Variadic or
+		// \ kind == TokenKind.Tuple
 
 
 impl Codegen

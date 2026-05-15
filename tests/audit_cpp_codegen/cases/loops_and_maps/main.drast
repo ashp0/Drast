@@ -1,0 +1,25 @@
+// # TEST: audit loops and map helper emission
+// # EXPECT: pass
+
+use std
+
+countWords words;{string}, int
+	counts map`[string int];
+	for word in words
+		if counts.contains word
+			current = counts.get word 0
+			counts.set word current + 1
+		else
+			counts.set word 1
+	keys = counts.keys
+	total = 0
+	for key in keys
+		total += counts.get key 0
+	return total
+
+main, int
+	words = {s'one' s'two' s'one' s'three'}
+	total = countWords words
+	for index in 0 until 3
+		total += index
+	return total

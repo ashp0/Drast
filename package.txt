@@ -1,0 +1,16 @@
+package Drast
+version 0.2.0
+default drast
+
+target drast
+	kind binary
+	entry src/main.drast
+	output .drast/build/bin/drast
+	generated .drast/build/generated/drast
+	include .
+	cxx c++17
+
+target test
+	kind command
+	depends drast
+	command tests/run_tests.sh {output:drast} {root}
