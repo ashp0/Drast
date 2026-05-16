@@ -1,0 +1,5 @@
+// E0022 reject: globals may not rely on inference.
+counter = 0
+
+main, i32
+	return counter

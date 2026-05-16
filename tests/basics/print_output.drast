@@ -1,7 +1,7 @@
 // # TEST: print and println runtime calls
 // # EXPECT: pass
 
-use std
+use drast
 
 main, int
 	print s'hello'

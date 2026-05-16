@@ -1,7 +1,7 @@
 // # TEST: existing use case subdir main.drast
 // # EXPECT: pass
 
-use std
+use drast
 use lib/math
 
 main, int

@@ -16,6 +16,10 @@ import {
 	Position,
 	ProposedFeatures,
 	Range,
+	SemanticTokens,
+	SemanticTokensBuilder,
+	SemanticTokensParams,
+	SemanticTokensRangeParams,
 	TextDocumentPositionParams,
 	TextDocumentSyncKind,
 	TextDocuments,
@@ -167,6 +171,23 @@ const wordOperators = [
 
 const unsupportedWordOperators = ['shl', 'shr', 'bor', 'band', 'bxor'];
 
+const semanticTokenTypes = [
+	'function',
+	'method',
+	'parameter',
+	'variable',
+	'property',
+	'enumMember',
+	'type',
+	'namespace'
+] as const;
+
+type SemanticTokenType = typeof semanticTokenTypes[number];
+
+const semanticTokenTypeIndexes = new Map<SemanticTokenType, number>(
+	semanticTokenTypes.map((tokenType, index) => [tokenType, index])
+);
+
 const keywordDescriptions: Record<string, string> = {
 	use: 'Import a Drast module, enable the runtime, or emit a C++ include.',
 	const: 'Marks a top-level global as C++ const.',
@@ -305,8 +326,16 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
 			},
 			hoverProvider: true,
 			definitionProvider: true,
+			semanticTokensProvider: {
+				legend: {
+					tokenTypes: [...semanticTokenTypes],
+					tokenModifiers: []
+				},
+				full: true,
+				range: true
+			},
 			documentFormattingProvider: true,
-			documentRangeFormattingProvider: true
+			documentRangeFormattingProvider: false
 		}
 	};
 });
@@ -359,6 +388,16 @@ connection.onCompletion(async (params: CompletionParams): Promise<CompletionItem
 		...localCompletionItems(document, params.position),
 		...symbolCompletionItems(params.textDocument.uri)
 	];
+});
+
+connection.languages.semanticTokens.on(async (params: SemanticTokensParams): Promise<SemanticTokens> => {
+	await ensureWorkspaceScanned();
+	return semanticTokensForDocument(params.textDocument.uri);
+});
+
+connection.languages.semanticTokens.onRange(async (params: SemanticTokensRangeParams): Promise<SemanticTokens> => {
+	await ensureWorkspaceScanned();
+	return semanticTokensForDocument(params.textDocument.uri, params.range);
 });
 
 connection.onHover(async (params: TextDocumentPositionParams): Promise<Hover | null> => {
@@ -420,31 +459,17 @@ connection.onDefinition(async (params: TextDocumentPositionParams): Promise<Loca
 	return Location.create(symbol.uri, symbol.selectionRange);
 });
 
-connection.onDocumentFormatting((params: DocumentFormattingParams): TextEdit[] => {
-	const document = documents.get(params.textDocument.uri);
+connection.onDocumentFormatting((_params: DocumentFormattingParams): TextEdit[] => {
+	const document = documents.get(_params.textDocument.uri);
 	if (!document) {
 		return [];
 	}
 
-	return [TextEdit.replace(fullDocumentRange(document), formatDocumentText(document.getText(), params.options.tabSize))];
+	return formatDocumentEdits(document);
 });
 
-connection.onDocumentRangeFormatting((params: DocumentRangeFormattingParams): TextEdit[] => {
-	const document = documents.get(params.textDocument.uri);
-	if (!document) {
-		return [];
-	}
-
-	const formatted = formatDocumentText(document.getText(), params.options.tabSize).split(/\r?\n/);
-	const originalLines = document.getText().split(/\r?\n/);
-	const startLine = params.range.start.line;
-	const endLine = params.range.end.character === 0 ? Math.max(startLine, params.range.end.line - 1) : params.range.end.line;
-	const range = Range.create(
-		Position.create(startLine, 0),
-		Position.create(endLine, originalLines[endLine]?.length ?? 0)
-	);
-	const replacement = formatted.slice(startLine, endLine + 1).join('\n');
-	return [TextEdit.replace(range, replacement)];
+connection.onDocumentRangeFormatting((_params: DocumentRangeFormattingParams): TextEdit[] => {
+	return [];
 });
 
 documents.listen(connection);
@@ -635,6 +660,280 @@ function uniqueCompletionItems(items: CompletionItem[]): CompletionItem[] {
 		}
 	}
 	return out;
+}
+
+interface SemanticTokenCandidate {
+	line: number;
+	start: number;
+	length: number;
+	type: SemanticTokenType;
+}
+
+function semanticTokensForDocument(uri: string, range?: Range): SemanticTokens {
+	const document = documents.get(uri);
+	if (!document) {
+		return { data: [] };
+	}
+
+	const builder = new SemanticTokensBuilder();
+	const candidates = collectSemanticTokenCandidates(document, range)
+		.sort((left, right) => left.line - right.line || left.start - right.start || left.length - right.length);
+	let previousLine = -1;
+	let previousEnd = 0;
+
+	for (const candidate of candidates) {
+		const tokenType = semanticTokenTypeIndexes.get(candidate.type);
+		if (tokenType === undefined || candidate.length <= 0) {
+			continue;
+		}
+
+		if (candidate.line === previousLine && candidate.start < previousEnd) {
+			continue;
+		}
+
+		builder.push(candidate.line, candidate.start, candidate.length, tokenType, 0);
+		previousLine = candidate.line;
+		previousEnd = candidate.start + candidate.length;
+	}
+
+	return builder.build();
+}
+
+function collectSemanticTokenCandidates(document: TextDocument, range?: Range): SemanticTokenCandidate[] {
+	const text = document.getText();
+	const lines = text.split(/\r?\n/);
+	const candidates: SemanticTokenCandidate[] = [];
+	const seen = new Set<string>();
+	const add = (line: number, start: number, length: number, type: SemanticTokenType) => {
+		if (line < 0 || line >= lines.length || start < 0 || !semanticTokenIntersectsRange(line, start, length, range)) {
+			return;
+		}
+
+		const lineLength = lines[line]?.length ?? 0;
+		if (length <= 0 || start + length > lineLength) {
+			return;
+		}
+
+		const key = `${line}:${start}:${length}`;
+		if (seen.has(key)) {
+			return;
+		}
+
+		seen.add(key);
+		candidates.push({ line, start, length, type });
+	};
+
+	for (const symbol of documentSymbols.get(document.uri) ?? []) {
+		const tokenType = semanticTokenTypeForSymbol(symbol);
+		if (!tokenType || symbol.uri !== document.uri) {
+			continue;
+		}
+
+		add(
+			symbol.selectionRange.start.line,
+			symbol.selectionRange.start.character,
+			symbol.selectionRange.end.character - symbol.selectionRange.start.character,
+			tokenType
+		);
+	}
+
+	collectSemanticReferences(document, lines, add);
+	return candidates;
+}
+
+function semanticTokenIntersectsRange(line: number, start: number, length: number, range?: Range): boolean {
+	if (!range) {
+		return true;
+	}
+
+	const end = start + length;
+	if (line < range.start.line || line > range.end.line) {
+		return false;
+	}
+
+	if (line === range.start.line && end <= range.start.character) {
+		return false;
+	}
+
+	if (line === range.end.line && start >= range.end.character) {
+		return false;
+	}
+
+	return true;
+}
+
+function collectSemanticReferences(
+	document: TextDocument,
+	lines: string[],
+	add: (line: number, start: number, length: number, type: SemanticTokenType) => void
+): void {
+	const commentState: CommentState = { blockDepth: 0 };
+
+	for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
+		const codeLine = stripNonCode(lines[lineIndex], commentState);
+		if (!codeLine.trim()) {
+			continue;
+		}
+
+		addDottedSemanticReferences(document, lineIndex, codeLine, add);
+		addStandaloneSemanticReferences(document, lineIndex, codeLine, add);
+	}
+}
+
+function addDottedSemanticReferences(
+	document: TextDocument,
+	line: number,
+	codeLine: string,
+	add: (line: number, start: number, length: number, type: SemanticTokenType) => void
+): void {
+	const dottedRegex = /\b([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\.([A-Za-z_]\w*)\b/g;
+	let match: RegExpExecArray | null;
+
+	while ((match = dottedRegex.exec(codeLine)) !== null) {
+		const receiver = match[1];
+		const memberName = match[2];
+		const memberStart = match.index + receiver.length + 1;
+		const tokenType = semanticTokenTypeForMemberReference(document, Position.create(line, memberStart), receiver, memberName);
+		if (tokenType) {
+			add(line, memberStart, memberName.length, tokenType);
+		}
+	}
+
+	const shorthandRegex = /(^|[^A-Za-z_0-9])\.([A-Za-z_]\w*)\b/g;
+	while ((match = shorthandRegex.exec(codeLine)) !== null) {
+		const variantName = match[2];
+		if (findEnumVariant(variantName)) {
+			add(line, match.index + match[1].length + 1, variantName.length, 'enumMember');
+		}
+	}
+}
+
+function semanticTokenTypeForMemberReference(
+	document: TextDocument,
+	position: Position,
+	receiver: string,
+	memberName: string
+): SemanticTokenType | undefined {
+	const receiverType = resolveExpressionType(document, position, receiver);
+	if (receiverType) {
+		const member = findMember(receiverType, memberName);
+		if (member) {
+			return semanticTokenTypeForMemberSymbol(member);
+		}
+
+		if (findEnumVariantForType(receiverType, memberName)) {
+			return 'enumMember';
+		}
+
+		const builtinMember = builtinMembersForType(receiverType).find(symbol => symbol.name === memberName);
+		if (builtinMember) {
+			return semanticTokenTypeForMemberSymbol(builtinMember);
+		}
+	}
+
+	const namespaceMember = namespaceMembers(receiver).find(symbol => terminalName(symbol.name) === memberName);
+	if (namespaceMember) {
+		return semanticTokenTypeForSymbol(namespaceMember);
+	}
+
+	return undefined;
+}
+
+function addStandaloneSemanticReferences(
+	document: TextDocument,
+	line: number,
+	codeLine: string,
+	add: (line: number, start: number, length: number, type: SemanticTokenType) => void
+): void {
+	const identifierRegex = /\b[A-Za-z_]\w*\b/g;
+	let match: RegExpExecArray | null;
+
+	while ((match = identifierRegex.exec(codeLine)) !== null) {
+		const name = match[0];
+		if (keywordDescriptions[name] || codeLine[match.index - 1] === '.') {
+			continue;
+		}
+
+		const tokenType = semanticTokenTypeForName(document, Position.create(line, match.index), name);
+		if (tokenType) {
+			add(line, match.index, name.length, tokenType);
+		}
+	}
+}
+
+function semanticTokenTypeForName(document: TextDocument, position: Position, name: string): SemanticTokenType | undefined {
+	const local = visibleLocalSymbols(document, position).reverse().find(symbol => symbol.name === name);
+	if (local) {
+		return semanticTokenTypeForSymbol(local);
+	}
+
+	const symbol = findSymbol(name, document.uri);
+	if (symbol) {
+		return semanticTokenTypeForSymbol(symbol);
+	}
+
+	if (primitiveTypes.includes(name) || looksLikeType(name)) {
+		return 'type';
+	}
+
+	return undefined;
+}
+
+function semanticTokenTypeForSymbol(symbol: DrastSymbol): SemanticTokenType | undefined {
+	if (symbol.kind === 'function' || symbol.kind === 'cppFunction') {
+		return 'function';
+	}
+
+	if (symbol.kind === 'method') {
+		return 'method';
+	}
+
+	if (symbol.kind === 'parameter') {
+		return 'parameter';
+	}
+
+	if (symbol.kind === 'variable' || symbol.kind === 'cppVariable') {
+		return 'variable';
+	}
+
+	if (symbol.kind === 'field') {
+		return 'property';
+	}
+
+	if (symbol.kind === 'enumVariant') {
+		return 'enumMember';
+	}
+
+	if (symbol.kind === 'struct' || symbol.kind === 'enum' || symbol.kind === 'protocol' || symbol.kind === 'cppType' || symbol.kind === 'cppEnum' || symbol.kind === 'typeParameter') {
+		return 'type';
+	}
+
+	if (symbol.kind === 'namespace') {
+		return 'namespace';
+	}
+
+	if (symbol.kind === 'builtin') {
+		return symbol.completionKind === CompletionItemKind.Property ? 'property' : 'function';
+	}
+
+	return undefined;
+}
+
+function semanticTokenTypeForMemberSymbol(symbol: DrastSymbol): SemanticTokenType | undefined {
+	if (symbol.kind === 'field' || symbol.completionKind === CompletionItemKind.Property) {
+		return 'property';
+	}
+
+	if (symbol.kind === 'method' || symbol.completionKind === CompletionItemKind.Method || symbol.kind === 'builtin') {
+		return 'method';
+	}
+
+	return semanticTokenTypeForSymbol(symbol);
+}
+
+function findEnumVariantForType(typeName: string, variantName: string): DrastSymbol | undefined {
+	const variants = enumVariantTable.get(normalizeTypeName(typeName)) ?? enumVariantTable.get(typeName) ?? [];
+	return variants.find(symbol => symbol.name === variantName || symbol.qualifiedName?.endsWith(`.${variantName}`));
 }
 
 function collectWorkspaceRoots(params: InitializeParams): string[] {
@@ -1280,7 +1579,7 @@ function parseVariableDeclaration(trimmedLine: string, codeLine: string): Variab
 	const equalIndex = assignmentOperatorIndex(trimmedLine);
 	if (equalIndex >= 0) {
 		const beforeEqual = trimmedLine.slice(0, equalIndex).trim();
-		if (!beforeEqual || beforeEqual.includes('.') || beforeEqual.includes('[')) {
+		if (!beforeEqual) {
 			return undefined;
 		}
 
@@ -1297,13 +1596,17 @@ function parseVariableDeclaration(trimmedLine: string, codeLine: string): Variab
 			};
 		}
 
+		if (beforeEqual.includes('.') || beforeEqual.includes('[')) {
+			return undefined;
+		}
+
 		if (inferred) {
 			const initializer = trimmedLine.slice(equalIndex + 1).trim();
 			const typeName = inferTypeFromInitializer(initializer);
 			return {
 				name: inferred[1],
 				character: codeLine.indexOf(inferred[1]),
-				detail: typeName ? `${typeName} variable` : 'inferred variable',
+				detail: `${typeName ?? 'auto'} variable`,
 				typeName,
 				signature: `${inferred[1]}: ${typeName ?? 'auto'}`
 			};
@@ -1334,6 +1637,11 @@ function looksLikeType(text: string): boolean {
 }
 
 function inferTypeFromInitializer(initializer: string): string | undefined {
+	const arrayLiteralType = inferArrayLiteralType(initializer);
+	if (arrayLiteralType) {
+		return arrayLiteralType;
+	}
+
 	if (/^s?'(?:\\.|[^'\\])*'$/.test(initializer)) {
 		const content = initializer.replace(/^s?'/, '').replace(/'$/, '');
 		return initializer.startsWith("s'") || [...content].length !== 1 ? 'string' : 'char';
@@ -1376,6 +1684,30 @@ function inferTypeFromInitializer(initializer: string): string | undefined {
 	}
 
 	return undefined;
+}
+
+function inferArrayLiteralType(initializer: string): string | undefined {
+	const trimmed = initializer.trim();
+	if (!trimmed.startsWith('{') || !trimmed.endsWith('}')) {
+		return undefined;
+	}
+
+	const items = splitTopLevelItems(trimmed.slice(1, -1));
+	if (items.length === 0) {
+		return '{auto}';
+	}
+
+	if (items.length === 1 && looksLikeType(items[0])) {
+		return `{${items[0]}}`;
+	}
+
+	const itemTypes = items.map(item => inferTypeFromInitializer(item));
+	const firstType = itemTypes[0];
+	if (firstType && itemTypes.every(typeName => typeName === firstType)) {
+		return `{${firstType}}`;
+	}
+
+	return '{auto}';
 }
 
 function parseUseImport(trimmedLine: string): UseImport | undefined {
@@ -1763,7 +2095,7 @@ function builtinMembersForType(typeName: string): DrastSymbol[] {
 		];
 	}
 
-	if (normalized.startsWith('{') || normalized.startsWith('std::vector')) {
+	if (isVectorLikeType(normalized)) {
 		return [
 			memberBuiltin('length', 'usize', 'array.length', 'Number of elements.'),
 			memberBuiltin('contains', 'bool', 'array.contains value;T', 'Element membership test.'),
@@ -1791,6 +2123,14 @@ function builtinMembersForType(typeName: string): DrastSymbol[] {
 	}
 
 	return [];
+}
+
+function isVectorLikeType(typeName: string): boolean {
+	const normalized = normalizeTypeName(typeName);
+	return normalized.startsWith('{') ||
+		normalized.startsWith('std::vector') ||
+		normalized.startsWith('vector`[') ||
+		normalized.startsWith('Vector`[');
 }
 
 function memberBuiltin(name: string, returnType: string, signature: string, documentation: string): DrastSymbol {
@@ -2161,6 +2501,58 @@ function splitWhitespaceOutsideDelimiters(text: string): string[] {
 
 	if (current) {
 		parts.push(current);
+	}
+
+	return parts;
+}
+
+function splitTopLevelItems(text: string): string[] {
+	const parts: string[] = [];
+	let current = '';
+	let square = 0;
+	let brace = 0;
+	let paren = 0;
+	let inString = false;
+
+	for (let index = 0; index < text.length; index += 1) {
+		const character = text[index];
+		if (inString) {
+			current += character;
+			if (character === '\\') {
+				index += 1;
+				current += text[index] ?? '';
+			} else if (character === "'") {
+				inString = false;
+			}
+			continue;
+		}
+
+		if (character === "'") {
+			inString = true;
+			current += character;
+			continue;
+		}
+
+		if (character === '[') square += 1;
+		if (character === ']') square -= 1;
+		if (character === '{') brace += 1;
+		if (character === '}') brace -= 1;
+		if (character === '(') paren += 1;
+		if (character === ')') paren -= 1;
+
+		if ((/\s/.test(character) || character === ',') && square === 0 && brace === 0 && paren === 0) {
+			if (current.trim()) {
+				parts.push(current.trim());
+				current = '';
+			}
+			continue;
+		}
+
+		current += character;
+	}
+
+	if (current.trim()) {
+		parts.push(current.trim());
 	}
 
 	return parts;
@@ -2558,56 +2950,110 @@ function isClosingBracket(character: string): boolean {
 	return character === '}' || character === ']' || character === ')';
 }
 
-function formatDocumentText(text: string, tabSize: number | undefined): string {
+function formatDocumentEdits(document: TextDocument): TextEdit[] {
+	const text = document.getText();
 	const lines = text.split(/\r?\n/);
-	const indentStack = [0];
-	const output: string[] = [];
-	const indentUnit = '\t';
-	let previousWasBlank = false;
-	let previousCodeIndent = '';
+	const lineCount = text.endsWith('\n') || text.endsWith('\r\n') ? lines.length - 1 : lines.length;
+	const edits: TextEdit[] = [];
+	let blockCommentDepth = 0;
 
-	for (let index = 0; index < lines.length; index += 1) {
-		const rawLine = lines[index];
-		const trimmed = rawLine.trim();
+	for (let lineIndex = 0; lineIndex < lineCount; lineIndex += 1) {
+		const original = lines[lineIndex] ?? '';
+		const blockCommentState = blockCommentStateForLine(original, blockCommentDepth);
+		const formatted = blockCommentState.touchesBlockComment ? original : formatLine(original);
+		blockCommentDepth = blockCommentState.nextDepth;
+		if (formatted !== original) {
+			edits.push(TextEdit.replace(
+				Range.create(Position.create(lineIndex, 0), Position.create(lineIndex, original.length)),
+				formatted
+			));
+		}
+	}
 
-		if (!trimmed) {
-			if (!previousWasBlank && output.length > 0) {
-				output.push('');
-				previousWasBlank = true;
+	return edits;
+}
+
+function formatDocumentText(text: string, _tabSize: number | undefined): string {
+	const lines = text.split(/\r?\n/);
+	const lineCount = text.endsWith('\n') || text.endsWith('\r\n') ? lines.length - 1 : lines.length;
+	const output = lines.slice();
+	let blockCommentDepth = 0;
+
+	for (let lineIndex = 0; lineIndex < lineCount; lineIndex += 1) {
+		const original = lines[lineIndex] ?? '';
+		const blockCommentState = blockCommentStateForLine(original, blockCommentDepth);
+		output[lineIndex] = blockCommentState.touchesBlockComment ? original : formatLine(original);
+		blockCommentDepth = blockCommentState.nextDepth;
+	}
+
+	return output.join(text.includes('\r\n') ? '\r\n' : '\n');
+}
+
+function blockCommentStateForLine(line: string, startingDepth: number): { nextDepth: number; touchesBlockComment: boolean } {
+	let depth = startingDepth;
+	let touchesBlockComment = depth > 0;
+	let inString = false;
+
+	for (let index = 0; index < line.length - 1; index += 1) {
+		const current = line[index];
+		const next = line[index + 1];
+
+		if (inString) {
+			if (current === '\\') {
+				index += 1;
+			} else if (current === "'") {
+				inString = false;
 			}
 			continue;
 		}
 
-		const rawIndent = measureIndent(rawLine);
-		while (indentStack.length > 1 && rawIndent < indentStack[indentStack.length - 1]) {
-			indentStack.pop();
-		}
-		if (rawIndent > indentStack[indentStack.length - 1]) {
-			indentStack.push(rawIndent);
-		} else if (rawIndent !== indentStack[indentStack.length - 1] && rawIndent > 0) {
-			indentStack[indentStack.length - 1] = rawIndent;
+		if (current === "'") {
+			inString = true;
+			continue;
 		}
 
-		const isContinuation = trimmed.startsWith('\\');
-		const baseIndent = isContinuation
-			? `${previousCodeIndent}${indentUnit}`
-			: indentUnit.repeat(Math.max(0, indentStack.length - 1));
-		const normalized = normalizeCodeLine(trimmed, tabSize ?? 4);
-
-		if (shouldInsertTopLevelBlank(output, normalized, indentStack.length - 1)) {
-			output.push('');
+		if (depth === 0 && current === '/' && next === '/') {
+			break;
 		}
 
-		output.push(`${baseIndent}${normalized}`);
-		previousCodeIndent = baseIndent;
-		previousWasBlank = false;
+		if (current === '/' && next === '*') {
+			depth += 1;
+			touchesBlockComment = true;
+			index += 1;
+			continue;
+		}
+
+		if (depth > 0 && current === '*' && next === '/') {
+			depth -= 1;
+			touchesBlockComment = true;
+			index += 1;
+		}
 	}
 
-	while (output.length > 0 && output[output.length - 1] === '') {
-		output.pop();
+	return { nextDepth: depth, touchesBlockComment };
+}
+
+function formatLine(line: string): string {
+	if (!line.trim()) {
+		return '';
 	}
 
-	return `${output.join('\n')}${text.endsWith('\n') ? '\n' : ''}`;
+	const comment = splitInlineComment(line);
+	if (comment.comment && !comment.code.trim()) {
+		return `${comment.code}${comment.comment.trimStart()}`;
+	}
+
+	const normalizedCode = normalizeCodeLine(comment.code).replace(/[ \t]+$/g, '');
+	if (!comment.comment) {
+		return normalizedCode;
+	}
+
+	const commentText = comment.comment.trimStart();
+	if (!normalizedCode.trim()) {
+		return `${normalizedCode}${commentText}`;
+	}
+
+	return `${normalizedCode} ${commentText}`;
 }
 
 function shouldInsertTopLevelBlank(output: string[], normalized: string, indentLevel: number): boolean {
@@ -2631,14 +3077,11 @@ function isTopLevelDeclarationLine(line: string): boolean {
 	);
 }
 
-function normalizeCodeLine(line: string, tabSize: number): string {
-	const comment = splitInlineComment(line);
-	const code = comment.code;
-	const normalizedCode = transformOutsideStrings(code, segment => normalizeCodeSegment(segment, tabSize)).trimEnd();
-	return `${normalizedCode}${comment.comment ? ` ${comment.comment.trimStart()}` : ''}`.trimEnd();
+function normalizeCodeLine(line: string): string {
+	return transformOutsideStrings(line, segment => normalizeCodeSegment(segment));
 }
 
-function normalizeCodeSegment(segment: string, _tabSize: number): string {
+function normalizeCodeSegment(segment: string): string {
 	const placeholders: string[] = [];
 	let out = segment.replace(/operator\[[^\]]+\]/g, match => {
 		const key = `__DRAST_OPERATOR_${placeholders.length}__`;
@@ -2646,22 +3089,9 @@ function normalizeCodeSegment(segment: string, _tabSize: number): string {
 		return key;
 	});
 
-	out = out.replace(/\s+/g, ' ');
-	out = out.replace(/\s*\.\s*/g, '.');
-	out = out.replace(/\s*::\s*/g, '::');
-	out = out.replace(/\s*,\s*/g, ', ');
-	out = out.replace(/\s*;\s*/g, ';');
-	out = out.replace(/\s*(@\[)\s*/g, '@[');
-	out = out.replace(/\s*(\+=|-=|\*=|\/=|==|=|\+|-|\*|\/|%)\s*/g, ' $1 ');
-	for (const operator of wordOperators) {
-		out = out.replace(new RegExp(`\\s*\\b${operator}\\b\\s*`, 'g'), ` ${operator} `);
-	}
-	out = out.replace(/\s*,\s*/g, ', ');
-	out = out.replace(/\s{2,}/g, ' ');
-	out = out.replace(/\s+([)\]}])/g, '$1');
-	out = out.replace(/([(\[{])\s+/g, '$1');
-	out = out.replace(/\b(maybe|variadic|tuple)\s{2,}/g, '$1 ');
-	out = out.trim();
+	out = out.replace(/[ \t]*(\+=|-=|\*=|\/=|==)[ \t]*/g, ' $1 ');
+	out = out.replace(/[ \t]*(?<![!<>=+\-*/])=(?![=>])[ \t]*/g, ' = ');
+	out = out.replace(/[ \t]*,[ \t]*/g, ', ');
 
 	for (let index = 0; index < placeholders.length; index += 1) {
 		out = out.replace(`__DRAST_OPERATOR_${index}__`, placeholders[index]);
@@ -2698,13 +3128,24 @@ function transformOutsideStrings(text: string, transform: (segment: string) => s
 			}
 			if (current === "'") {
 				break;
+				}
 			}
-		}
-		output += stringLiteral;
+			if (shouldInsertSpaceBeforeString(output)) {
+				output += ' ';
+			}
+			output += stringLiteral;
 	}
 
 	output += transform(segment);
 	return output;
+}
+
+function shouldInsertSpaceBeforeString(text: string): boolean {
+	if (!/[A-Za-z_0-9\]\}]$/.test(text)) {
+		return false;
+	}
+
+	return !/(^|[^A-Za-z_0-9])s$/.test(text);
 }
 
 function splitInlineComment(line: string): { code: string; comment?: string } {
@@ -2727,7 +3168,7 @@ function splitInlineComment(line: string): { code: string; comment?: string } {
 
 		if (character === '/' && line[index + 1] === '/') {
 			return {
-				code: line.slice(0, index).trimEnd(),
+				code: line.slice(0, index),
 				comment: line.slice(index)
 			};
 		}

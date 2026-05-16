@@ -1,0 +1,41 @@
+use drast
+use ../../src/typecheck/checker
+
+printDiagnostics result;TypeCheckResult
+	for diag in result.diagnostics
+		line = diag.code + ': ' + diag.message
+		println line
+
+hasDiagnostic result;TypeCheckResult expectedCode;string, bool
+	for diag in result.diagnostics
+		if diag.code == expectedCode
+			return true
+	return false
+
+main, int
+	if args.length islt 4
+		println 'usage: conformance-harness <source> <accept|reject> <diagnostic-code>'
+		return 2
+	sourcePath = arg 1
+	expectation = arg 2
+	expectedCode = arg 3
+	options TypeCheckOptions;
+	result = checkFile sourcePath options
+	if expectation == 'accept'
+		if result.ok
+			return 0
+		println 'expected accept, but checker rejected:'
+		printDiagnostics result
+		return 1
+	if expectation == 'reject'
+		if result.ok
+			println 'expected reject, but checker accepted'
+			return 1
+		if hasDiagnostic result expectedCode
+			return 0
+		message = 'expected diagnostic ' + expectedCode + ', got:'
+		println message
+		printDiagnostics result
+		return 1
+	println 'unknown expectation'
+	return 2

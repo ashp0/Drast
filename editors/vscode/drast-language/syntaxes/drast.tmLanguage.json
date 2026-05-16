@@ -37,6 +37,9 @@
       "include": "#builtins"
     },
     {
+      "include": "#calls"
+    },
+    {
       "include": "#operators"
     },
     {
@@ -239,7 +242,7 @@
         },
         {
           "name": "meta.function.declaration.drast",
-          "match": "^\\s*(?:(private|preview)\\s+)?([A-Za-z_]\\w*)(`\\[[^\\]]+\\])?(?=\\s*(?:[A-Za-z_]\\w*;|,|$))",
+          "match": "^\\s*(?:(private|preview)\\s+)?(?!(?:use|return|if|elif|else|while|for|break|continue|in|to|until|step|struct|enum|impl|protocol|match|default|with|as|try|catch|const|private|preview|fileprivate|discard|operator|maybe|nothing|true|false|nil|self|variadic|tuple|comptime|throws|iseq|isne|islt|isgt|islteq|isgteq|islte|isgte|and|or|not|shl|shr|bor|band|bxor)\\b)([A-Za-z_]\\w*)(`\\[[^\\]]+\\])?(?=\\s*(?:[A-Za-z_]\\w*;|,|$))",
           "captures": {
             "1": {
               "name": "storage.modifier.visibility.drast"
@@ -297,6 +300,31 @@
             },
             "2": {
               "name": "variable.parameter.label.drast"
+            }
+          }
+        }
+      ]
+    },
+    "calls": {
+      "patterns": [
+        {
+          "name": "meta.function-call.member.drast",
+          "match": "(\\.)([A-Za-z_]\\w*)(?=\\s+(?:s?'(?:\\\\.|[^'\\\\])*'|-?\\d|true\\b|false\\b|nil\\b|self\\b|[\\{\\[\\(@~`;.-]))",
+          "captures": {
+            "1": {
+              "name": "punctuation.accessor.drast"
+            },
+            "2": {
+              "name": "entity.name.function.member.drast"
+            }
+          }
+        },
+        {
+          "name": "meta.function-call.implicit.drast",
+          "match": "^\\s*([A-Za-z_]\\w*)(?=\\s+(?:s?'(?:\\\\.|[^'\\\\])*'|-?\\d|true\\b|false\\b|nil\\b|self\\b|[\\{\\[\\(@~`;.-]))",
+          "captures": {
+            "1": {
+              "name": "entity.name.function.call.drast"
             }
           }
         }

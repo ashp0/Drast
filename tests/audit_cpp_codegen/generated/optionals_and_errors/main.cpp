@@ -1,4 +1,5 @@
-#include "runtime/drast_runtime.hpp"
+#include <exception>
+#include <optional>
 
 std::optional<int> findEven(int value);
 int forceEven(int value);
@@ -15,13 +16,12 @@ int forceEven(int value) {
     std::optional<int> candidate = findEven(value);
     try {
         return candidate.value();
-    } catch (const std::exception& error) {
+    } catch (const std::bad_optional_access& error) {
         return 0;
     }
 }
 
-int main(int argc, char **argv) {
-    drast::setArgs(argc, argv);
+int main() {
     int first = forceEven(8);
     int second = forceEven(9);
     return first + second;

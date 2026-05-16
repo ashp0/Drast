@@ -1,0 +1,126 @@
+use drast
+use diagnostics
+use types
+
+struct TcLocal
+	name string
+	type TcType
+	span SourceSpan
+	assigned bool
+	isMutableLocal bool
+
+struct TcFlowState
+	locals map`[string TcLocal]
+	scopeStack {int}
+	nextScopeId int
+	inLoop int
+	currentReturn TcType
+	currentFunction string
+	currentHost string
+	effects {string}
+	definitelyReturns bool
+	unreachable bool
+
+impl TcLocal
+	init
+		self.name = ''
+		self.assigned = false
+		self.isMutableLocal = false
+
+impl TcFlowState
+	init
+		self.nextScopeId = 1
+		self.inLoop = 0
+		self.currentFunction = ''
+		self.currentHost = ''
+		self.definitelyReturns = false
+		self.unreachable = false
+
+tcPushScope state;~TcFlowState
+	state.scopeStack += state.nextScopeId
+	state.nextScopeId += 1
+
+tcPopScope state;~TcFlowState
+	if state.scopeStack.length isgt 0
+		idx = state.scopeStack.length - 1
+		state.scopeStack.removeAt idx
+
+tcCurrentScope state;TcFlowState, int
+	if state.scopeStack.length == 0
+		return 0
+	return state.scopeStack{state.scopeStack.length - 1}
+
+tcScopedKey scopeId;int name;string, string
+	return toString scopeId + ':' + name
+
+tcDeclareLocal state;~TcFlowState name;string type;TcType span;SourceSpan assigned;bool diagnostics;~{TcDiagnostic}, bool
+	return tcDeclareLocalWithMutability state name type span assigned false diagnostics
+
+tcDeclareMutableLocal state;~TcFlowState name;string type;TcType span;SourceSpan assigned;bool diagnostics;~{TcDiagnostic}, bool
+	return tcDeclareLocalWithMutability state name type span assigned true diagnostics
+
+tcDeclareLocalWithMutability state;~TcFlowState name;string type;TcType span;SourceSpan assigned;bool isMutableBinding;bool diagnostics;~{TcDiagnostic}, bool
+	scopeId = tcCurrentScope state
+	key = tcScopedKey scopeId name
+	if state.locals.contains key
+		empty TcLocal;
+		old = state.locals.get key empty
+		message = 'duplicate local declaration `' + name + '` in the same scope'
+		diag = tcDiagnostic 'TC2001' span message
+		tcAddRelated diag old.span 'previous local declaration is here'
+		diagnostics += diag
+		return false
+	local TcLocal;
+	local.name = name
+	local.type = type
+	local.span = span
+	local.assigned = assigned
+	local.isMutableLocal = isMutableBinding
+	state.locals.set key local
+	return true
+
+tcLookupLocal state;TcFlowState name;string, TcLocal
+	empty TcLocal;
+	if state.scopeStack.length == 0
+		return empty
+	i = state.scopeStack.length
+	while i isgt 0
+		i -= 1
+		key = tcScopedKey state.scopeStack{i} name
+		if state.locals.contains key
+			return state.locals.get key empty
+	return empty
+
+tcHasLocal state;TcFlowState name;string, bool
+	found = tcLookupLocal state name
+	return found.name.length isgt 0
+
+tcAssignLocal state;~TcFlowState name;string
+	if state.scopeStack.length == 0
+		return
+	i = state.scopeStack.length
+	while i isgt 0
+		i -= 1
+		key = tcScopedKey state.scopeStack{i} name
+		if state.locals.contains key
+			empty TcLocal;
+			local = state.locals.get key empty
+			local.assigned = true
+			state.locals.set key local
+			return
+
+tcAddEffect state;~TcFlowState effect;string
+	for existing in state.effects
+		if existing == effect
+			return
+	state.effects += effect
+
+tcEffectSummary state;TcFlowState, string
+	out string;
+	i usize = 0
+	for effect in state.effects
+		if i isgt 0
+			out += ','
+		out += effect
+		i += 1
+	return out

@@ -1,7 +1,7 @@
 // # TEST: audit functions and collection parameter emission
 // # EXPECT: pass
 
-use std
+use drast
 
 struct Sample
 	name string

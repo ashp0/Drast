@@ -1,0 +1,6 @@
+# Build Notes
+
+- Package-managed artifacts are always rooted under `build/`: binaries in `build/bin/`, generated C++ in `build/generated/`, and xmake backend files in `build/xmake/`.
+- Legacy manifest paths under `.drast/build/` are accepted for compatibility and remapped into `build/`. The build only attempts to remove the managed `.drast/build` subtree and then removes the `.drast` parent only if it is empty, leaving any other `.drast` contents untouched.
+- Binary targets implicitly compile sibling `.drast` files in the entry file's directory when that entry is inside the package root, then add any explicit `use` closure. Subdirectories remain explicit so unfinished or optional target subtrees are not swallowed into unrelated builds.
+- No-op binary builds use a conservative cache in `build/xmake/<target>/drast.cache`; if the target output is newer than the manifest, discovered sources, generated C++, external C++ files, and xmake project, the package layer skips transpilation and xmake. Generated C++ and xmake files are not rewritten when their contents are unchanged, preserving mtimes for fast incremental builds. If a source edit leaves generated C++ unchanged, the package layer touches the already-valid binary after skipping xmake so later no-op builds stay on the fast path.

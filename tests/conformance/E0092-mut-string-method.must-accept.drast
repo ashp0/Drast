@@ -1,0 +1,5 @@
+// E0092 accept: mutating string methods require a mutable binding.
+main, i32
+	mut text = 'hi'
+	text.push_str['!']
+	return 0

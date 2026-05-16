@@ -1,0 +1,7 @@
+// E0030 reject: Drast does not have exception-style try/catch blocks.
+main, i32
+	try
+		value = 1
+	catch ;err
+		value = 2
+	return 0

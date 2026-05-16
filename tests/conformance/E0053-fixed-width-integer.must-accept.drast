@@ -1,0 +1,4 @@
+// E0053 accept: integer declarations use explicit fixed-width names.
+main, i32
+	value i32 = 5
+	return value

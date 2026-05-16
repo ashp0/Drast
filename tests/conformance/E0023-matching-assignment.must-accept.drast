@@ -1,0 +1,4 @@
+// E0023 accept: annotated bindings may be initialized by the same type.
+main, i32
+	value i32 = 5
+	return value

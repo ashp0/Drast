@@ -7,7 +7,7 @@ I also do not want a runtime happening, I want it to be lightweight
 Rather than runtime, everything should be managed at compile-time, just like Rust
 */
 
-use std
+use drast
 
 main, int
 	// I am unsure where to go from here.

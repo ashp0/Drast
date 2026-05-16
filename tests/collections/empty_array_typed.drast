@@ -1,7 +1,7 @@
 // # TEST: empty typed array literal
 // # EXPECT: pass
 
-use std
+use drast
 
 main, int
 	items = {int}

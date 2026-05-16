@@ -1,0 +1,6 @@
+// E0082 accept: equality uses `==` in conditions.
+main, i32
+	value = 5
+	if value == 5
+		return 0
+	return 1

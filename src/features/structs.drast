@@ -112,11 +112,18 @@ impl Codegen
 				if m.isOperator
 					continue
 				if m.name == 'init'
-					out += '    ' + st.name + '(' + self.paramList m false + ');\n'
+					out += '    ' + st.name + '(' + self.initParamList m + ');\n'
 				elif m.name == 'deinit'
 					out += '    ~' + st.name + '();\n'
 				else
-					out += '    ' + m.returnText + ' ' + m.name + '(' + self.paramList m false + ');\n'
+					methodDecl = '    ' + m.returnText + ' ' + m.name + '(' + self.paramList m false + ')'
+					if m.returnText isne 'void' and not self.isMethodBodyMutating m.body
+						methodDecl += ' const'
+					protoName = self.protocolFor ast st.name
+					if protoName.length isgt 0
+						methodDecl += ' override'
+					methodDecl += ';\n'
+					out += methodDecl
 		out += '};\n'
 		return out
 

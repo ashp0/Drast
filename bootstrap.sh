@@ -7,6 +7,10 @@ seed="$legacy_seed"
 seed_mode="legacy"
 check=0
 
+echo "drast runtime will be removed, it is deprecated. wait a while for the other agent to fix it."
+echo "When I meant we should remove drast_runtime.hpp I did mean it. But I really meant that we should rely solely on Drast rather than still having a hidden C++ layer within which I do not like."
+
+
 usage() {
     cat <<USAGE
 usage: ./bootstrap.sh [--check] [--seed <legacy-binary>] [--from-new <drast-binary>]
@@ -110,10 +114,10 @@ esac
 
 (cd "$repo_root" && DRAST_HOME="$repo_root" "$seed" build drast)
 
-built="$repo_root/.drast/build/bin/drast"
+built="$repo_root/build/bin/drast"
 if [[ ! -x "$built" ]]; then
-    echo "bootstrap build did not produce $built" >&2
-    exit 1
+	echo "bootstrap build did not produce $built" >&2
+	exit 1
 fi
 
 if [[ $check -eq 1 ]]; then

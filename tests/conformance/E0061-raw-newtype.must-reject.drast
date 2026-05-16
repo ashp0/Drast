@@ -1,0 +1,9 @@
+// E0061 reject: a raw representation value is not the newtype.
+type Metres = i32
+
+travel distance;Metres, i32
+	return distance.inner
+
+main, i32
+	raw i32 = 1000
+	return travel raw

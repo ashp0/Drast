@@ -35,9 +35,30 @@ impl Parser
 
 
 				if op.kind == TokenKind.Equal and target.kind == 'Identifier' and not self.localTypes.contains target.text
+					valueText = self.valueCode ex
+					if valueText.startsWith '__drt::map_keys('
+						mapName = valueText.substring 16 ;to [valueText.length - 1]
+						aliasType = 'map_keys:' + mapName
+						self.localTypes.set target.text aliasType
+						return ''
 					t = ex.typeText
 					if t.length == 0
 						t = 'auto'
+					if ex.kind == 'Ref'
+						baseRefType = t
+						if baseRefType.endsWith s'*'
+							baseRefType = baseRefType.substring 0 ;to [baseRefType.length - 1]
+						refType = 'const ' + baseRefType + '&'
+						self.localTypes.set target.text refType
+						innerCode = ex.code
+						if innerCode.startsWith s'&'
+							innerCode = innerCode.substring 1 ;to innerCode.length
+						return self.indentText + refType + ' ' + target.text + ' = ' + innerCode + ';\n'
+					if self.isHeapType t and ex.kind == 'Identifier'
+						baseHeapType = self.baseTypeName t
+						refType = 'const ' + baseHeapType + '&'
+						self.localTypes.set target.text refType
+						return self.indentText + refType + ' ' + target.text + ' = *' + self.valueCode ex + ';\n'
 					self.localTypes.set target.text t
 					return self.indentText + t + ' ' + target.text + ' = ' + self.valueCode ex + ';\n'
 				if op.kind == TokenKind.PlusEqual and self.isVectorType target.typeText

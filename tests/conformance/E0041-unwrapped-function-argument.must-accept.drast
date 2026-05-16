@@ -1,0 +1,13 @@
+// E0041 accept: pass a concrete value after explicitly unwrapping maybe.
+struct User
+	name string
+
+takes_user user;User, i32
+	return 1
+
+find_user, maybe User
+	return Some[User['Ashwin']]
+
+main, i32
+	user = find_user
+	return takes_user user.value_or[User['anonymous']]

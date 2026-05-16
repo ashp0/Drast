@@ -1,7 +1,7 @@
 // # TEST: existing use case single main.drast
 // # EXPECT: pass
 
-use std
+use drast
 use helper
 
 main, int

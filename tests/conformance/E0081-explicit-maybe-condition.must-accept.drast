@@ -1,0 +1,9 @@
+// E0081 accept: maybe values are converted to bool only through explicit handling.
+find_value, maybe i32
+	return Some[1]
+
+main, i32
+	value = find_value
+	if value.value_or[0] isne 0
+		return 0
+	return 1

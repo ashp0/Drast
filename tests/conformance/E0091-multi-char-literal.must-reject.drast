@@ -1,0 +1,4 @@
+// E0091 reject: c'...' cannot contain multiple scalars.
+main, i32
+	ch char = c'ab'
+	return 0

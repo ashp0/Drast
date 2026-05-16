@@ -2,7 +2,7 @@
 // # EXPECT: error
 // # ERROR_CONTAINS: circular import
 
-use std
+use drast
 use a
 
 main, int

@@ -1,4 +1,4 @@
-use std
+use drast
 use platform
 
 struct BuildTarget
@@ -108,12 +108,12 @@ manifestRestAfterFirstWord text;string, string
 	i = 0
 	while i islt text.length
 		ch = text{i}
-		if ch == ' ' or ch == '\t'
+		if ch == c' ' or ch == c'\t'
 			break
 		i += 1
 	while i islt text.length
 		ch = text{i}
-		if ch == ' ' or ch == '\t'
+		if ch == c' ' or ch == c'\t'
 			i += 1
 		else
 			break

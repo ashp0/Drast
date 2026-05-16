@@ -1,7 +1,7 @@
 // # TEST: existing use case generic main.drast
 // # EXPECT: pass
 
-use std
+use drast
 
 struct Box`[T]
 	value T

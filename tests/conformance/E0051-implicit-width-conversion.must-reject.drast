@@ -1,0 +1,5 @@
+// E0051 reject: i32 does not implicitly widen to i64.
+main, i32
+	value i32 = 5
+	wide i64 = value
+	return 0

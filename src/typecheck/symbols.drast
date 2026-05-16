@@ -1,0 +1,187 @@
+use drast
+use diagnostics
+use types
+use ast
+
+struct TcFunctionSig
+	name string
+	host string
+	params {TcParam}
+	paramTypes {TcType}
+	returnType TcType
+	typeParams {string}
+	bounds {TcGenericBound}
+	span SourceSpan
+	isMethod bool
+	isOperator bool
+	operatorSymbol string
+
+struct TcStructInfo
+	name string
+	typeParams {string}
+	fields map`[string TcType]
+	fieldSpans map`[string SourceSpan]
+	span SourceSpan
+
+struct TcEnumVariantInfo
+	name string
+	owner string
+	fields map`[string TcType]
+	fieldOrder {string}
+	span SourceSpan
+
+struct TcEnumInfo
+	name string
+	variants map`[string TcEnumVariantInfo]
+	variantOrder {string}
+	isData bool
+	span SourceSpan
+
+struct TcProtocolInfo
+	name string
+	methods map`[string TcFunctionSig]
+	span SourceSpan
+
+struct TcNewtypeInfo
+	name string
+	underlying TcType
+	span SourceSpan
+
+struct TcSymbolTable
+	functions map`[string TcFunctionSig]
+	methods map`[string TcFunctionSig]
+	operators map`[string TcFunctionSig]
+	structs map`[string TcStructInfo]
+	enums map`[string TcEnumInfo]
+	enumVariants map`[string string]
+	dataEnumVariants map`[string TcEnumVariantInfo]
+	protocols map`[string TcProtocolInfo]
+	newtypes map`[string TcNewtypeInfo]
+	conformances map`[string string]
+	globals map`[string TcType]
+	globalSpans map`[string SourceSpan]
+
+impl TcFunctionSig
+	init
+		self.name = ''
+		self.host = ''
+		self.isMethod = false
+		self.isOperator = false
+		self.operatorSymbol = ''
+
+impl TcStructInfo
+	init
+		self.name = ''
+
+impl TcEnumVariantInfo
+	init
+		self.name = ''
+		self.owner = ''
+
+impl TcEnumInfo
+	init
+		self.name = ''
+		self.isData = false
+
+impl TcProtocolInfo
+	init
+		self.name = ''
+
+impl TcNewtypeInfo
+	init
+		self.name = ''
+
+impl TcSymbolTable
+	init
+		nothing
+
+tcFunctionKey name;string, string
+	return name
+
+tcMethodKey host;string name;string, string
+	return host + '.' + name
+
+tcOperatorKey symbol;string, string
+	return 'operator ' + symbol
+
+tcAddDuplicate diagnostics;~{TcDiagnostic} code;string span;SourceSpan name;string existing;SourceSpan
+	message = 'duplicate declaration for `' + name + '`'
+	diag = tcDiagnostic code span message
+	tcAddRelated diag existing 'previous declaration is here'
+	diagnostics += diag
+
+tcAddFunction table;~TcSymbolTable sig;TcFunctionSig diagnostics;~{TcDiagnostic}
+	key = tcFunctionKey sig.name
+	if table.functions.contains key
+		old = table.functions.get key sig
+		tcAddDuplicate diagnostics 'TC1001' sig.span sig.name old.span
+		return
+	table.functions.set key sig
+
+tcAddMethod table;~TcSymbolTable sig;TcFunctionSig diagnostics;~{TcDiagnostic}
+	key = tcMethodKey sig.host sig.name
+	if table.methods.contains key
+		old = table.methods.get key sig
+		tcAddDuplicate diagnostics 'TC1002' sig.span key old.span
+		return
+	table.methods.set key sig
+
+tcAddOperator table;~TcSymbolTable sig;TcFunctionSig diagnostics;~{TcDiagnostic}
+	key = tcOperatorKey sig.operatorSymbol
+	if table.operators.contains key
+		old = table.operators.get key sig
+		tcAddDuplicate diagnostics 'TC1003' sig.span key old.span
+		return
+	table.operators.set key sig
+
+tcAddGlobal table;~TcSymbolTable name;string type;TcType span;SourceSpan diagnostics;~{TcDiagnostic}
+	if table.globals.contains name
+		oldSpan = table.globalSpans.get name span
+		tcAddDuplicate diagnostics 'TC1004' span name oldSpan
+		return
+	table.globals.set name type
+	table.globalSpans.set name span
+
+tcLookupMethod table;TcSymbolTable host;string name;string, TcFunctionSig
+	key = tcMethodKey host name
+	empty TcFunctionSig;
+	return table.methods.get key empty
+
+tcHasMethod table;TcSymbolTable host;string name;string, bool
+	key = tcMethodKey host name
+	return table.methods.contains key
+
+tcHasFunction table;TcSymbolTable name;string, bool
+	return table.functions.contains name
+
+tcHasGlobal table;TcSymbolTable name;string, bool
+	return table.globals.contains name
+
+tcNominalName type;TcType, string
+	if type.kind == 'nominal' or type.kind == 'primitive' or type.kind == 'newtype'
+		return type.name
+	if type.kind == 'heap' or type.kind == 'reference' or type.kind == 'pointer'
+		inner = tcInnerType type
+		return tcNominalName inner
+	return ''
+
+tcProtocolConformanceKey typeName;string protocolName;string, string
+	return typeName + ' as ' + protocolName
+
+tcConformsTo table;TcSymbolTable type;TcType protocolName;string, bool
+	typeName = tcNominalName type
+	if typeName.length == 0
+		return false
+	key = tcProtocolConformanceKey typeName protocolName
+	return table.conformances.contains key
+
+tcSignatureDisplay sig;TcFunctionSig, string
+	out = sig.name + '('
+	i usize = 0
+	for ptype in sig.paramTypes
+		if i isgt 0
+			out += ', '
+		out += tcTypeDisplay ptype
+		i += 1
+	out += ') -> ' + tcTypeDisplay sig.returnType
+	return out

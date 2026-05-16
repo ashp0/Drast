@@ -1,7 +1,7 @@
 // # TEST: audit C++ header interop call emission
 // # EXPECT: pass
 
-use std
+use drast
 use file header/native_audit.hpp
 
 main, int

@@ -1,0 +1,4 @@
+// E0053 reject: int is not a Drast integer type.
+main, i32
+	value int = 5
+	return 0

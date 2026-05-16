@@ -1,0 +1,5 @@
+// E0051 accept: cross-width integer conversion is explicit with `as`.
+main, i32
+	value i32 = 5
+	wide i64 = value as i64
+	return wide as i32

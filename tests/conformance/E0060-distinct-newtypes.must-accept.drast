@@ -1,0 +1,10 @@
+// E0060 accept: a function expecting Metres receives Metres.
+type Metres = i32
+type Seconds = i32
+
+travel distance;Metres, i32
+	return distance.inner
+
+main, i32
+	distance = Metres[1000]
+	return travel distance

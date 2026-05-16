@@ -1,7 +1,7 @@
 // # TEST: map set and get helpers
 // # EXPECT: pass
 
-use std
+use drast
 
 main, int
 	counts map`[string int];

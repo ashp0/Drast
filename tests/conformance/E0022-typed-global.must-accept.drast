@@ -1,0 +1,5 @@
+// E0022 accept: module-level declarations have explicit types.
+counter i32 = 0
+
+main, i32
+	return counter

@@ -1,4 +1,6 @@
-#include "runtime/drast_runtime.hpp"
+#include <string>
+#include <utility>
+#include <vector>
 
 template <typename T>
 struct Box;
@@ -21,12 +23,11 @@ T firstValue(const std::vector<T>& values) {
     return values[0];
 }
 
-int main(int argc, char **argv) {
-    drast::setArgs(argc, argv);
+int main() {
     std::vector<int> numbers = {10, 20, 30};
-    Box box = Box<std::string>("payload");
-    T text = identity(box.value);
-    T first = firstValue(numbers);
+    Box<std::string> box = Box<std::string>("payload");
+    std::string text = identity(box.value);
+    int first = firstValue(std::move(numbers));
     return first + text.size();
 }
 

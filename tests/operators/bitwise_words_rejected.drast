@@ -1,6 +1,5 @@
-// # TEST: unsupported bitwise word operator is rejected
-// # EXPECT: error
-// # ERROR_CONTAINS: expected end of statement
+// # TEST: bitwise word operators lower to C++ operators
+// # EXPECT: pass
 
 main, int
 	value = 1 shl 2

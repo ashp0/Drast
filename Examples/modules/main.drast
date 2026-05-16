@@ -1,4 +1,4 @@
-use std
+use drast
 use 'math_utils' // ' is for files only. Not using ' is for libraries.
 
 main, int

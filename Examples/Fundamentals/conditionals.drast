@@ -1,4 +1,4 @@
-use std
+use drast
 
 main, int
 	input = getInput 'Type a random number!'

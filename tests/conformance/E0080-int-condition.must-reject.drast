@@ -1,0 +1,5 @@
+// E0080 reject: integers do not coerce to bool.
+main, i32
+	if 1
+		return 0
+	return 1

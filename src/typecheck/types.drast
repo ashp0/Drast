@@ -1,0 +1,367 @@
+use drast
+
+struct TcType
+	kind string
+	name string
+	args {TcType}
+	params {TcType}
+	returnTypeName string
+	isMutable bool
+
+impl TcType
+	init
+		self.kind = 'unknown'
+		self.name = ''
+		self.returnTypeName = ''
+		self.isMutable = false
+
+tcType kind;string name;string, TcType
+	t TcType;
+	t.kind = kind
+	t.name = name
+	return t
+
+tcUnknownType, TcType
+	return tcType 'unknown' ''
+
+tcErrorType, TcType
+	return tcType 'error' ''
+
+tcVoidType, TcType
+	return tcType 'void' 'Void'
+
+tcNeverType, TcType
+	return tcType 'never' 'Never'
+
+tcBoolType, TcType
+	return tcType 'primitive' 'bool'
+
+tcIntType, TcType
+	return tcType 'primitive' 'i32'
+
+tcFloatType, TcType
+	return tcType 'primitive' 'f32'
+
+tcDoubleType, TcType
+	return tcType 'primitive' 'f64'
+
+tcCharType, TcType
+	return tcType 'primitive' 'char'
+
+tcStringType, TcType
+	return tcType 'primitive' 'string'
+
+tcUsizeType, TcType
+	return tcType 'primitive' 'usize'
+
+tcI8Type, TcType
+	return tcType 'primitive' 'i8'
+
+tcI16Type, TcType
+	return tcType 'primitive' 'i16'
+
+tcI64Type, TcType
+	return tcType 'primitive' 'i64'
+
+tcU8Type, TcType
+	return tcType 'primitive' 'u8'
+
+tcU16Type, TcType
+	return tcType 'primitive' 'u16'
+
+tcU32Type, TcType
+	return tcType 'primitive' 'u32'
+
+tcU64Type, TcType
+	return tcType 'primitive' 'u64'
+
+tcIsizeType, TcType
+	return tcType 'primitive' 'isize'
+
+tcNominalType name;string, TcType
+	return tcType 'nominal' name
+
+tcNewtypeType name;string underlying;TcType, TcType
+	t = tcType 'newtype' name
+	t.args += underlying
+	return t
+
+tcGenericParamType name;string, TcType
+	return tcType 'generic' name
+
+tcTypeVariable name;string, TcType
+	return tcType 'typevar' name
+
+tcMaybeType inner;TcType, TcType
+	t = tcType 'maybe' ''
+	t.args += inner
+	return t
+
+tcArrayType inner;TcType, TcType
+	t = tcType 'array' ''
+	t.args += inner
+	return t
+
+tcMapType key;TcType value;TcType, TcType
+	t = tcType 'map' ''
+	t.args += key
+	t.args += value
+	return t
+
+tcTupleType elements;{TcType}, TcType
+	t = tcType 'tuple' ''
+	for element in elements
+		t.args += element
+	return t
+
+tcReferenceType inner;TcType, TcType
+	// TODO(borrow-check): this records `~T` shape only; aliasing, mutability, and lifetime validity require the deferred borrow checker.
+	t = tcType 'reference' ''
+	t.args += inner
+	return t
+
+tcPointerType inner;TcType, TcType
+	t = tcType 'pointer' ''
+	t.args += inner
+	return t
+
+tcHeapType inner;TcType, TcType
+	t = tcType 'heap' ''
+	t.args += inner
+	return t
+
+tcVariadicType inner;TcType, TcType
+	t = tcType 'variadic' ''
+	t.args += inner
+	return t
+
+tcFunctionType params;{TcType} returnType;TcType, TcType
+	t = tcType 'function' ''
+	for p in params
+		t.params += p
+	t.args += returnType
+	return t
+
+tcClosureType params;{TcType} returnType;TcType, TcType
+	t = tcFunctionType params returnType
+	t.kind = 'closure'
+	return t
+
+tcPrimitiveByName name;string, TcType
+	if name == 'i8'
+		return tcI8Type
+	if name == 'i16'
+		return tcI16Type
+	if name == 'i32'
+		return tcIntType
+	if name == 'i64'
+		return tcI64Type
+	if name == 'u8'
+		return tcU8Type
+	if name == 'u16'
+		return tcU16Type
+	if name == 'u32'
+		return tcU32Type
+	if name == 'u64'
+		return tcU64Type
+	if name == 'isize'
+		return tcIsizeType
+	if name == 'usize'
+		return tcUsizeType
+	if name == 'f32'
+		return tcFloatType
+	if name == 'f64'
+		return tcDoubleType
+	if name == 'bool'
+		return tcBoolType
+	if name == 'char'
+		return tcCharType
+	if name == 'string'
+		return tcStringType
+	return tcNominalType name
+
+tcIsUnknown type;TcType, bool
+	return type.kind == 'unknown'
+
+tcIsError type;TcType, bool
+	return type.kind == 'error'
+
+tcIsNumeric type;TcType, bool
+	if type.kind isne 'primitive'
+		return false
+	return tcIsInteger type or type.name == 'f32' or type.name == 'f64'
+
+tcIsInteger type;TcType, bool
+	if type.kind isne 'primitive'
+		return false
+	return type.name == 'i8' or type.name == 'i16' or type.name == 'i32' or type.name == 'i64' or type.name == 'u8' or type.name == 'u16' or type.name == 'u32' or type.name == 'u64' or type.name == 'isize' or type.name == 'usize'
+
+tcIsSignedInteger type;TcType, bool
+	if type.kind isne 'primitive'
+		return false
+	return type.name == 'i8' or type.name == 'i16' or type.name == 'i32' or type.name == 'i64' or type.name == 'isize'
+
+tcIsUnsignedInteger type;TcType, bool
+	if type.kind isne 'primitive'
+		return false
+	return type.name == 'u8' or type.name == 'u16' or type.name == 'u32' or type.name == 'u64' or type.name == 'usize'
+
+tcIsFloat type;TcType, bool
+	if type.kind isne 'primitive'
+		return false
+	return type.name == 'f32' or type.name == 'f64'
+
+tcIsBool type;TcType, bool
+	return type.kind == 'primitive' and type.name == 'bool'
+
+tcIsString type;TcType, bool
+	return type.kind == 'primitive' and type.name == 'string'
+
+tcInnerType type;TcType, TcType
+	if type.args.length isgt 0
+		return type.args{0}
+	return tcUnknownType
+
+tcSecondInnerType type;TcType, TcType
+	if type.args.length isgt 1
+		return type.args{1}
+	return tcUnknownType
+
+tcTypeEquals left;TcType right;TcType, bool
+	if left.kind == 'error' or right.kind == 'error'
+		return true
+	if left.kind == 'unknown' or right.kind == 'unknown'
+		return true
+	if left.kind isne right.kind
+		return false
+	if left.name isne right.name
+		return false
+	if left.args.length isne right.args.length
+		return false
+	i usize = 0
+	while i islt left.args.length
+		if not tcTypeEquals left.args{i} right.args{i}
+			return false
+		i += 1
+	if left.params.length isne right.params.length
+		return false
+	i = 0
+	while i islt left.params.length
+		if not tcTypeEquals left.params{i} right.params{i}
+			return false
+		i += 1
+	return true
+
+tcTypeDisplay type;TcType, string
+	if type.kind == 'unknown'
+		return 'Unknown'
+	if type.kind == 'error'
+		return 'Error'
+	if type.kind == 'void'
+		return 'Void'
+	if type.kind == 'never'
+		return 'Never'
+	if type.kind == 'primitive' or type.kind == 'nominal' or type.kind == 'newtype' or type.kind == 'generic' or type.kind == 'typevar'
+		return type.name
+	if type.kind == 'maybe'
+		inner = tcInnerType type
+		return 'Maybe[' + tcTypeDisplay inner + ']'
+	if type.kind == 'array'
+		inner = tcInnerType type
+		return '{' + tcTypeDisplay inner + '}'
+	if type.kind == 'map'
+		keyType = tcInnerType type
+		valueType = tcSecondInnerType type
+		return 'map`[' + tcTypeDisplay keyType + ' ' + tcTypeDisplay valueType + ']'
+	if type.kind == 'reference'
+		inner = tcInnerType type
+		return '~' + tcTypeDisplay inner
+	if type.kind == 'pointer'
+		inner = tcInnerType type
+		return tcTypeDisplay inner + '`'
+	if type.kind == 'heap'
+		inner = tcInnerType type
+		return '@[' + tcTypeDisplay inner + ']'
+	if type.kind == 'variadic'
+		inner = tcInnerType type
+		return 'variadic[' + tcTypeDisplay inner + ']'
+	if type.kind == 'tuple'
+		out = 'tuple'
+		for arg in type.args
+			out += ' ' + tcTypeDisplay arg
+		return out
+	if type.kind == 'function' or type.kind == 'closure'
+		out = type.kind + '('
+		i usize = 0
+		for param in type.params
+			if i isgt 0
+				out += ', '
+			out += tcTypeDisplay param
+			i += 1
+		out += ') -> '
+		if type.args.length isgt 0
+			out += tcTypeDisplay type.args{0}
+		else
+			out += 'Unknown'
+		return out
+	return type.kind
+
+tcAssignable target;TcType value;TcType, bool
+	if tcTypeEquals target value
+		return true
+	if target.kind == 'primitive' and value.kind == 'primitive'
+		return false
+	if target.kind == 'reference'
+		inner = tcInnerType target
+		return tcAssignable inner value
+	return false
+
+tcNilType, TcType
+	return tcType 'nil' 'nil'
+
+tcIsLegacyPrimitiveName name;string, bool
+	return name == 'int' or name == 'Int' or name == 'uint' or name == 'UInt' or name == 'float' or name == 'Float' or name == 'double' or name == 'Double'
+
+tcIntegerBitWidth type;TcType, int
+	if type.name == 'i8' or type.name == 'u8'
+		return 8
+	if type.name == 'i16' or type.name == 'u16'
+		return 16
+	if type.name == 'i32' or type.name == 'u32'
+		return 32
+	if type.name == 'i64' or type.name == 'u64'
+		return 64
+	if type.name == 'isize' or type.name == 'usize'
+		return 64
+	return 0
+
+tcIntegerLiteralFits literal;int target;TcType, bool
+	if not tcIsInteger target
+		return false
+	if target.name == 'u8'
+		return literal isgteq 0 and literal islteq 255
+	if target.name == 'i8'
+		return literal isgteq -128 and literal islteq 127
+	if target.name == 'u16'
+		return literal isgteq 0 and literal islteq 65535
+	if target.name == 'i16'
+		return literal isgteq -32768 and literal islteq 32767
+	if target.name == 'u32' or target.name == 'u64' or target.name == 'usize'
+		return literal isgteq 0
+	return true
+
+tcSubstitute type;TcType names;{string} values;{TcType}, TcType
+	if type.kind == 'generic' or type.kind == 'typevar'
+		i usize = 0
+		for name in names
+			if name == type.name and i islt values.length
+				return values{i}
+			i += 1
+	out = type
+	out.args.clear
+	for arg in type.args
+		out.args += tcSubstitute arg names values
+	out.params.clear
+	for param in type.params
+		out.params += tcSubstitute param names values
+	return out

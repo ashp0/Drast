@@ -31,7 +31,7 @@ impl Parser
 					while self.check TokenKind.Identifier
 						variant.name += s'_' + self.advance.text
 				en.variants += variant
-				self.enumVariants.set variant.name name
+				self.registerEnumVariant name variant.name
 				if not self.currentMatch TokenKind.Semicolon
 					break
 			self.consumeStatementEnd
@@ -56,7 +56,11 @@ impl Parser
 			elif depth == 0 and lineStart and k == TokenKind.Identifier
 				name = self.tokens{i}.text
 				if self.looksLikeTopLevelFunction i
-					self.functionReturns.set name 'auto'
+					ret = self.predeclareFunctionReturn i
+					self.functionReturns.set name ret
+					typeParams = self.predeclareFunctionTypeParams i
+					if typeParams.length isgt 0
+						self.functionTypeParams.set name typeParams
 				lineStart = false
 			elif k isne TokenKind.End
 				lineStart = false
@@ -72,6 +76,24 @@ impl Parser
 				return false
 			i += 1
 		return true
+
+	private predeclareFunctionTypeParams start;usize, string
+		i = start + 1
+		if i + 1 isgteq self.tokens.length
+			return ''
+		if self.tokens{i}.kind isne TokenKind.Backtick or self.tokens{i + 1}.kind isne TokenKind.LeftBracket
+			return ''
+		i += 2
+		out string;
+		first = true
+		while i islt self.tokens.length and self.tokens{i}.kind isne TokenKind.RightBracket and self.tokens{i}.kind isne TokenKind.End
+			if self.tokens{i}.kind == TokenKind.Identifier
+				if not first
+					out += ','
+				out += self.tokens{i}.text
+				first = false
+			i += 1
+		return out
 
 	private predeclareEnums
 		i usize = 0
@@ -104,12 +126,22 @@ impl Parser
 									variant += s'_' + self.tokens{i}.text
 							elif self.tokens{i}.kind == TokenKind.Semicolon or self.tokens{i}.kind == TokenKind.Newline
 								if variant.length isgt 0
-									self.enumVariants.set variant enumName
+									self.registerEnumVariant enumName variant
 									variant = ''
 							i += 1
 						if variant.length isgt 0
-							self.enumVariants.set variant enumName
+							self.registerEnumVariant enumName variant
 			i += 1
+
+	private registerEnumVariant enumName;string variantName;string
+		key = enumName + '.' + variantName
+		self.enumVariantNames.set key '1'
+		if self.enumVariants.contains variantName
+			existing = self.enumVariants.get variantName s''
+			if existing isne enumName
+				self.ambiguousEnumVariants.set variantName '1'
+			return
+		self.enumVariants.set variantName enumName
 
 
 impl Codegen

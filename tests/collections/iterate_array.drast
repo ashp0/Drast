@@ -1,7 +1,7 @@
 // # TEST: iterate over array values
 // # EXPECT: pass
 
-use std
+use drast
 
 main, int
 	items = {1 2 3}

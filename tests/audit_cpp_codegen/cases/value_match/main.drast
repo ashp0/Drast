@@ -1,7 +1,7 @@
 // # TEST: audit scalar and string match emission
 // # EXPECT: pass
 
-use std
+use drast
 
 rankStatus status;string, int
 	match status

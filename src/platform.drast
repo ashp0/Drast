@@ -1,4 +1,4 @@
-use std
+use drast
 
 platformCurrentDir, string
 	return currentDir
@@ -17,6 +17,9 @@ platformPathStem path;string, string
 
 platformNormalizePath path;string, string
 	return normalizePath path
+
+platformCanonicalPath path;string, string
+	return canonicalPath path
 
 platformIsAbsolute path;string, bool
 	return isAbsolutePath path
@@ -40,10 +43,16 @@ platformWriteFile path;string contents;string, bool
 	return writeFile path contents
 
 platformMakeWritable path;string, bool
-	return makePathWritable path
+	arguments {string};
+	arguments += 'u+w'
+	arguments += path
+	return runProcess '/bin/chmod' arguments false == 0
 
 platformMakeReadOnly path;string, bool
-	return makePathReadOnly path
+	arguments {string};
+	arguments += 'a-w'
+	arguments += path
+	return runProcess '/bin/chmod' arguments false == 0
 
 platformFindExecutable name;string, string
 	return findExecutable name

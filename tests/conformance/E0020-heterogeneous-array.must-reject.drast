@@ -1,0 +1,4 @@
+// E0020 reject: array literals must not mix unrelated element types.
+main, i32
+	values = {1, 'two'}
+	return 0

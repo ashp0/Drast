@@ -1,0 +1,4 @@
+// E0070 accept: a float literal may be contextually typed as f32.
+main, i32
+	value f32 = 1.0
+	return 0

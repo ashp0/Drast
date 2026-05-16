@@ -1,7 +1,7 @@
 // # TEST: function returning tuple
 // # EXPECT: pass
 
-use std
+use drast
 
 makePair left;int right;string, tuple Int String
 	return tuple left right

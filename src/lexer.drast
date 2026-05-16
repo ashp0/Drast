@@ -42,7 +42,7 @@ impl Lexer
 	private advanceChar
 		if self.offset islt self.source.length
 			c = self.source{self.offset}
-			if c == '\n'
+			if c == c'\n'
 				self.line += 1
 				self.column = 1
 			else
@@ -141,6 +141,9 @@ impl Lexer
 		if c == charCode '.'
 			return self.makeToken TokenKind.Dot s'.' start
 		if c == charCode ':'
+			if self.peekChar 0 == charCode '='
+				self.advanceChar
+				return self.makeToken TokenKind.Equal ':=' start
 			if self.peekChar 0 == charCode ':'
 				self.advanceChar
 				return self.makeToken TokenKind.DoubleColon '::' start
@@ -171,6 +174,33 @@ impl Lexer
 			return self.makeToken TokenKind.Slash s'/' start
 		if c == charCode '%'
 			return self.makeToken TokenKind.Percent s'%' start
+		if c == charCode '&'
+			if self.peekChar 0 == charCode '+'
+				self.advanceChar
+				return self.makeToken TokenKind.WrappingPlus '&+' start
+			if self.peekChar 0 == charCode '-'
+				self.advanceChar
+				return self.makeToken TokenKind.WrappingMinus '&-' start
+			if self.peekChar 0 == charCode '*'
+				self.advanceChar
+				return self.makeToken TokenKind.WrappingStar '&*' start
+			if self.peekChar 0 == charCode '<' and self.peekChar 1 == charCode '<'
+				self.advanceChar
+				self.advanceChar
+				return self.makeToken TokenKind.WrappingShiftLeft '&<<' start
+		if c == charCode '|'
+			if self.peekChar 0 == charCode '+' and self.peekChar 1 == charCode '|'
+				self.advanceChar
+				self.advanceChar
+				return self.makeToken TokenKind.SaturatingPlus '|+|' start
+			if self.peekChar 0 == charCode '-' and self.peekChar 1 == charCode '|'
+				self.advanceChar
+				self.advanceChar
+				return self.makeToken TokenKind.SaturatingMinus '|-|' start
+			if self.peekChar 0 == charCode '*' and self.peekChar 1 == charCode '|'
+				self.advanceChar
+				self.advanceChar
+				return self.makeToken TokenKind.SaturatingStar '|*|' start
 		if c == charCode '='
 			if self.peekChar 0 == charCode '='
 				self.advanceChar
@@ -280,6 +310,10 @@ impl Lexer
 		if text == s's' and self.peekChar 0 == charCode '\''
 			tok = self.readQuoted start
 			tok.kind = TokenKind.StringLiteral
+			return tok
+		if text == s'c' and self.peekChar 0 == charCode '\''
+			tok = self.readQuoted start
+			tok.kind = TokenKind.CharLiteral
 			return tok
 		kind = self.keywordKind text
 		return self.makeToken kind text start
@@ -451,7 +485,4 @@ impl Lexer
 			text += self.source{self.offset}
 			self.advanceChar
 		self.advanceChar
-		kind = TokenKind.StringLiteral
-		if text.length == 1
-			kind = TokenKind.CharLiteral
-		return self.makeToken kind text start
+		return self.makeToken TokenKind.StringLiteral text start

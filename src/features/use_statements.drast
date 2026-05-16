@@ -2,6 +2,7 @@ impl Parser
 	private parseUse
 		path string;
 		quoted = false
+		alias string;
 		if self.check TokenKind.StringLiteral or self.check TokenKind.CharLiteral
 			path = self.advance.text
 			quoted = true
@@ -9,18 +10,31 @@ impl Parser
 			if self.check TokenKind.Identifier and self.peekCurrent.text == 'file'
 				self.advance
 				quoted = true
-			while not self.check TokenKind.Newline and not self.check TokenKind.End
+			while not self.check TokenKind.Newline and not self.check TokenKind.End and not self.check TokenKind.As
 				t = self.advance
 				path += t.text
+			if self.currentMatch TokenKind.As
+				aliasTok = self.consume TokenKind.Identifier 'expected use alias'
+				alias = aliasTok.text
 		self.consumeStatementEnd
 		if path.length == 0
 			reportError self.currentFile self.peekCurrent.location.line self.peekCurrent.location.column 'empty use path'
 			return
-		if path == 'std'
+		if path == 'drast'
 			self.usesStd = true
+			prelude = self.resolvePrelude
+			if prelude.length isgt 0
+				self.loadFile prelude
+			return
+		if path == 'std'
 			return
 		if path == 'no_runtime'
 			self.noRuntime = true
+			return
+		if self.isStdHeaderName path
+			line = '#include <' + path + '>\n'
+			if not self.hasIncludeLine line
+				self.ast.includeLines += line
 			return
 		if self.isHeaderPath path
 			line string;
@@ -45,12 +59,27 @@ impl Parser
 				return true
 		return false
 
+	private isStdHeaderName path;string, bool
+		return path == 'algorithm' or path == 'array' or path == 'chrono' or path == 'cmath' or path == 'cstddef' or path == 'cstdint' or path == 'deque' or path == 'filesystem' or path == 'fstream' or path == 'functional' or path == 'iostream' or path == 'list' or path == 'map' or path == 'memory' or path == 'optional' or path == 'queue' or path == 'set' or path == 'sstream' or path == 'string' or path == 'tuple' or path == 'unordered_map' or path == 'unordered_set' or path == 'utility' or path == 'variant' or path == 'vector'
+
+	private resolvePrelude, string
+		local = self.normalizePath (self.currentDir + '/drast_flavour.drast')
+		if fileExists local
+			return local
+		parent = self.normalizePath (self.currentDir + '/../drast_flavour.drast')
+		if fileExists parent
+			return parent
+		home = getEnv 'DRAST_HOME'
+		if home.length isgt 0
+			fromHome = self.normalizePath (home + '/drast_flavour.drast')
+			if fileExists fromHome
+				return fromHome
+		return ''
+
 
 impl Codegen
 	private emitIncludes ast;AST, string
 		out string;
-		if ast.usesStd
-			out += '#include "runtime/drast_runtime.hpp"\n'
 		for line in ast.includeLines
 			out += line
 		return out

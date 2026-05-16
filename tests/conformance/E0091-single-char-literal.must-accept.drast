@@ -1,0 +1,4 @@
+// E0091 accept: c'...' contains exactly one Unicode scalar.
+main, i32
+	ch char = c'a'
+	return 0

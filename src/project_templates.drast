@@ -1,7 +1,7 @@
-use std
+use drast
 
 defaultMainContent, string
-	content = 'use std\n'
+	content = 'use drast\n'
 	content += '\n'
 	content += 'main, int\n'
 	content += '\tprintln \'Hello from Drast!\'\n'
@@ -16,14 +16,13 @@ defaultPackageContent projectName;string, string
 	content += 'target ' + projectName + '\n'
 	content += '\tkind binary\n'
 	content += '\tentry main.drast\n'
-	content += '\toutput .drast/build/bin/' + projectName + '\n'
-	content += '\tgenerated .drast/build/generated/' + projectName + '\n'
+	content += '\toutput build/bin/' + projectName + '\n'
+	content += '\tgenerated build/generated/' + projectName + '\n'
 	content += '\tinclude .\n'
 	content += '\tcxx c++17\n'
 	return content
 
 defaultProjectGitignore, string
-	content = '.drast/\n'
-	content += 'build/\n'
+	content = 'build/\n'
 	content += '*.tmp\n'
 	return content

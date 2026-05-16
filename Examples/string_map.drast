@@ -1,4 +1,4 @@
-use std
+use drast
 
 main, int
 	text = 'one two one three two one'

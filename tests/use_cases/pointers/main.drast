@@ -1,7 +1,7 @@
 // # TEST: existing use case pointers main.drast
 // # EXPECT: pass
 
-use std
+use drast
 
 main, int
 	value = 25

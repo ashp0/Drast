@@ -1,0 +1,11 @@
+// E0040 accept: maybe values are handled through an explicit unwrap surface.
+struct User
+	name string
+
+find_user, maybe User
+	return None
+
+main, i32
+	user = find_user
+	fallback = user.value_or[User['anonymous']]
+	return 0

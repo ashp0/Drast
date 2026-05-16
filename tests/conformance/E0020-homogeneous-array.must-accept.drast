@@ -1,0 +1,4 @@
+// E0020 accept: every element in an array literal has the same type.
+main, i32
+	values = {1, 2, 3}
+	return 0

@@ -1,0 +1,6 @@
+// E0030 accept: recoverable failure is modeled as Result values.
+read_value, Result[i32 string]
+	return Ok[1]
+
+main, i32
+	return 0

@@ -56,7 +56,8 @@ impl Parser
 	private parseIf, string
 		self.consume TokenKind.If 'expected if'
 		cond = self.parseExpression
-		out = self.indentText + 'if (' + self.valueCode cond + ') {\n'
+		condCode = self.valueCode cond
+		out = self.indentText + 'if (' + condCode + ') {\n'
 		self.consumeStatementEnd
 		self.skipNewlines
 		savedTypes = self.localTypes
@@ -119,6 +120,16 @@ impl Parser
 				stepEx = self.parseExpression
 				stepCode = self.valueCode stepEx
 			out = self.indentText + 'for (auto ' + loopVar + ' = ' + self.valueCode first + '; ' + loopVar + ' <= ' + self.valueCode endEx + '; ' + loopVar + ' += ' + stepCode + ') {\n'
+			savedTypes = self.localTypes
+			self.localTypes.set loopVar 'auto'
+			self.consumeStatementEnd
+			self.skipNewlines
+			self.indent += 1
+			out += self.parseBlock
+			self.indent -= 1
+			self.localTypes = savedTypes
+			out += self.indentText + '}\n'
+			return out
 		elif self.currentMatch TokenKind.Until
 			endEx = self.parseExpression
 			stepCode = s'1'
@@ -126,26 +137,54 @@ impl Parser
 				stepEx = self.parseExpression
 				stepCode = self.valueCode stepEx
 			out = self.indentText + 'for (auto ' + loopVar + ' = ' + self.valueCode first + '; ' + loopVar + ' < ' + self.valueCode endEx + '; ' + loopVar + ' += ' + stepCode + ') {\n'
+			savedTypes = self.localTypes
+			self.localTypes.set loopVar 'auto'
+			self.consumeStatementEnd
+			self.skipNewlines
+			self.indent += 1
+			out += self.parseBlock
+			self.indent -= 1
+			self.localTypes = savedTypes
+			out += self.indentText + '}\n'
+			return out
 		else
-			out = self.indentText + 'for (auto& ' + loopVar + ' : ' + self.valueCode first + ') {\n'
-		savedTypes = self.localTypes
-		self.localTypes.set loopVar 'auto'
-		self.consumeStatementEnd
-		self.skipNewlines
-		self.indent += 1
-		out += self.parseBlock
-		self.indent -= 1
-		self.localTypes = savedTypes
-		out += self.indentText + '}\n'
-		return out
+			savedTypes = self.localTypes
+			self.localTypes.set loopVar 'auto'
+			self.consumeStatementEnd
+			self.skipNewlines
+			self.indent += 1
+			body = self.parseBlock
+			self.indent -= 1
+			self.localTypes = savedTypes
+			firstCode = self.valueCode first
+			if firstCode.startsWith '__drt::map_keys('
+				mapVar = firstCode.substring 16 ;to [firstCode.length - 1]
+				out = self.indentText + 'for (const auto& [' + loopVar + ', _] : ' + mapVar + ') {\n'
+				out += body
+				out += self.indentText + '}\n'
+				return out
+			if first.kind == 'Identifier'
+				aliasType = self.localTypes.get first.text s''
+				if aliasType.startsWith 'map_keys:'
+					mapVar = aliasType.substring 9 ;to aliasType.length
+					out = self.indentText + 'for (const auto& [' + loopVar + ', _] : ' + mapVar + ') {\n'
+					out += body
+					out += self.indentText + '}\n'
+					return out
+			if self.isLoopVarMutated loopVar body
+				out = self.indentText + 'for (auto& ' + loopVar + ' : ' + firstCode + ') {\n'
+			else
+				out = self.indentText + 'for (const auto& ' + loopVar + ' : ' + firstCode + ') {\n'
+			out += body
+			out += self.indentText + '}\n'
+			return out
 
 	private parseTryCatch, string
 		self.consume TokenKind.Try 'expected try'
 		self.consumeStatementEnd
 		self.skipNewlines
-		out = self.indentText + 'try {\n'
 		self.indent += 1
-		out += self.parseBlock
+		tryBody = self.parseBlock
 		self.indent -= 1
 		self.skipNewlines
 		self.consume TokenKind.Catch 'expected catch'
@@ -155,16 +194,23 @@ impl Parser
 			binding = bindingTok.text
 		self.consumeStatementEnd
 		self.skipNewlines
-		out += self.indentText + '} catch (const std::exception& ' + binding + ') {\n'
 		old = self.localTypes.get binding s''
 		self.localTypes.set binding 'std::exception'
 		savedTypes = self.localTypes
 		self.indent += 1
-		out += self.parseBlock
+		catchBody = self.parseBlock
 		self.indent -= 1
 		self.localTypes = savedTypes
 		if old.length isgt 0
 			self.localTypes.set binding old
+		hasOptionalValue = tryBody.contains '.value()'
+		catchException = 'const std::exception&'
+		if hasOptionalValue
+			catchException = 'const std::bad_optional_access&'
+		out = self.indentText + 'try {\n'
+		out += tryBody
+		out += self.indentText + '} catch (' + catchException + ' ' + binding + ') {\n'
+		out += catchBody
 		out += self.indentText + '}\n'
 		return out
 
@@ -172,17 +218,30 @@ impl Parser
 		self.consume TokenKind.Match 'expected match'
 		ex = self.parseExpression
 		matchCode = self.valueCode ex
-		matchType = ex.typeText
+		matchType = self.baseTypeName ex.typeText
 		self.consumeStatementEnd
 		self.skipNewlines
 		self.consume TokenKind.Indent 'expected match block'
-		out = self.indentText + '{\n'
-		self.indent += 1
-		out += self.indentText + 'const auto& _match = ' + matchCode + ';\n'
+		isDataEnumMatch = self.isDataEnumType matchType
+		hasDefault = false
+		variantCount = 0
+		out string;
+		if isDataEnumMatch
+			out = self.indentText + '{\n'
+			self.indent += 1
+			out += self.indentText + 'const auto& _match = ' + matchCode + ';\n'
+			out += self.indentText + 'switch (_match.tag) {\n'
+		else
+			out = self.indentText + '{\n'
+			self.indent += 1
+			out += self.indentText + 'const auto& _match = ' + matchCode + ';\n'
 		first = true
 		while not self.check TokenKind.Dedent and not self.check TokenKind.End
 			if self.currentMatch TokenKind.Default
-				if first
+				hasDefault = true
+				if isDataEnumMatch
+					out += self.indentText + 'default: {\n'
+				elif first
 					out += self.indentText + '{\n'
 				else
 					out += self.indentText + 'else {\n'
@@ -191,13 +250,35 @@ impl Parser
 				self.indent += 1
 				out += self.parseBlock
 				self.indent -= 1
+				if isDataEnumMatch
+					out += self.indentText + '    break;\n'
 				out += self.indentText + '}\n'
 				first = false
 			else
-				pattern = self.parseExpression
+				pattern = self.parsePostfixNoImplicit
 				variantName = self.patternVariantName pattern
 				matchVariantKey = matchType + '.' + variantName
-				if self.dataEnumVariants.contains matchVariantKey
+				if isDataEnumMatch and self.dataEnumVariants.contains matchVariantKey
+					variantCount += 1
+					bindings {string};
+					while self.check TokenKind.Identifier and not self.check TokenKind.Newline and not self.check TokenKind.Indent
+						bindTok = self.advance
+						bindings += bindTok.text
+					out += self.indentText + 'case ' + matchType + '::Tag::' + variantName + ': {\n'
+					self.consumeStatementEnd
+					self.skipNewlines
+					self.indent += 1
+					out += self.emitDataBindings matchType variantName bindings
+					out += self.parseBlock
+					self.indent -= 1
+					out += self.indentText + '    break;\n'
+					out += self.indentText + '}\n'
+				elif self.dataEnumVariants.contains matchVariantKey
+					variantCount += 1
+					bindings {string};
+					while self.check TokenKind.Identifier and not self.check TokenKind.Newline and not self.check TokenKind.Indent
+						bindTok = self.advance
+						bindings += bindTok.text
 					if first
 						out += self.indentText + 'if (_match.tag == ' + matchType + '::Tag::' + variantName + ') {\n'
 					else
@@ -205,7 +286,7 @@ impl Parser
 					self.consumeStatementEnd
 					self.skipNewlines
 					self.indent += 1
-					out += self.emitDataBindings matchType variantName pattern
+					out += self.emitDataBindings matchType variantName bindings
 					out += self.parseBlock
 					self.indent -= 1
 					out += self.indentText + '}\n'
@@ -223,19 +304,58 @@ impl Parser
 				first = false
 			self.skipNewlines
 		self.consume TokenKind.Dedent 'expected match end'
-		self.indent -= 1
-		out += self.indentText + '}\n'
+		if isDataEnumMatch
+			if not hasDefault
+				out += self.indentText + '}\n'
+				out += self.indentText + '__builtin_unreachable();\n'
+				self.indent -= 1
+				out += self.indentText + '}\n'
+			else
+				out += self.indentText + '}\n'
+				self.indent -= 1
+				out += self.indentText + '}\n'
+		else
+			self.indent -= 1
+			out += self.indentText + '}\n'
 		return out
 
-	private emitDataBindings matchType;string variantName;string pattern;CExpr, string
+	private emitDataBindings matchType;string variantName;string bindings;{string}, string
 		out string;
-		out += self.indentText + 'auto& _payload = std::get<' + matchType + '_' + variantName + '>(_match.data);\n'
-		bindings = pattern.text.split s','
-		for name in bindings
-			if name.length isgt 0
-				out += self.indentText + 'auto& ' + name + ' = _payload.' + name + ';\n'
-				self.localTypes.set name 'auto'
+		if bindings.length isgt 0
+			out += self.indentText + 'const auto& _payload = std::get<' + matchType + '_' + variantName + '>(_match.data);\n'
+			for name in bindings
+				if name.length isgt 0
+					out += self.indentText + 'const auto& ' + name + ' = _payload.' + name + ';\n'
+					self.localTypes.set name 'auto'
 		return out
+
+	private isDataEnumType typeName;string, bool
+		for key in self.dataEnumVariants.keys
+			prefix = typeName + s'.'
+			if key.startsWith prefix
+				return true
+		return false
+
+	private isLoopVarMutated name;string body;string, bool
+		assignCheck = name + ' ='
+		if body.contains assignCheck
+			return true
+		plusAssign = name + ' +='
+		if body.contains plusAssign
+			return true
+		minusAssign = name + ' -='
+		if body.contains minusAssign
+			return true
+		starAssign = name + ' *='
+		if body.contains starAssign
+			return true
+		slashAssign = name + ' /='
+		if body.contains slashAssign
+			return true
+		refCheck = s'&' + name
+		if body.contains refCheck
+			return true
+		return false
 
 
 impl Codegen

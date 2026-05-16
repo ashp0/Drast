@@ -1,0 +1,4 @@
+// E0070 reject: integer literals are not float literals.
+main, i32
+	value f32 = 1
+	return 0

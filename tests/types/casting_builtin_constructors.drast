@@ -1,7 +1,7 @@
 // # TEST: builtin constructor casts
 // # EXPECT: pass
 
-use std
+use drast
 
 main, int
 	floatValue = Float[s'3.5']

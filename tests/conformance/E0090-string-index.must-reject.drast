@@ -1,0 +1,5 @@
+// E0090 reject: strings are not integer-indexable in safe code.
+main, i32
+	text = 'hello'
+	byte = text{0}
+	return 0

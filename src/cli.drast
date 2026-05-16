@@ -1,49 +1,85 @@
-use std
+use drast
 use platform
 use build_system
 use project_templates
+use headers
 
 cliMain, int
-	if args.length islteq 1
+	applyGlobalFlags
+	positional = positionalArgs
+	if positional.length islteq 1
 		printHelp
 		return 0
-	command = arg 1
+	command = positional{1}
 	if command == 'help' or command == '--help' or command == '-h'
 		printHelp
 		return 0
 	if command == 'init'
-		return handleInit
+		return handleInit positional
 	if command == 'build'
-		target = optionalArg 2
+		target = positionalAt positional 2
 		return buildCurrentProject target false
 	if command == 'run'
-		target = optionalArg 2
+		target = positionalAt positional 2
 		return buildCurrentProject target true
+	if command == 'headers'
+		return handleHeaders positional
 	return buildCurrentProject command true
 
-optionalArg index;int, string
-	if args.length isgt index
-		return arg index
+applyGlobalFlags
+	if containsArg '--no-typecheck'
+		cliTypeCheckOverride = '0'
+	if containsArg '--typecheck'
+		cliTypeCheckOverride = '1'
+
+containsArg flag;string, bool
+	i = 0
+	while i islt args.length
+		if arg i == flag
+			return true
+		i += 1
+	return false
+
+positionalArgs, {string}
+	out {string};
+	i = 0
+	while i islt args.length
+		current = arg i
+		if current == '--no-typecheck' or current == '--typecheck'
+			i += 1
+			continue
+		out += current
+		i += 1
+	return out
+
+positionalAt list;{string} idx;int, string
+	if list.length isgt idx
+		return list{idx}
 	return ''
 
 printHelp
 	println [
-		'Usage: drast <command>',
+		'Usage: drast [global-flags] <command>',
 		'',
 		'Commands:',
 		'  init [ProjectName]  create a new Drast project',
 		'  build [target]      build the current package target',
 		'  run [target]        build and run the current package target',
+		'  headers             emit a C/C++ header and implementation for the current package',
 		'  <target>            build and run the named target',
 		'  help                print this help',
+		'',
+		'Global flags:',
+		'  --no-typecheck      skip the native type checker for this invocation',
+		'  --typecheck         force the native type checker on (default)',
 		'',
 		'Projects are configured by package.txt. xmake is used internally for C++ builds.'
 	]
 
-handleInit, int
+handleInit positional;{string}, int
 	projectName = ''
-	if args.length isgt 2
-		projectName = arg 2
+	if positional.length isgt 2
+		projectName = positional{2}
 	else
 		projectName = getInput 'Project name: '
 	projectName = projectName.trim

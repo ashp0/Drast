@@ -1,0 +1,4 @@
+// E0031 reject: try requires a maybe or Result operand.
+main_result, Result[i32 string]
+	value = try 1
+	return Ok[value]

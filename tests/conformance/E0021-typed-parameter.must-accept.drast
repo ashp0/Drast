@@ -1,0 +1,6 @@
+// E0021 accept: function parameters carry explicit type annotations.
+identity value;i32, i32
+	return value
+
+main, i32
+	return identity 1

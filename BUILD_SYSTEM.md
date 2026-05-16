@@ -26,8 +26,8 @@ default drast
 target drast
 	kind binary
 	entry src/main.drast
-	output .drast/build/bin/drast
-	generated .drast/build/generated/drast
+	output build/bin/drast
+	generated build/generated/drast
 	include .
 	cxx c++17
 
@@ -41,8 +41,8 @@ Supported target fields:
 
 - `kind`: `binary` or `command`; `library` and `embed` are reserved and produce clear diagnostics.
 - `entry`: Drast source entry point for binary targets.
-- `output`: binary output path.
-- `generated`: generated C++ directory.
+- `output`: binary output path. Package-managed paths are normalized under `build/`; legacy `.drast/build/...` values are accepted and remapped.
+- `generated`: generated C++ directory. Package-managed paths are normalized under `build/`; legacy `.drast/build/...` values are accepted and remapped.
 - `depends`: one or more target names.
 - `include`, `cxxfile`, `link`, `linkdir`, `define`, `cxxflag`, `ldflag`: passed through to the xmake backend.
 - `prebuild`, `postbuild`, `command`: shell commands with placeholders.
@@ -55,6 +55,8 @@ Command placeholders:
 - `{output}`: current target output path.
 - `{output:name}` and `{target:name}`: named target output/name.
 
+Build artifacts are organized under `build/bin/`, `build/generated/`, and `build/xmake/`. The old `.drast/build/` location is treated as a legacy input path only.
+
 ## Architecture
 
 - `src/main.drast` is a thin entry point.
@@ -62,7 +64,7 @@ Command placeholders:
 - `src/package.drast` owns manifest structs and parsing.
 - `src/build_system.drast` owns graph resolution, dependency ordering, transpilation, generated-file permissions, and command target execution.
 - `src/xmake_backend.drast` owns internal xmake project generation/invocation.
-- `src/platform.drast` wraps runtime filesystem/process helpers so future direct C++ interop can replace `drast_runtime.hpp` usage in one place.
+- `src/platform.drast` wraps filesystem/process helpers that the transpiler lowers directly into generated C++ support code.
 
 Future extension points are already represented in the manifest model for external C++ linking, multiple targets, and embedding-oriented target kinds.
 

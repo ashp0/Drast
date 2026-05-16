@@ -1,4 +1,4 @@
-use std
+use drast
 
 main, int
 	println 'Write a number'

@@ -1,0 +1,5 @@
+// E0010 reject: bindings are immutable unless declared with `mut`.
+main, i32
+	counter = 0
+	counter = 1
+	return counter

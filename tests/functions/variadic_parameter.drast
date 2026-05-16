@@ -1,7 +1,7 @@
 // # TEST: variadic parameter type is accepted
 // # EXPECT: pass
 
-use std
+use drast
 
 sum values;variadic[int], int
 	total = 0

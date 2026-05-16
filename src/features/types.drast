@@ -13,9 +13,19 @@ impl Parser
 			out.sourceName = inner.sourceName
 			out.isArray = true
 			return out
+		if self.currentMatch TokenKind.Star
+			if self.currentMatch TokenKind.LeftBracket
+				inner = self.parseType
+				self.consume TokenKind.RightBracket 'expected unique heap type close'
+				out.text = 'std::unique_ptr<' + inner.text + '>'
+				out.sourceName = inner.sourceName
+				out.heapShared = false
+				return out
+			else
+				reportError self.currentFile self.peekCurrent.location.line self.peekCurrent.location.column 'unexpected star in type'
 		if self.currentMatch TokenKind.AtLeftBracket
 			inner = self.parseType
-			self.consume TokenKind.RightBracket 'expected heap type close'
+			self.consume TokenKind.RightBracket 'expected shared heap type close'
 			out.text = 'std::shared_ptr<' + inner.text + '>'
 			out.sourceName = inner.sourceName
 			out.heapShared = true
@@ -102,6 +112,8 @@ impl Parser
 			return 'std::string'
 		if name == 'usize'
 			return 'std::size_t'
+		if name == 'vector'
+			return 'std::vector'
 		if name == 'std::linked_list'
 			return 'std::list'
 		return self.qualifyName name
@@ -110,10 +122,12 @@ impl Parser
 		return name == 'int' or name == 'Int' or name == 'uint' or name == 'UInt' or name == 'float' or name == 'Float' or name == 'double' or name == 'Double' or name == 'bool' or name == 'Bool' or name == 'char' or name == 'Char' or name == 'string' or name == 'String' or name == 'usize'
 
 	private isStdFunction name;string, bool
-		return name == 'print' or name == 'println' or name == 'printf' or name == 'getInput' or name == 'arg' or name == 'readFile' or name == 'writeFile' or name == 'fileExists' or name == 'args' or name == 'toString' or name == 'parseInt' or name == 'parseFloat' or name == 'charCode' or name == 'isAlpha' or name == 'isDigit' or name == 'isWhitespace' or name == 'clearErrors' or name == 'reportError' or name == 'errorCount' or name == 'hasErrors' or name == 'emitErrors' or self.isBuildRuntimeFunction name
+		if not self.usesStd
+			return false
+		return name == 'printf' or name == 'getInput' or name == 'arg' or name == 'readFile' or name == 'writeFile' or name == 'fileExists' or name == 'args' or name == 'toString' or name == 'parseInt' or name == 'parseFloat' or name == 'clearErrors' or name == 'reportError' or name == 'errorCount' or name == 'hasErrors' or name == 'emitErrors' or self.isBuildRuntimeFunction name
 
 	private isBuildRuntimeFunction name;string, bool
-		return name == 'getEnv' or name == 'currentDir' or name == 'normalizePath' or name == 'isAbsolutePath' or name == 'pathJoin' or name == 'pathDirname' or name == 'pathBasename' or name == 'pathStem' or name == 'isDirectory' or name == 'ensureDir' or name == 'removeDirRecursive' or name == 'sourceNewerThanTarget' or name == 'targetMissingOrOlder' or name == 'sourceOutputPath' or name == 'sourceIncludeDirs' or name == 'discoverDrastSources' or name == 'moduleDependencies' or name == 'orderDrastSources' or name == 'findExecutable' or name == 'runProcess' or name == 'runExecutable'
+		return name == 'getEnv' or name == 'currentDir' or name == 'normalizePath' or name == 'canonicalPath' or name == 'isAbsolutePath' or name == 'pathJoin' or name == 'pathDirname' or name == 'pathBasename' or name == 'pathStem' or name == 'isDirectory' or name == 'ensureDir' or name == 'removeDirRecursive' or name == 'makePathWritable' or name == 'makePathReadOnly' or name == 'sourceNewerThanTarget' or name == 'targetMissingOrOlder' or name == 'sourceOutputPath' or name == 'sourceIncludeDirs' or name == 'discoverDrastSources' or name == 'moduleDependencies' or name == 'orderDrastSources' or name == 'findExecutable' or name == 'runProcess' or name == 'runExecutable'
 
 	private isTypeLike name;string, bool
 		if name.length == 0
@@ -152,18 +166,27 @@ impl Parser
 		return '{}'
 
 	private isHeapType typeText;string, bool
-		return typeText.startsWith 'std::shared_ptr<'
+		return typeText.startsWith 'std::shared_ptr<' or typeText.startsWith 'std::unique_ptr<'
 
 	private baseTypeName typeText;string, string
 		out = typeText
+		if out.startsWith 'const '
+			out = out.substring 6 ;to out.length
 		while out.endsWith s'&' or out.endsWith s'*'
 			out = out.substring 0 ;to [out.length - 1]
 		prefix = 'std::shared_ptr<'
 		if out.startsWith prefix and out.endsWith s'>'
 			return out.substring prefix.length ;to [out.length - 1]
+		uniquePrefix = 'std::unique_ptr<'
+		if out.startsWith uniquePrefix and out.endsWith s'>'
+			return out.substring uniquePrefix.length ;to [out.length - 1]
 		return out
 
 	private dereferenceType typeText;string, string
+		if typeText.startsWith 'const ' and typeText.endsWith s'&'
+			return typeText.substring 6 ;to [typeText.length - 1]
+		if typeText.endsWith s'&'
+			return typeText.substring 0 ;to [typeText.length - 1]
 		if typeText.endsWith s'*'
 			return typeText.substring 0 ;to [typeText.length - 1]
 		return typeText
@@ -172,7 +195,7 @@ impl Parser
 		if text.length == 0
 			return false
 		i usize = 0
-		if text{0} == '-'
+		if text{0} == c'-'
 			if text.length == 1
 				return false
 			i = 1
@@ -226,6 +249,16 @@ impl Parser
 			return '&&'
 		if kind == TokenKind.Or
 			return '||'
+		if kind == TokenKind.Shl
+			return '<<'
+		if kind == TokenKind.Shr
+			return '>>'
+		if kind == TokenKind.Bor
+			return s'|'
+		if kind == TokenKind.Band
+			return s'&'
+		if kind == TokenKind.Bxor
+			return s'^'
 		return ''
 
 	private qualifyName name;string, string
@@ -250,7 +283,10 @@ impl Codegen
 			return 'std::string'
 		if name == 'usize'
 			return 'std::size_t'
+		if name == 'vector'
+			return 'std::vector'
 		return self.qualifyName name
+
 
 impl Codegen
 	private qualifyName name;string, string
@@ -289,15 +325,3 @@ impl Codegen
 			if st.name == name
 				return st.typeParams
 		return empty
-
-	private isCheapValueType typeText;string, bool
-		if typeText.endsWith s'&' or typeText.endsWith s'*'
-			return true
-		if typeText == 'bool' or typeText == 'char' or typeText == 'int' or typeText == 'unsigned int' or typeText == 'float' or typeText == 'double' or typeText == 'std::size_t' or typeText == 'TokenKind' or typeText == 'CStmt'
-			return true
-		if typeText.startsWith 'std::initializer_list<'
-			return true
-		return false
-
-	private shouldMoveValueType typeText;string, bool
-		return not self.isCheapValueType typeText

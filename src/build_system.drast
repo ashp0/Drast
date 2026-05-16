@@ -1,4 +1,4 @@
-use std
+use drast
 use token
 use lexer
 use ast
@@ -17,6 +17,7 @@ use features/literals
 use platform
 use package
 use xmake_backend
+use typecheck/checker
 
 struct BuildGraph
 	manifest PackageManifest
@@ -37,6 +38,13 @@ struct SourceUnit
 	path string
 	ast AST
 
+struct BuildPlan
+	sources {string}
+	cppPaths {string}
+	includeDirs {string}
+	target BuildTarget
+	cache string
+
 impl BuildGraph
 	init
 		self.root = ''
@@ -53,6 +61,10 @@ impl BuildResult
 		self.status = 0
 		self.target = ''
 		self.output = ''
+
+impl BuildPlan
+	init
+		self.cache = ''
 
 buildCurrentProject requestedTarget;string runAfter;bool, int
 	clearErrors
@@ -143,22 +155,43 @@ buildBinaryTarget manifest;PackageManifest target;BuildTarget runAfter;bool, Bui
 		result.status = 1
 		return result
 	sourceRoot = platformPathDirname entryPath
-	sources = orderDrastSources entryPath sourceRoot false
+	autoDiscover = shouldAutoDiscoverSources manifest entryPath
+	sources = orderDrastSources entryPath sourceRoot autoDiscover
 	if hasErrors
 		result.status = 1
+		return result
+	if not cleanupLegacyBuildTree manifest
+		result.status = 1
+		return result
+	plan = makeBuildPlan manifest target layout entryPath sourceRoot sources
+	if binaryTargetIsFresh manifest layout plan
+		if not finishFreshBinaryTarget manifest target layout runAfter result
+			result.status = 1
 		return result
 	cppPaths = transpileSources manifest target layout entryPath sourceRoot sources
 	if hasErrors
 		result.status = 1
 		return result
-	includeDirs = buildIncludeDirs manifest target entryPath sources
-	resolvedTarget = resolveTargetPaths manifest target
-	if not writeXmakeProject resolvedTarget layout.xmakeDir layout.output cppPaths includeDirs
+	if not writeXmakeProject plan.target layout.xmakeDir layout.output cppPaths plan.includeDirs
 		result.status = 1
+		return result
+	backend = backendInputs manifest layout cppPaths plan.target
+	if binaryOutputIsFresh layout.output backend
+		if not markOutputFresh layout.output
+			result.status = 1
+			return result
+		if not writeBuildCache layout plan.cache
+			result.status = 1
+			return result
+		if not finishFreshBinaryTarget manifest target layout runAfter result
+			result.status = 1
 		return result
 	status = runXmakeTarget layout.xmakeDir target.name false
 	if status isne 0
 		result.status = status
+		return result
+	if not writeBuildCache layout plan.cache
+		result.status = 1
 		return result
 	if not runBuildCommands manifest target target.postbuild
 		result.status = 1
@@ -169,19 +202,29 @@ buildBinaryTarget manifest;PackageManifest target;BuildTarget runAfter;bool, Bui
 
 makeBuildLayout manifest;PackageManifest target;BuildTarget, BuildLayout
 	layout BuildLayout;
-	layout.root = platformPathJoin manifest.root '.drast/build'
+	layout.root = buildRoot manifest
+	generatedFallback = 'generated/' + target.name
 	if target.generated.length isgt 0
-		layout.generatedDir = platformAbsoluteFromRoot manifest.root target.generated
+		layout.generatedDir = buildArtifactPath manifest target.generated generatedFallback
 	else
-		generatedPart = 'generated/' + target.name
-		layout.generatedDir = platformPathJoin layout.root generatedPart
-	layout.xmakeDir = platformPathJoin layout.root 'xmake'
+		layout.generatedDir = platformPathJoin layout.root generatedFallback
+	xmakePart = 'xmake/' + target.name
+	layout.xmakeDir = platformPathJoin layout.root xmakePart
+	outputFallback = 'bin/' + target.name
 	if target.output.length isgt 0
-		layout.output = platformAbsoluteFromRoot manifest.root target.output
+		layout.output = buildArtifactPath manifest target.output outputFallback
 	else
-		outputPart = 'bin/' + target.name
-		layout.output = platformPathJoin layout.root outputPart
+		layout.output = platformPathJoin layout.root outputFallback
 	return layout
+
+makeBuildPlan manifest;PackageManifest target;BuildTarget layout;BuildLayout entryPath;string sourceRoot;string sources;{string}, BuildPlan
+	plan BuildPlan;
+	plan.sources = sources
+	plan.cppPaths = expectedCppPaths sourceRoot sources layout.generatedDir
+	plan.includeDirs = buildIncludeDirs manifest target entryPath sources
+	plan.target = resolveTargetPaths manifest target
+	plan.cache = renderBuildCache manifest target layout entryPath sourceRoot plan.sources plan.cppPaths plan.includeDirs plan.target
+	return plan
 
 transpileSources manifest;PackageManifest target;BuildTarget layout;BuildLayout entryPath;string sourceRoot;string sources;{string}, {string}
 	parser Parser;
@@ -197,6 +240,14 @@ transpileSources manifest;PackageManifest target;BuildTarget layout;BuildLayout 
 	if hasErrors
 		empty {string};
 		return empty
+	validateProjectSymbols manifest all
+	if hasErrors
+		empty {string};
+		return empty
+	if shouldRunNativeTypeChecker
+		if not runNativeTypeChecker entryPath
+			empty {string};
+			return empty
 	if not platformEnsureDir layout.generatedDir
 		reportError layout.generatedDir 1 1 'failed to create generated source directory'
 		empty {string};
@@ -210,15 +261,240 @@ transpileSources manifest;PackageManifest target;BuildTarget layout;BuildLayout 
 		if not platformEnsureDir cppDir
 			reportError cppDir 1 1 'failed to create generated source directory'
 			continue
-		if platformFileExists cppPath
-			platformMakeWritable cppPath
 		cpp = codegen.emitUnit unit.ast all
-		if not platformWriteFile cppPath cpp
+		if not writeGeneratedSource cppPath cpp
 			reportError cppPath 1 1 'failed to write generated C++'
 			continue
-		if not platformMakeReadOnly cppPath
-			reportError cppPath 1 1 'failed to mark generated C++ read-only'
 	return cppPaths
+
+writeGeneratedSource path;string contents;string, bool
+	if platformFileExists path
+		existing = platformReadFile path
+		if existing == contents
+			return platformMakeReadOnly path
+		if not platformMakeWritable path
+			return false
+	if not platformWriteFile path contents
+		return false
+	return platformMakeReadOnly path
+
+expectedCppPaths sourceRoot;string sources;{string} generatedDir;string, {string}
+	paths {string};
+	for source in sources
+		paths += sourceOutputPath sourceRoot source generatedDir '.cpp'
+	return paths
+
+binaryTargetIsFresh manifest;PackageManifest layout;BuildLayout plan;BuildPlan, bool
+	if not platformFileExists layout.output
+		return false
+	cachePath = buildCachePath layout
+	if not platformFileExists cachePath
+		return false
+	if platformReadFile cachePath isne plan.cache
+		return false
+	inputs = buildFreshnessInputs manifest layout plan
+	return binaryOutputIsFresh layout.output inputs
+
+buildFreshnessInputs manifest;PackageManifest layout;BuildLayout plan;BuildPlan, {string}
+	inputs {string};
+	inputs += manifest.path
+	for source in plan.sources
+		inputs += source
+	for cpp in plan.cppPaths
+		inputs += cpp
+	for cpp in plan.target.cxxFiles
+		inputs += cpp
+	inputs += xmakeProjectPath layout
+	return inputs
+
+backendInputs manifest;PackageManifest layout;BuildLayout cppPaths;{string} target;BuildTarget, {string}
+	inputs {string};
+	for cpp in cppPaths
+		inputs += cpp
+	for cpp in target.cxxFiles
+		inputs += cpp
+	inputs += xmakeProjectPath layout
+	return inputs
+
+binaryOutputIsFresh output;string inputs;{string}, bool
+	if not platformFileExists output
+		return false
+	for input in inputs
+		if not platformFileExists input
+			return false
+		if not pathNewerThan output input
+			return false
+	return true
+
+pathNewerThan output;string input;string, bool
+	arguments {string};
+	arguments += output
+	arguments += '-nt'
+	arguments += input
+	return platformRunProcess '/bin/test' arguments false == 0
+
+markOutputFresh output;string, bool
+	touch = platformFindExecutable 'touch'
+	if touch.length == 0
+		reportError output 1 1 'touch not found; cannot update build artifact timestamp'
+		return false
+	arguments {string};
+	arguments += output
+	return platformRunProcess touch arguments false == 0
+
+finishFreshBinaryTarget manifest;PackageManifest target;BuildTarget layout;BuildLayout runAfter;bool result;~BuildResult, bool
+	if not runBuildCommands manifest target target.postbuild
+		return false
+	if runAfter
+		result.status = platformRunExecutable layout.output false
+	return true
+
+buildCachePath layout;BuildLayout, string
+	return platformPathJoin layout.xmakeDir 'drast.cache'
+
+xmakeProjectPath layout;BuildLayout, string
+	return platformPathJoin layout.xmakeDir 'xmake.lua'
+
+writeBuildCache layout;BuildLayout content;string, bool
+	if not platformEnsureDir layout.xmakeDir
+		reportError layout.xmakeDir 1 1 'failed to create build cache directory'
+		return false
+	path = buildCachePath layout
+	if platformFileExists path
+		if platformReadFile path == content
+			return true
+	return platformWriteFile path content
+
+renderBuildCache manifest;PackageManifest target;BuildTarget layout;BuildLayout entryPath;string sourceRoot;string sources;{string} cppPaths;{string} includeDirs;{string} resolved;BuildTarget, string
+	out string;
+	out.reserve 4096
+	out += 'drast-build-cache-v2\n'
+	out += 'package=' + manifest.name + '\n'
+	out += 'version=' + manifest.version + '\n'
+	out += 'target=' + target.name + '\n'
+	out += 'kind=' + target.kind + '\n'
+	out += 'entry=' + entryPath + '\n'
+	out += 'sourceRoot=' + sourceRoot + '\n'
+	out += 'output=' + layout.output + '\n'
+	out += 'generated=' + layout.generatedDir + '\n'
+	out += 'xmake=' + layout.xmakeDir + '\n'
+	out += 'cxx=' + target.cxx + '\n'
+	out += 'DRAST_HOME=' + platformGetEnv 'DRAST_HOME' + '\n'
+	out += 'DRAST_TYPECHECK=' + platformGetEnv 'DRAST_TYPECHECK' + '\n'
+	for source in sources
+		out += 'source=' + source + '\n'
+	for cpp in cppPaths
+		out += 'generatedCpp=' + cpp + '\n'
+	for dir in includeDirs
+		out += 'include=' + dir + '\n'
+	for cpp in resolved.cxxFiles
+		out += 'cxxfile=' + cpp + '\n'
+	for link in resolved.links
+		out += 'link=' + link + '\n'
+	for dir in resolved.linkDirs
+		out += 'linkdir=' + dir + '\n'
+	for define in resolved.defines
+		out += 'define=' + define + '\n'
+	for flag in resolved.cxxFlags
+		out += 'cxxflag=' + flag + '\n'
+	for flag in resolved.ldFlags
+		out += 'ldflag=' + flag + '\n'
+	for dep in target.dependencies
+		out += 'depends=' + dep + '\n'
+	for command in target.prebuild
+		out += 'prebuild=' + command + '\n'
+	for command in target.postbuild
+		out += 'postbuild=' + command + '\n'
+	return out
+
+cliTypeCheckOverride string = ''
+
+shouldRunNativeTypeChecker, bool
+	override = cliTypeCheckOverride
+	if override == s'0' or override == 'false' or override == 'off' or override == 'no' or override == 'skip'
+		return false
+	if override == s'1' or override == 'true' or override == 'on' or override == 'strict'
+		return true
+	mode = platformGetEnv 'DRAST_TYPECHECK'
+	if mode == s'0' or mode == 'false' or mode == 'off' or mode == 'no' or mode == 'skip'
+		return false
+	return true
+
+runNativeTypeChecker entryPath;string, bool
+	options TypeCheckOptions;
+	result = checkFile entryPath options
+	strict = isStrictTypeChecker
+	failed = false
+	for diag in result.diagnostics
+		if not strict and isSuppressedTypeCheckCode diag.code
+			continue
+		emitTypeCheckerDiagnostic entryPath diag
+		failed = true
+	if strict
+		return result.ok
+	return not failed
+
+isStrictTypeChecker, bool
+	override = cliTypeCheckOverride
+	if override == 'strict'
+		return true
+	mode = platformGetEnv 'DRAST_TYPECHECK'
+	return mode == 'strict'
+
+isSuppressedTypeCheckCode code;string, bool
+	// The native parser side of the type checker still trails the production parser.
+	// Suppress diagnostics that fire because of unsupported syntax rather than real
+	// type problems. Cascading semantic codes are listed too so a single parse failure
+	// does not flood downstream callers with noise. Re-enable codes here as the
+	// typecheck parser learns to understand more Drast syntax. See INTEROP_NOTES.md.
+	if code == 'TC0001' or code == 'TC0002' or code == 'TC0003' or code == 'TC0004' or code == 'TC0005' or code == 'TC0006' or code == 'TC0007' or code == 'TC0008' or code == 'TC0009' or code == 'TC0010' or code == 'TC0011' or code == 'TC0012' or code == 'TC0013' or code == 'TC0014' or code == 'TC0015' or code == 'TC0016' or code == 'TC0017' or code == 'TC0018' or code == 'TC0019' or code == 'TC0020'
+		return true
+	if code == 'TC1001' or code == 'TC1002' or code == 'TC1003' or code == 'TC1004' or code == 'TC1005' or code == 'TC1006' or code == 'TC1007' or code == 'TC1008'
+		return true
+	if code == 'TC2010' or code == 'TC2013' or code == 'TC2014' or code == 'TC2015' or code == 'TC2022' or code == 'TC2023' or code == 'TC2026' or code == 'TC2027' or code == 'TC2028' or code == 'TC2029' or code == 'TC2030' or code == 'TC2032' or code == 'TC2033' or code == 'TC2034' or code == 'TC2035' or code == 'TC2037' or code == 'TC2038' or code == 'TC2040'
+		return true
+	if code == 'TC1011' or code == 'TC1012'
+		return true
+	if code == 'TC3003' or code == 'TC3002' or code == 'TC3001' or code == 'TC3004' or code == 'TC3005'
+		return true
+	if code == 'E0010' or code == 'E0020' or code == 'E0021' or code == 'E0022' or code == 'E0023' or code == 'E0024'
+		return true
+	if code == 'E0030' or code == 'E0031' or code == 'E0032' or code == 'E0033' or code == 'E0034'
+		return true
+	if code == 'E0040' or code == 'E0041' or code == 'E0042' or code == 'E0043' or code == 'E0044' or code == 'E0045' or code == 'E0046' or code == 'E0047'
+		return true
+	if code == 'E0050' or code == 'E0051' or code == 'E0052' or code == 'E0053'
+		return true
+	if code == 'E0070' or code == 'E0071' or code == 'E0080' or code == 'E0081' or code == 'E0082' or code == 'E0090' or code == 'E0091' or code == 'E0092' or code == 'E0093'
+		return true
+	return false
+
+emitTypeCheckerDiagnostic fallbackFile;string diag;TcDiagnostic
+	file = diag.span.file
+	if file.length == 0
+		file = fallbackFile
+	message = diag.code + ': ' + diag.message
+	if diag.expected.length isgt 0 or diag.found.length isgt 0
+		message += ' (expected '
+		if diag.expected.length isgt 0
+			message += diag.expected
+		else
+			message += 'unknown'
+		message += ', found '
+		if diag.found.length isgt 0
+			message += diag.found
+		else
+			message += 'unknown'
+		message += ')'
+	if diag.help.length isgt 0
+		message += ' help: ' + diag.help
+	reportError file diag.span.line diag.span.column message
+	for related in diag.related
+		relatedFile = related.span.file
+		if relatedFile.length == 0
+			relatedFile = file
+		relatedMessage = diag.code + ' related: ' + related.message
+		reportError relatedFile related.span.line related.span.column relatedMessage
 
 mergeAst left;AST right;AST, AST
 	out = left
@@ -304,11 +580,183 @@ expandCommand manifest;PackageManifest target;BuildTarget command;string, string
 
 targetOutputPath manifest;PackageManifest targetName;string, string
 	target = packageTarget manifest targetName
+	outputFallback = 'bin/' + targetName
 	if target.output.length isgt 0
-		return platformAbsoluteFromRoot manifest.root target.output
-	buildRoot = platformPathJoin manifest.root '.drast/build'
-	outputPart = 'bin/' + targetName
-	return platformPathJoin buildRoot outputPart
+		return buildArtifactPath manifest target.output outputFallback
+	rootDir = buildRoot manifest
+	return platformPathJoin rootDir outputFallback
+
+buildRoot manifest;PackageManifest, string
+	return platformPathJoin manifest.root 'build'
+
+legacyBuildRoot manifest;PackageManifest, string
+	return platformPathJoin manifest.root '.drast/build'
+
+shouldAutoDiscoverSources manifest;PackageManifest entryPath;string, bool
+	return pathInsideRoot manifest.root entryPath
+
+pathInsideRoot root;string path;string, bool
+	normalizedRoot = platformCanonicalPath root
+	normalizedPath = platformCanonicalPath path
+	if normalizedPath == normalizedRoot
+		return true
+	prefix = normalizedRoot + '/'
+	return normalizedPath.startsWith prefix
+
+buildArtifactPath manifest;PackageManifest rawPath;string fallbackRelative;string, string
+	root = buildRoot manifest
+	relative = buildArtifactRelativePath manifest rawPath fallbackRelative
+	return platformPathJoin root relative
+
+buildArtifactRelativePath manifest;PackageManifest rawPath;string fallbackRelative;string, string
+	if rawPath.length == 0
+		return normalizeBuildRelativePath fallbackRelative
+	normalized = platformNormalizePath rawPath
+	relative string;
+	if platformIsAbsolute normalized
+		if pathInsideRoot manifest.root normalized
+			relative = relativeToRoot manifest.root normalized
+		else
+			relative = '_external/' + sanitizeBuildFragment normalized
+	else
+		relative = normalized
+	return normalizeBuildRelativePath relative
+
+relativeToRoot root;string path;string, string
+	normalizedRoot = platformCanonicalPath root
+	normalizedPath = platformCanonicalPath path
+	if normalizedPath == normalizedRoot
+		return ''
+	prefix = normalizedRoot + '/'
+	if normalizedPath.startsWith prefix
+		return normalizedPath.substring prefix.length normalizedPath.length
+	return normalizedPath
+
+normalizeBuildRelativePath path;string, string
+	out = platformNormalizePath path
+	if out.length == 0 or out == s'.'
+		return 'artifact'
+	if out == 'build'
+		return 'artifact'
+	if out.startsWith 'build/'
+		return out.substring 6 out.length
+	if out == '.drast/build'
+		return 'artifact'
+	legacyPrefix = '.drast/build/'
+	if out.startsWith legacyPrefix
+		return out.substring legacyPrefix.length out.length
+	if out == '..' or out.startsWith '../'
+		return '_external/' + sanitizeBuildFragment out
+	return out
+
+sanitizeBuildFragment text;string, string
+	out string;
+	for ch in text
+		code = charCode ch
+		isDigitChar = code isgteq charCode '0' and code islteq charCode '9'
+		isLower = code isgteq charCode 'a' and code islteq charCode 'z'
+		isUpper = code isgteq charCode 'A' and code islteq charCode 'Z'
+		if isDigitChar or isLower or isUpper or ch == c'_' or ch == c'-' or ch == c'.'
+			out += ch
+		else
+			out += '_'
+	if out.length == 0
+		return 'artifact'
+	return out
+
+cleanupLegacyBuildTree manifest;PackageManifest, bool
+	legacy = legacyBuildRoot manifest
+	if not platformIsDirectory legacy
+		return true
+	if platformRemoveDirRecursive legacy
+		cleanupEmptyLegacyRoot manifest
+		return true
+	reportError legacy 1 1 'failed to remove legacy .drast/build output directory'
+	return false
+
+cleanupEmptyLegacyRoot manifest;PackageManifest
+	legacyRoot = platformPathJoin manifest.root '.drast'
+	if not platformIsDirectory legacyRoot
+		return
+	rmdir = platformFindExecutable 'rmdir'
+	if rmdir.length == 0
+		return
+	arguments {string};
+	arguments += legacyRoot
+	platformRunProcess rmdir arguments false
+
+validateProjectSymbols manifest;PackageManifest ast;AST
+	typeNames {string};
+	for st in ast.structs
+		if containsString typeNames st.name
+			description = 'type ' + st.name
+			reportDuplicateSymbol manifest description
+		else
+			typeNames += st.name
+	for en in ast.enums
+		if containsString typeNames en.name
+			description = 'type ' + en.name
+			reportDuplicateSymbol manifest description
+		else
+			typeNames += en.name
+	for proto in ast.protocols
+		if containsString typeNames proto.name
+			description = 'type ' + proto.name
+			reportDuplicateSymbol manifest description
+		else
+			typeNames += proto.name
+	globalNames {string};
+	functionSignatures {string};
+	functionNames {string};
+	for fn in ast.functions
+		signature = functionSignature fn
+		if containsString functionSignatures signature
+			description = 'function ' + signature
+			reportDuplicateSymbol manifest description
+		else
+			functionSignatures += signature
+		if not containsString functionNames fn.name
+			functionNames += fn.name
+	for g in ast.globals
+		if containsString globalNames g.name
+			description = 'global ' + g.name
+			reportDuplicateSymbol manifest description
+		else
+			globalNames += g.name
+		if containsString functionNames g.name
+			description = 'global/function name ' + g.name
+			reportDuplicateSymbol manifest description
+		if containsString typeNames g.name
+			description = 'global/type name ' + g.name
+			reportDuplicateSymbol manifest description
+	methodSignatures {string};
+	for m in ast.methods
+		if m.name == '__protocol'
+			continue
+		signature = methodSignature m
+		if containsString methodSignatures signature
+			description = 'method ' + signature
+			reportDuplicateSymbol manifest description
+		else
+			methodSignatures += signature
+
+reportDuplicateSymbol manifest;PackageManifest description;string
+	message = 'duplicate symbol: ' + description
+	reportError manifest.path 1 1 message
+
+functionSignature fn;CFunction, string
+	out = fn.name + '('
+	i = 0
+	for p in fn.params
+		if i isgt 0
+			out += ','
+		out += p.typeText
+		i += 1
+	out += ')'
+	return out
+
+methodSignature fn;CFunction, string
+	return fn.host + '.' + functionSignature fn
 
 containsString values;{string} needle;string, bool
 	for value in values

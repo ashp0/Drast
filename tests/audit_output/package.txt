@@ -1,0 +1,7 @@
+package audit_test
+version 0.1.0
+default test
+
+target test
+	kind binary
+	entry src/main.drast

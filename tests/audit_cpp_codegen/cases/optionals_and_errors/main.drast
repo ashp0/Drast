@@ -1,7 +1,7 @@
 // # TEST: audit optional and try/catch emission
 // # EXPECT: pass
 
-use std
+use drast
 
 findEven value;int, maybe int
 	if value % 2 == 0

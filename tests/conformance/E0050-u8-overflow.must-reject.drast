@@ -1,0 +1,4 @@
+// E0050 reject: integer literal overflow is caught at compile time.
+main, i32
+	byte u8 = 300
+	return 0

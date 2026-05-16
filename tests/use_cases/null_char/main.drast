@@ -1,7 +1,7 @@
 // # TEST: existing use case null_char main.drast
 // # EXPECT: pass
 
-use std
+use drast
 
 main, int
 	code = charCode '\0'

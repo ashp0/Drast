@@ -1,4 +1,5 @@
-#include "runtime/drast_runtime.hpp"
+#include <string>
+#include <utility>
 
 int rankStatus(const std::string& status);
 
@@ -17,9 +18,8 @@ int rankStatus(const std::string& status) {
     }
 }
 
-int main(int argc, char **argv) {
-    drast::setArgs(argc, argv);
+int main() {
     std::string status = "active";
-    return rankStatus(status);
+    return rankStatus(std::move(status));
 }
 

@@ -1,0 +1,5 @@
+// E0052 accept: signedness conversion is explicit with `as`.
+main, i32
+	value i32 = 5
+	unsigned u32 = value as u32
+	return unsigned as i32

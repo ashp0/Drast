@@ -1,7 +1,7 @@
 // # TEST: maybe return type accepts nil
 // # EXPECT: pass
 
-use std
+use drast
 
 findNumber, maybe int
 	return nil

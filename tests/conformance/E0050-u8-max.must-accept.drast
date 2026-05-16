@@ -1,0 +1,4 @@
+// E0050 accept: integer literals may be contextually typed when in range.
+main, i32
+	byte u8 = 255
+	return byte as i32

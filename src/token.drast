@@ -1,4 +1,4 @@
-use std
+use drast
 
 struct SourceLocation
 	file string
@@ -38,6 +38,13 @@ enum TokenKind
 	Star
 	Slash
 	Percent
+	WrappingPlus
+	WrappingMinus
+	WrappingStar
+	WrappingShiftLeft
+	SaturatingPlus
+	SaturatingMinus
+	SaturatingStar
 	PlusEqual
 	MinusEqual
 	StarEqual
@@ -169,6 +176,20 @@ tokenKindName kind;TokenKind, string
 			return 'Slash'
 		.Percent
 			return 'Percent'
+		.WrappingPlus
+			return 'WrappingPlus'
+		.WrappingMinus
+			return 'WrappingMinus'
+		.WrappingStar
+			return 'WrappingStar'
+		.WrappingShiftLeft
+			return 'WrappingShiftLeft'
+		.SaturatingPlus
+			return 'SaturatingPlus'
+		.SaturatingMinus
+			return 'SaturatingMinus'
+		.SaturatingStar
+			return 'SaturatingStar'
 		.PlusEqual
 			return 'PlusEqual'
 		.MinusEqual

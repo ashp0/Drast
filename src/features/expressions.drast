@@ -27,8 +27,16 @@ impl Parser
 		return left
 
 	private parseComparison, CExpr
-		left = self.parseTerm
+		left = self.parseShift
 		while self.check TokenKind.Islt or self.check TokenKind.Isgt or self.check TokenKind.Islteq or self.check TokenKind.Isgteq or self.isComparisonWordCurrent
+			op = self.advance
+			right = self.parseShift
+			left = self.binaryExpr left op right
+		return left
+
+	private parseShift, CExpr
+		left = self.parseTerm
+		while self.check TokenKind.Shl or self.check TokenKind.Shr or self.check TokenKind.Bor or self.check TokenKind.Band or self.check TokenKind.Bxor
 			op = self.advance
 			right = self.parseTerm
 			left = self.binaryExpr left op right
@@ -76,7 +84,10 @@ impl Parser
 			ex = self.parseUnary
 			out CExpr;
 			out.kind = 'Deref'
-			out.code = s'*' + self.valueCode ex
+			if ex.typeText.endsWith s'&'
+				out.code = self.valueCode ex
+			else
+				out.code = s'*' + self.valueCode ex
 			out.typeText = self.dereferenceType ex.typeText
 			return out
 		return self.parsePostfix
@@ -107,10 +118,20 @@ impl Parser
 			ex = self.parseCallArgument
 			out CExpr;
 			out.kind = 'Deref'
-			out.code = s'*' + self.valueCode ex
+			if ex.typeText.endsWith s'&'
+				out.code = self.valueCode ex
+			else
+				out.code = s'*' + self.valueCode ex
 			out.typeText = self.dereferenceType ex.typeText
 			return out
-		return self.parsePostfixNoImplicit
+		ex = self.parsePostfixNoImplicit
+		if ex.kind == 'Identifier' and self.localTypes.contains ex.text and self.shouldMoveValueType ex.typeText and not self.isUsedLater ex.text
+			out CExpr;
+			out.kind = 'Move'
+			out.code = 'std::move(' + ex.code + ')'
+			out.typeText = ex.typeText
+			return out
+		return ex
 
 	private parsePostfix, CExpr
 		ex = self.parsePostfixNoImplicit
@@ -147,7 +168,25 @@ impl Parser
 				ex = self.parseBracketAfterCallee ex
 				continue
 			if self.check TokenKind.Backtick and [self.peek 1].kind == TokenKind.LeftBracket and self.isCallee ex
-				ex.code += self.parseGenericArgsText
+				self.pendingGenericArgs.clear
+				savedIdx = self.currentIndex
+				self.advance
+				self.advance
+				while not self.check TokenKind.RightBracket and not self.check TokenKind.End
+					if self.currentMatch TokenKind.Comma
+						continue
+					gt = self.parseType
+					self.pendingGenericArgs += gt.text
+				self.consume TokenKind.RightBracket 'expected generic close'
+				genericText = s'<'
+				gFirst = true
+				for ga in self.pendingGenericArgs
+					if not gFirst
+						genericText += ', '
+					genericText += ga
+					gFirst = false
+				genericText += s'>'
+				ex.code += genericText
 				continue
 			break
 		return ex
@@ -204,9 +243,16 @@ impl Parser
 					else
 						out.code = self.typeName callee.text + '(' + argText + ')'
 						out.typeText = self.typeName callee.text
+				elif callee.leftType.length isgt 0 and self.enumVariants.contains callee.text
+					out.code = callee.leftType + '::' + callee.text + '(' + argText + ')'
+					out.typeText = callee.leftType
 				else
 					out.code = self.valueCode callee + '(' + argText + ')'
-					out.typeText = callee.text
+					calleeFull = callee.code
+					if calleeFull.contains s'<'
+						out.typeText = calleeFull
+					else
+						out.typeText = callee.text
 			return out
 		out CExpr;
 		out.kind = 'BatchCall'
@@ -345,6 +391,25 @@ impl Parser
 			if elementType.length isgt 0
 				out.typeText = 'std::vector<' + elementType + '>'
 			return out
+		if self.currentMatch TokenKind.Star
+			if self.currentMatch TokenKind.LeftBracket
+				t = self.parseType
+				argText string;
+				argText.reserve 128
+				first = true
+				while not self.check TokenKind.RightBracket and not self.check TokenKind.End
+					heapArg = self.parseCallArgument
+					if not first
+						argText += ', '
+					argText += self.valueCode heapArg
+					first = false
+				self.consume TokenKind.RightBracket 'expected unique heap close'
+				out.kind = 'Heap'
+				out.code = 'std::make_unique<' + t.text + '>(' + argText + ')'
+				out.typeText = 'std::unique_ptr<' + t.text + '>'
+				return out
+			else
+				reportError self.currentFile self.peekCurrent.location.line self.peekCurrent.location.column 'unexpected star in expression'
 		if self.currentMatch TokenKind.AtLeftBracket
 			t = self.parseType
 			argText string;
@@ -356,16 +421,21 @@ impl Parser
 					argText += ', '
 				argText += self.valueCode heapArg
 				first = false
-			self.consume TokenKind.RightBracket 'expected heap close'
+			self.consume TokenKind.RightBracket 'expected shared heap close'
 			out.kind = 'Heap'
-			out.code = 'std::make_shared<' + t.text + '>(' + argText + ')'
-			out.typeText = 'std::shared_ptr<' + t.text + '>'
+			out.code = 'std::make_unique<' + t.text + '>(' + argText + ')'
+			out.typeText = 'std::unique_ptr<' + t.text + '>'
 			return out
 		if self.currentMatch TokenKind.Dot
 			shorthandTok = self.consume TokenKind.Identifier 'expected enum shorthand'
 			name = shorthandTok.text
 			out.kind = 'EnumShorthand'
 			out.text = name
+			if self.ambiguousEnumVariants.contains name
+				message = 'ambiguous enum shorthand: .' + name + '; use qualified enum name'
+				reportError self.currentFile shorthandTok.location.line shorthandTok.location.column message
+				out.code = name
+				return out
 			enumName = self.enumVariants.get name s''
 			if enumName.length isgt 0
 				out.code = self.qualifyName enumName + '::' + name
@@ -411,38 +481,42 @@ impl Parser
 		out.leftCode = self.valueCode left
 		baseType = self.baseTypeName left.typeText
 		out.leftType = baseType
+		fieldOwner = self.genericBaseName baseType
 		if self.isHeapType left.typeText
 			out.code = out.leftCode + '->' + member
+		elif left.kind == 'Identifier' and left.text == 'std'
+			out.code = 'std::' + member
 		else
 			out.code = out.leftCode + '.' + member
-		enumOwner = self.enumVariants.get member s''
-		if left.kind == 'Identifier' and self.enumVariants.contains member and enumOwner == left.text
+		qualifiedEnumKey = left.text + '.' + member
+		if left.kind == 'Identifier' and self.enumVariantNames.contains qualifiedEnumKey
 			out.code = self.qualifyName left.text + '::' + member
 			out.typeText = left.text
+			out.leftType = left.text
 			return out
 		if member == 'length'
 			out.kind = 'Special'
 			out.code = self.valueCode left + '.size()'
 			out.typeText = 'std::size_t'
 			return out
-		if member == 'lineCount'
+		if self.usesStd and member == 'lineCount'
 			out.kind = 'Special'
-			out.code = 'drast::line_count(' + self.valueCode left + ')'
+			out.code = '__drt::line_count(' + self.valueCode left + ')'
 			out.typeText = 'std::size_t'
 			return out
-		if member == 'splitWhitespace'
+		if self.usesStd and member == 'splitWhitespace'
 			out.kind = 'Special'
-			out.code = 'drast::split_whitespace(' + self.valueCode left + ')'
+			out.code = '__drt::split_whitespace(' + self.valueCode left + ')'
 			out.typeText = 'std::vector<std::string>'
 			return out
-		if member == 'trim'
+		if self.usesStd and member == 'trim'
 			out.kind = 'Special'
-			out.code = 'drast::trim(' + self.valueCode left + ')'
+			out.code = '__drt::trim(' + self.valueCode left + ')'
 			out.typeText = 'std::string'
 			return out
-		if member == 'asInt'
+		if self.usesStd and member == 'asInt'
 			out.kind = 'Special'
-			out.code = 'drast::parse_int(' + self.valueCode left + ')'
+			out.code = '__drt::parse_int(' + self.valueCode left + ')'
 			out.typeText = 'std::optional<int>'
 			return out
 		if member == 'value' and self.isOptionalType left.typeText
@@ -450,19 +524,19 @@ impl Parser
 			out.code = self.valueCode left + '.value()'
 			out.typeText = self.optionalInnerType left.typeText
 			return out
-		if member == 'lowercase'
+		if self.usesStd and member == 'lowercase'
 			out.kind = 'Special'
-			out.code = 'drast::lowercase(' + self.valueCode left + ')'
+			out.code = '__drt::lowercase(' + self.valueCode left + ')'
 			out.typeText = 'std::string'
 			return out
-		if member == 'keys'
+		if self.usesStd and member == 'keys'
 			out.kind = 'Special'
-			out.code = 'drast::map_keys(' + self.valueCode left + ')'
+			out.code = '__drt::map_keys(' + self.valueCode left + ')'
 			out.typeText = 'std::vector<std::string>'
 			return out
-		if member == 'values'
+		if self.usesStd and member == 'values'
 			out.kind = 'Special'
-			out.code = 'drast::map_values(' + self.valueCode left + ')'
+			out.code = '__drt::map_values(' + self.valueCode left + ')'
 			return out
 		if left.text == 'self'
 			fieldKey = self.currentHost + '.' + member
@@ -475,17 +549,25 @@ impl Parser
 				methodKey = self.currentHost + '.' + member
 				out.typeText = self.methodReturns.get methodKey s''
 			return out
-		fieldKey = baseType + '.' + member
+		fieldKey = fieldOwner + '.' + member
 		fieldType = self.structFieldTypes.get fieldKey s''
 		if fieldType.length isgt 0
 			out.typeText = fieldType
 		else
-			methodKey = baseType + '.' + member
+			methodKey = fieldOwner + '.' + member
 			out.typeText = self.methodReturns.get methodKey s''
 			if member == 'value' and out.typeText.length == 0
 				out.kind = 'Special'
 				out.code = out.leftCode + '.value()'
 		return out
+
+	private genericBaseName typeText;string, string
+		i = 0
+		while i islt typeText.length
+			if typeText{i} == c'<'
+				return typeText.substring 0 ;to i
+			i += 1
+		return typeText
 
 	private parseGenericArgsText, string
 		self.consume TokenKind.Backtick 'expected generic marker'
@@ -546,7 +628,7 @@ impl Parser
 		if ex.kind == 'Identifier'
 			if self.isStdFunction ex.text
 				if ex.text == 'getInput' or ex.text == 'args' or ex.text == 'errorCount' or ex.text == 'hasErrors' or ex.text == 'currentDir'
-					return 'drast::' + ex.text + '()'
+					return '__drt::' + ex.text + '()'
 				return ex.code
 			if self.functionReturns.contains ex.text
 				return ex.code + '()'
@@ -555,11 +637,12 @@ impl Parser
 				fieldKey = self.currentHost + '.' + ex.text
 				if self.structFieldTypes.contains fieldKey
 					return ex.code
-				return ex.code + '()'
+				methodKey = self.currentHost + '.' + ex.text
+				if self.methodReturns.contains methodKey
+					return ex.code + '()'
+				return ex.code
 			methodKey = ex.leftType + '.' + ex.text
 			if ex.typeText.length isgt 0 and self.methodReturns.contains methodKey
-				return ex.code + '()'
-			if ex.typeText.length == 0 and [ex.text.startsWith 'get' or ex.text.startsWith 'make' or ex.text.startsWith 'read']
 				return ex.code + '()'
 		return ex.code
 
@@ -567,7 +650,7 @@ impl Parser
 		if callee.kind == 'Identifier'
 			name = callee.text
 			if self.isStdFunction name
-				return 'drast::' + name + '(' + argText + ')'
+				return '__drt::' + name + '(' + argText + ')'
 			if name == 'Float'
 				return 'std::stof(' + argText + ')'
 			if name == 'Int'
@@ -582,42 +665,49 @@ impl Parser
 			return name + '(' + argText + ')'
 		if callee.kind == 'FieldAccess'
 			name = callee.text
-			if name == 'contains'
-				return 'drast::contains(' + callee.leftCode + ', ' + argText + ')'
+			if self.usesStd and name == 'contains'
+				return '__drt::contains(' + callee.leftCode + ', ' + argText + ')'
 			if name == 'startsWith'
-				return 'drast::starts_with(' + callee.leftCode + ', ' + argText + ')'
-			if name == 'endsWith'
-				return 'drast::ends_with(' + callee.leftCode + ', ' + argText + ')'
-			if name == 'find'
-				return 'drast::find(' + callee.leftCode + ', ' + argText + ')'
-			if name == 'replace'
-				return 'drast::replace_all(' + callee.leftCode + ', ' + argText + ')'
-			if name == 'split'
-				return 'drast::split(' + callee.leftCode + ', ' + argText + ')'
-			if name == 'get'
-				return 'drast::map_get(' + callee.leftCode + ', ' + argText + ')'
+				return '(' + callee.leftCode + '.rfind(' + argText + ', 0) == 0)'
+			if self.usesStd and name == 'endsWith'
+				return '__drt::ends_with(' + callee.leftCode + ', ' + argText + ')'
+			if self.usesStd and name == 'find'
+				return '__drt::find(' + callee.leftCode + ', ' + argText + ')'
+			if self.usesStd and name == 'replace'
+				return '__drt::replace_all(' + callee.leftCode + ', ' + argText + ')'
+			if self.usesStd and name == 'split'
+				return '__drt::split(' + callee.leftCode + ', ' + argText + ')'
+			if self.usesStd and name == 'get'
+				return '__drt::map_get(' + callee.leftCode + ', ' + argText + ')'
 			if name == 'set'
 				parts = argText.split ', '
 				if parts.length isgteq 2
-					return s'(' + callee.leftCode + '[' + parts{0} + '] = ' + parts{1} + s')'
+					valueStr string;
+					vi = 1
+					while vi islt parts.length
+						if vi isgt 1
+							valueStr += ', '
+						valueStr += parts{vi}
+						vi += 1
+					return callee.leftCode + '[' + parts{0} + '] = ' + valueStr
 			if name == 'clear'
 				return callee.leftCode + '.clear()'
-			if name == 'removeAt'
-				return 'drast::remove_at(' + callee.leftCode + ', ' + argText + ')'
-			if name == 'remove'
+			if self.usesStd and name == 'removeAt'
+				return '__drt::remove_at(' + callee.leftCode + ', ' + argText + ')'
+			if self.usesStd and name == 'remove'
 				if self.isIntegerCode argText
-					return 'drast::remove_at(' + callee.leftCode + ', ' + argText + ')'
-				return 'drast::remove_value(' + callee.leftCode + ', ' + argText + ')'
+					return '__drt::remove_at(' + callee.leftCode + ', ' + argText + ')'
+				return '__drt::remove_value(' + callee.leftCode + ', ' + argText + ')'
 			if name == 'substring'
 				parts = argText.split ', '
 				if parts.length isgteq 2
 					return callee.leftCode + '.substr(' + parts{0} + ', (' + parts{1} + ')-(' + parts{0} + '))'
 			if name == 'valueOr'
 				return callee.leftCode + '.value_or(' + argText + ')'
-			if name == 'random' and callee.leftCode == 'int'
-				return 'drast::random_int(' + argText + ')'
-			if name == 'float' and callee.leftCode == 'random'
-				return 'drast::random_float(' + argText + ')'
+			if self.usesStd and name == 'random' and callee.leftCode == 'int'
+				return '__drt::random_int(' + argText + ')'
+			if self.usesStd and name == 'float' and callee.leftCode == 'random'
+				return '__drt::random_float(' + argText + ')'
 			if callee.leftCode == 'this'
 				return 'this->' + name + '(' + argText + ')'
 			return callee.code + '(' + argText + ')'
@@ -625,7 +715,7 @@ impl Parser
 
 	private callReturnType callee;CExpr, string
 		if callee.kind == 'Identifier'
-			if callee.text == 'getInput' or callee.text == 'arg' or callee.text == 'readFile' or callee.text == 'toString' or callee.text == 'getEnv' or callee.text == 'currentDir' or callee.text == 'normalizePath' or callee.text == 'pathJoin' or callee.text == 'pathDirname' or callee.text == 'pathBasename' or callee.text == 'pathStem' or callee.text == 'sourceOutputPath' or callee.text == 'findExecutable'
+			if callee.text == 'getInput' or callee.text == 'arg' or callee.text == 'readFile' or callee.text == 'toString' or callee.text == 'getEnv' or callee.text == 'currentDir' or callee.text == 'normalizePath' or callee.text == 'canonicalPath' or callee.text == 'pathJoin' or callee.text == 'pathDirname' or callee.text == 'pathBasename' or callee.text == 'pathStem' or callee.text == 'sourceOutputPath' or callee.text == 'findExecutable'
 				return 'std::string'
 			if callee.text == 'parseInt'
 				return 'std::optional<int>'
@@ -637,21 +727,28 @@ impl Parser
 				return 'int'
 			if callee.text == 'args' or callee.text == 'sourceIncludeDirs' or callee.text == 'discoverDrastSources' or callee.text == 'moduleDependencies' or callee.text == 'orderDrastSources'
 				return 'std::vector<std::string>'
-			if callee.text == 'fileExists' or callee.text == 'writeFile' or callee.text == 'hasErrors' or callee.text == 'isAbsolutePath' or callee.text == 'isDirectory' or callee.text == 'ensureDir' or callee.text == 'removeDirRecursive' or callee.text == 'sourceNewerThanTarget' or callee.text == 'targetMissingOrOlder'
+			if callee.text == 'fileExists' or callee.text == 'writeFile' or callee.text == 'hasErrors' or callee.text == 'isAbsolutePath' or callee.text == 'isDirectory' or callee.text == 'ensureDir' or callee.text == 'removeDirRecursive' or callee.text == 'makePathWritable' or callee.text == 'makePathReadOnly' or callee.text == 'sourceNewerThanTarget' or callee.text == 'targetMissingOrOlder'
 				return 'bool'
 			if self.isTypeLike callee.text
 				return self.typeName callee.text
-			return self.functionReturns.get callee.text s''
+			rawReturn = self.functionReturns.get callee.text s''
+			if self.pendingGenericArgs.length isgt 0 and self.functionTypeParams.contains callee.text
+				typeParamStr = self.functionTypeParams.get callee.text s''
+				typeParams = typeParamStr.split s','
+				resolvedReturn = self.substituteGenericType rawReturn typeParams self.pendingGenericArgs
+				self.pendingGenericArgs.clear
+				return resolvedReturn
+			return rawReturn
 		if callee.kind == 'FieldAccess'
-			if callee.text == 'contains'
+			if self.usesStd and callee.text == 'contains'
 				return 'bool'
-			if callee.text == 'startsWith' or callee.text == 'endsWith'
+			if self.usesStd and [callee.text == 'startsWith' or callee.text == 'endsWith']
 				return 'bool'
-			if callee.text == 'find'
+			if self.usesStd and callee.text == 'find'
 				return 'int'
-			if callee.text == 'split'
+			if self.usesStd and callee.text == 'split'
 				return 'std::vector<std::string>'
-			if callee.text == 'get'
+			if self.usesStd and callee.text == 'get'
 				return ''
 			methodKey = callee.leftType + '.' + callee.text
 			return self.methodReturns.get methodKey s''
@@ -663,7 +760,19 @@ impl Parser
 		fieldKey = self.currentHost + '.' + name
 		if self.currentHost.length isgt 0 and self.structFieldTypes.contains fieldKey
 			return self.structFieldTypes.get fieldKey s''
+		if self.globalTypes.contains name
+			return self.globalTypes.get name s''
 		return ''
+
+	private substituteGenericType returnType;string typeParams;{string} typeArgs;{string}, string
+		i usize = 0
+		for tp in typeParams
+			if returnType == tp and i islt typeArgs.length
+				return typeArgs{i}
+			i += 1
+		if self.pendingGenericArgs.length isgt 0
+			return 'auto'
+		return returnType
 
 impl Codegen
 	private expressionsAreEmittedInFunctionBodies, bool

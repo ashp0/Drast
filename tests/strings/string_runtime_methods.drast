@@ -1,7 +1,7 @@
 // # TEST: string runtime field and method helpers
 // # EXPECT: pass
 
-use std
+use drast
 
 main, int
 	text = s'  Hello There  '

@@ -1,0 +1,7 @@
+// E0042 accept: absence is spelled None for maybe values.
+find_value, maybe i32
+	return None
+
+main, i32
+	value = find_value
+	return value.value_or[0]

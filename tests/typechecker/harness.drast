@@ -1,0 +1,13 @@
+// # TEST: standalone type checker module compiles
+// # EXPECT: pass
+
+use drast
+use ../../src/typecheck/checker
+
+main, int
+	options TypeCheckOptions;
+	source = s'main, int\n\treturn 0\n'
+	result = checkSource source 'inline.drast' options
+	if result.ok
+		return 0
+	return 1

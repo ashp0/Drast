@@ -1,7 +1,7 @@
 // # TEST: audit generic functions and generic struct emission
 // # EXPECT: pass
 
-use std
+use drast
 
 struct Box`[T]
 	value T

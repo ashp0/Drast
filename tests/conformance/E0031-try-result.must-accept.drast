@@ -1,0 +1,7 @@
+// E0031 accept: prefix try unwraps Result inside a Result-returning function.
+read_value, Result[i32 string]
+	return Ok[1]
+
+main_result, Result[i32 string]
+	value = try read_value
+	return Ok[value]

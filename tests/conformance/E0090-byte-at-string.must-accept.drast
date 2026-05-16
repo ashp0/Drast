@@ -1,0 +1,5 @@
+// E0090 accept: byte access is explicit and returns maybe u8.
+main, i32
+	text = 'hello'
+	byte = text.byte_at[0]
+	return 0

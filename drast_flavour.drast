@@ -1,0 +1,49 @@
+// Drast flavour prelude.
+//
+// This file is loaded only when a source says `use drast`. Everything here is opt-in.
+// A program with no `use drast` will not see any of these symbols and the generated
+// C++ will not include `drast_native.hpp`.
+//
+// The native sidecar header `drast_native.hpp` provides C++ glue that Drast cannot yet
+// express in pure Drast (variadic templates, std::filesystem, random distributions,
+// argv plumbing). The Drast functions below cover what is comfortable in the language
+// today; the rest is reached through the `drt::` namespace from native helpers.
+
+
+// NOTE: if Drast cannot express something in C++, then add support for that in Drast by editing codegen and parser logic and other stuff.
+use iostream as std
+
+print`[T] value;T
+	std.cout shl value
+
+println`[T] value;T
+	std.cout shl value shl c'\n'
+
+println
+	std.cout shl c'\n'
+
+charCode ch;char, int
+	return Int ch
+
+charCode text;string, int
+	if text.length == 0
+		return 0
+	return charCode text{0}
+
+isAlpha ch;char, bool
+	return [ch isgteq c'a' and ch islteq c'z'] or [ch isgteq c'A' and ch islteq c'Z']
+
+isAlpha text;string, bool
+	return text.length == 1 and isAlpha text{0}
+
+isDigit ch;char, bool
+	return ch isgteq c'0' and ch islteq c'9'
+
+isDigit text;string, bool
+	return text.length == 1 and isDigit text{0}
+
+isWhitespace ch;char, bool
+	return ch == c' ' or ch == c'\t' or ch == c'\n' or ch == c'\r'
+
+isWhitespace text;string, bool
+	return text.length == 1 and isWhitespace text{0}

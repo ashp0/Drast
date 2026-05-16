@@ -1,0 +1,5 @@
+// E0010 accept: a binding declared with `mut` may be reassigned.
+main, i32
+	mut counter = 0
+	counter = counter + 1
+	return counter

@@ -1,7 +1,7 @@
 // # TEST: audit struct constructors and impl method emission
 // # EXPECT: pass
 
-use std
+use drast
 
 struct Ledger
 	title string

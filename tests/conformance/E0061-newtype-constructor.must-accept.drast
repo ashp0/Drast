@@ -1,0 +1,9 @@
+// E0061 accept: raw values enter a newtype through its constructor.
+type Metres = i32
+
+travel distance;Metres, i32
+	return distance as i32
+
+main, i32
+	raw i32 = 1000
+	return travel Metres[raw]

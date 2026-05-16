@@ -1,0 +1,9 @@
+// E0081 reject: maybe values are not truthy.
+find_value, maybe i32
+	return None
+
+main, i32
+	value = find_value
+	if value
+		return 0
+	return 1

@@ -1,7 +1,7 @@
 // # TEST: shared heap allocation type constructor
 // # EXPECT: pass
 
-use std
+use drast
 
 struct Box
 	value int

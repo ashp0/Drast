@@ -1,7 +1,7 @@
 // # TEST: tuple type constructor return
 // # EXPECT: pass
 
-use std
+use drast
 
 pair, tuple Int String
 	return tuple 1 s'one'

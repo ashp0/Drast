@@ -1,0 +1,49 @@
+use drast
+use types
+use ast
+
+struct TcConstValue
+	known bool
+	type TcType
+	text string
+	boolValue bool
+
+impl TcConstValue
+	init
+		self.known = false
+		self.text = ''
+		self.boolValue = false
+
+tcUnknownConst, TcConstValue
+	value TcConstValue;
+	return value
+
+tcBoolConst value;bool, TcConstValue
+	out TcConstValue;
+	out.known = true
+	out.type = tcBoolType
+	out.boolValue = value
+	if value
+		out.text = 'true'
+	else
+		out.text = 'false'
+	return out
+
+tcEvaluateConst expr;TcExpr, TcConstValue
+	if expr.kind == 'boolLiteral'
+		value = expr.text == 'true'
+		return tcBoolConst value
+	if expr.kind == 'intLiteral' or expr.kind == 'floatLiteral' or expr.kind == 'stringLiteral' or expr.kind == 'charLiteral'
+		value TcConstValue;
+		value.known = true
+		value.text = expr.text
+		value.type = expr.resolvedType
+		return value
+	if expr.kind == 'group' and expr.children.length isgt 0
+		return tcEvaluateConst expr.children{0}
+	if expr.kind == 'unary' and expr.children.length isgt 0
+		inner = tcEvaluateConst expr.children{0}
+		if inner.known and expr.op == 'not' and tcIsBool inner.type
+			value = not inner.boolValue
+			return tcBoolConst value
+	return tcUnknownConst

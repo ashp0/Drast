@@ -1,7 +1,7 @@
 // # TEST: zero parameter void function
 // # EXPECT: pass
 
-use std
+use drast
 
 sayHello
 	println s'hello'

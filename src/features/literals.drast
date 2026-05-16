@@ -5,17 +5,17 @@ impl Parser
 		i usize = 0
 		while i islt text.length
 			c = text{i}
-			if c == '\\'
+			if c == c'\\'
 				out += '\\\\'
 			elif charCode c == 0
 				out += '\\0'
-			elif c == '"'
+			elif c == c'"'
 				out += '\\"'
-			elif c == '\n'
+			elif c == c'\n'
 				out += '\\n'
-			elif c == '\t'
+			elif c == c'\t'
 				out += '\\t'
-			elif c == '\r'
+			elif c == c'\r'
 				out += '\\r'
 			else
 				out += c

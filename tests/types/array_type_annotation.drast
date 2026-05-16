@@ -1,7 +1,7 @@
 // # TEST: array type annotation and literal
 // # EXPECT: pass
 
-use std
+use drast
 
 main, int
 	items {int} = {1 2 3}

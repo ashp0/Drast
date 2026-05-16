@@ -1,7 +1,7 @@
 // # TEST: lowercase primitive type annotations
 // # EXPECT: pass
 
-use std
+use drast
 
 main, int
 	count int = 1

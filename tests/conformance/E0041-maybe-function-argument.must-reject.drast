@@ -1,0 +1,13 @@
+// E0041 reject: maybe T is not accepted where T is required.
+struct User
+	name string
+
+takes_user user;User, i32
+	return 1
+
+find_user, maybe User
+	return None
+
+main, i32
+	user = find_user
+	return takes_user user

@@ -1,0 +1,5 @@
+// E0071 accept: int-to-float conversion is explicit.
+main, i32
+	count i32 = 1
+	value f64 = count as f64
+	return 0

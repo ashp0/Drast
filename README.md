@@ -8,8 +8,8 @@ Drast projects are configured with `package.txt`. From this repository root:
 
 ```sh
 ./bootstrap.sh --check
-./.drast/build/bin/drast build
-./.drast/build/bin/drast build test
+./build/bin/drast build
+./build/bin/drast build test
 ```
 
 The CLI invokes xmake internally for C++ compilation; users should not call xmake directly for normal Drast builds.
@@ -24,7 +24,7 @@ drast <target>
 drast help
 ```
 
-Generated C++ is written under `.drast/build/generated/<target>/` and marked read-only so hand edits are not lost silently on the next build.
+Generated C++ is written under `build/generated/<target>/` and marked read-only so hand edits are not lost silently on the next build. Package-managed binaries, generated sources, backend project files, objects, and caches all live under `build/`.
 
 ## Package Example
 
@@ -36,8 +36,8 @@ default hello
 target hello
 	kind binary
 	entry main.drast
-	output .drast/build/bin/hello
-	generated .drast/build/generated/hello
+	output build/bin/hello
+	generated build/generated/hello
 	include .
 	cxx c++17
 ```
@@ -51,7 +51,7 @@ CI rebuilds Drast on every main-branch merge and archives the resulting binary. 
 ## Repository Map
 
 - `src/` contains the compiler, CLI, package parser, and build system.
-- `runtime/` contains runtime support used by generated C++.
+- `runtime/` is legacy; generated C++ now emits requested headers and inline support directly.
 - `tests/` contains compiler fixtures plus CLI/package integration checks.
 - `Examples/` contains sample Drast programs.
 - `SYNTAX.md` documents the implemented language syntax.

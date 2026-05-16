@@ -1,0 +1,5 @@
+// E0092 reject: immutable string bindings cannot be mutated.
+main, i32
+	text = 'hi'
+	text.push_str['!']
+	return 0

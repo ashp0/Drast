@@ -1,7 +1,7 @@
 // # TEST: array indexing expression
 // # EXPECT: pass
 
-use std
+use drast
 
 main, int
 	items = {10 20 30}

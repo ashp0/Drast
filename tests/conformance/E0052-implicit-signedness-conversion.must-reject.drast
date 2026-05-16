@@ -1,0 +1,5 @@
+// E0052 reject: signed and unsigned integer types do not implicitly convert.
+main, i32
+	value i32 = 5
+	unsigned u32 = value
+	return 0

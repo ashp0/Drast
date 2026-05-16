@@ -1,7 +1,7 @@
 // # TEST: audit data enum construction and match emission
 // # EXPECT: pass
 
-use std
+use drast
 
 enum Message
 	Text body;string

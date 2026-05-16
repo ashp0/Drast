@@ -1,0 +1,1418 @@
+use drast
+use diagnostics
+use types
+use ast
+use parser
+use loader
+use symbols
+use builtins
+use flow
+use consteval
+
+struct TcChecker
+	options TypeCheckOptions
+	table TcSymbolTable
+	diagnostics {TcDiagnostic}
+	program TcProgram
+
+impl TcChecker
+	init
+		nothing
+
+checkFile path;string options;TypeCheckOptions, TypeCheckResult
+	loader TcModuleLoader;
+	loader.configure options
+	loaded = loader.loadFile path
+	result = checkProgram loaded.program options
+	for diag in loaded.diagnostics
+		result.diagnostics += diag
+	result.ok = result.diagnostics.length == 0
+	return result
+
+checkSource source;string file;string options;TypeCheckOptions, TypeCheckResult
+	loader TcModuleLoader;
+	loader.configure options
+	loaded = loader.loadSource source file
+	result = checkProgram loaded.program options
+	for diag in loaded.diagnostics
+		result.diagnostics += diag
+	result.ok = result.diagnostics.length == 0
+	return result
+
+checkProgram program;TcProgram options;TypeCheckOptions, TypeCheckResult
+	checker TcChecker;
+	checker.options = options
+	checker.program = program
+	tcAddBuiltins checker.table checker.diagnostics
+	tcCollectSymbols checker
+	tcCollectMembersAndCallables checker
+	tcValidateProtocolConformance checker
+	tcCheckGlobals checker
+	tcCheckFunctions checker
+	result TypeCheckResult;
+	result.program = checker.program
+	for diag in checker.diagnostics
+		result.diagnostics += diag
+	result.ok = result.diagnostics.length == 0
+	for key in checker.table.functions.keys
+		result.symbolSummary += 'fn ' + key
+	for key in checker.table.structs.keys
+		result.symbolSummary += 'struct ' + key
+	for key in checker.table.enums.keys
+		result.symbolSummary += 'enum ' + key
+	return result
+
+tcCollectSymbols checker;~TcChecker
+	for module in checker.program.modules
+		for st in module.structs
+			info TcStructInfo;
+			info.name = st.name
+			info.span = st.span
+			for param in st.typeParams
+				info.typeParams += param
+			if checker.table.structs.contains st.name
+				empty TcStructInfo;
+				old = checker.table.structs.get st.name empty
+				tcAddDuplicate checker.diagnostics 'TC1005' st.span st.name old.span
+			else
+				checker.table.structs.set st.name info
+		for en in module.enums
+			info TcEnumInfo;
+			info.name = en.name
+			info.span = en.span
+			info.isData = en.isData
+			if checker.table.enums.contains en.name
+				empty TcEnumInfo;
+				old = checker.table.enums.get en.name empty
+				tcAddDuplicate checker.diagnostics 'TC1006' en.span en.name old.span
+			else
+				checker.table.enums.set en.name info
+		for proto in module.protocols
+			info TcProtocolInfo;
+			info.name = proto.name
+			info.span = proto.span
+			if checker.table.protocols.contains proto.name
+				empty TcProtocolInfo;
+				old = checker.table.protocols.get proto.name empty
+				tcAddDuplicate checker.diagnostics 'TC1007' proto.span proto.name old.span
+			else
+				checker.table.protocols.set proto.name info
+		for alias in module.typeAliases
+			info TcNewtypeInfo;
+			info.name = alias.name
+			info.span = alias.span
+			if checker.table.newtypes.contains alias.name
+				empty TcNewtypeInfo;
+				old = checker.table.newtypes.get alias.name empty
+				tcAddDuplicate checker.diagnostics 'TC1017' alias.span alias.name old.span
+			else
+				checker.table.newtypes.set alias.name info
+
+tcCollectMembersAndCallables checker;~TcChecker
+	emptyGenerics {string};
+	for module in checker.program.modules
+		for alias in module.typeAliases
+			emptyInfo TcNewtypeInfo;
+			info = checker.table.newtypes.get alias.name emptyInfo
+			info.underlying = tcResolveTypeRef checker alias.underlying emptyGenerics
+			checker.table.newtypes.set alias.name info
+		for st in module.structs
+			emptyInfo TcStructInfo;
+			info = checker.table.structs.get st.name emptyInfo
+			for field in st.fields
+				if info.fields.contains field.name
+					oldSpan = info.fieldSpans.get field.name field.span
+					fullName = st.name + '.' + field.name
+					tcAddDuplicate checker.diagnostics 'TC1008' field.span fullName oldSpan
+				else
+					fieldType = tcResolveTypeRef checker field.typeRef st.typeParams
+					info.fields.set field.name fieldType
+					info.fieldSpans.set field.name field.span
+			checker.table.structs.set st.name info
+		for en in module.enums
+			emptyInfo TcEnumInfo;
+			info = checker.table.enums.get en.name emptyInfo
+			for variant in en.variants
+				varInfo TcEnumVariantInfo;
+				varInfo.name = variant.name
+				varInfo.owner = en.name
+				varInfo.span = variant.span
+				for field in variant.fields
+					fieldType = tcResolveTypeRef checker field.typeRef emptyGenerics
+					varInfo.fields.set field.name fieldType
+					varInfo.fieldOrder += field.name
+				if info.variants.contains variant.name
+					old = info.variants.get variant.name varInfo
+					fullName = en.name + '.' + variant.name
+					tcAddDuplicate checker.diagnostics 'TC1009' variant.span fullName old.span
+				else
+					info.variants.set variant.name varInfo
+					checker.table.enumVariants.set variant.name en.name
+					key = en.name + '.' + variant.name
+					checker.table.dataEnumVariants.set key varInfo
+			checker.table.enums.set en.name info
+		for proto in module.protocols
+			emptyInfo TcProtocolInfo;
+			info = checker.table.protocols.get proto.name emptyInfo
+			for method in proto.methods
+				sig = tcSignatureFromFunction checker method
+				if info.methods.contains method.name
+					old = info.methods.get method.name sig
+					fullName = proto.name + '.' + method.name
+					tcAddDuplicate checker.diagnostics 'TC1010' method.span fullName old.span
+				else
+					info.methods.set method.name sig
+			checker.table.protocols.set proto.name info
+		for fn in module.functions
+			sig = tcSignatureFromFunction checker fn
+			tcAddFunction checker.table sig checker.diagnostics
+		for implDecl in module.impls
+			if implDecl.protocolName.length isgt 0
+				key = tcProtocolConformanceKey implDecl.host implDecl.protocolName
+				checker.table.conformances.set key implDecl.protocolName
+			for method in implDecl.methods
+				sig = tcSignatureFromFunction checker method
+				if method.isOperator
+					tcAddOperator checker.table sig checker.diagnostics
+				else
+					tcAddMethod checker.table sig checker.diagnostics
+		for global in module.globals
+			globalType = tcUnknownType
+			if global.hasType
+				globalType = tcResolveTypeRef checker global.typeRef emptyGenerics
+			else
+				message = 'module-level declaration `' + global.name + '` requires an explicit type annotation'
+				diag = tcDiagnostic 'E0022' global.span message
+				diag.help = 'write `' + global.name + ': <type> = ...` or `' + global.name + ' <type> = ...`'
+				checker.diagnostics += diag
+			tcAddGlobal checker.table global.name globalType global.span checker.diagnostics
+
+tcSignatureFromFunction checker;~TcChecker fn;TcFunction, TcFunctionSig
+	sig TcFunctionSig;
+	sig.name = fn.name
+	sig.host = fn.host
+	sig.span = fn.span
+	sig.isMethod = fn.isMethod
+	sig.isOperator = fn.isOperator
+	sig.operatorSymbol = fn.operatorSymbol
+	for paramName in fn.typeParams
+		sig.typeParams += paramName
+	for bound in fn.bounds
+		sig.bounds += bound
+	generics = fn.typeParams
+	if fn.host.length isgt 0 and checker.table.structs.contains fn.host
+		emptyInfo TcStructInfo;
+		hostInfo = checker.table.structs.get fn.host emptyInfo
+		for paramName in hostInfo.typeParams
+			if not tcStringListContains generics paramName
+				generics += paramName
+	for param in fn.params
+		sig.params += param
+		paramType = tcResolveTypeRef checker param.typeRef generics
+		sig.paramTypes += paramType
+	sig.returnType = tcResolveTypeRef checker fn.returnRef generics
+	if fn.isOperator and fn.operatorSymbol == '==' and sig.returnType.kind == 'void'
+		sig.returnType = tcBoolType
+	if fn.isOperator and sig.paramTypes.length == 0 and fn.host.length isgt 0
+		hostType = tcNominalType fn.host
+		sig.paramTypes += hostType
+		sig.paramTypes += hostType
+	tcValidateGenericBounds checker fn.typeParams fn.bounds
+	return sig
+
+tcValidateGenericBounds checker;~TcChecker params;{string} bounds;{TcGenericBound}
+	for bound in bounds
+		if not tcStringListContains params bound.param
+			message = 'generic bound references unknown type parameter `' + bound.param + '`'
+			checker.diagnostics += tcDiagnostic 'TC1011' bound.span message
+		if not checker.table.protocols.contains bound.protocolName
+			message = 'generic bound references unknown protocol `' + bound.protocolName + '`'
+			checker.diagnostics += tcDiagnostic 'TC1012' bound.span message
+
+tcValidateProtocolConformance checker;~TcChecker
+	for key in checker.table.conformances.keys
+		parts = key.split ' as '
+		if parts.length islt 2
+			continue
+		host = parts{0}
+		protocolName = parts{1}
+		span = tcSpan checker.program.entryPath 1 1
+		if not checker.table.structs.contains host
+			message = 'impl host `' + host + '` is not a known struct'
+			checker.diagnostics += tcDiagnostic 'TC1013' span message
+			continue
+		if not checker.table.protocols.contains protocolName
+			message = 'protocol `' + protocolName + '` is not declared'
+			checker.diagnostics += tcDiagnostic 'TC1014' span message
+			continue
+		emptyInfo TcProtocolInfo;
+		proto = checker.table.protocols.get protocolName emptyInfo
+		for methodName in proto.methods.keys
+			if not tcHasMethod checker.table host methodName
+				message = 'type `' + host + '` does not implement protocol method `' + methodName + '`'
+				checker.diagnostics += tcDiagnostic 'TC1015' proto.span message
+				continue
+			emptySig TcFunctionSig;
+			expected = proto.methods.get methodName emptySig
+			found = tcLookupMethod checker.table host methodName
+			if expected.paramTypes.length isne found.paramTypes.length or not tcTypeEquals expected.returnType found.returnType
+				message = 'protocol method signature mismatch for `' + methodName + '`'
+				expectedText = tcSignatureDisplay expected
+				foundText = tcSignatureDisplay found
+				diag = tcTypeDiagnostic 'TC1016' found.span message expectedText foundText 'match the protocol declaration exactly'
+				tcAddRelated diag expected.span 'protocol requirement is here'
+				checker.diagnostics += diag
+
+tcCheckGlobals checker;~TcChecker
+	for module in checker.program.modules
+		for global in module.globals
+			valueType = tcUnknownType
+			if global.hasInitializer
+				flow TcFlowState;
+				tcPushScope flow
+				valueType = tcCheckExpr checker global.initializer flow
+			unknown = tcUnknownType
+			declared = checker.table.globals.get global.name unknown
+			if declared.kind == 'unknown'
+				checker.table.globals.set global.name valueType
+			elif global.hasInitializer
+				message = 'initializer for global `' + global.name + '` has the wrong type'
+				tcCheckValueAssignable checker declared valueType global.initializer global.span message
+
+tcCheckFunctions checker;~TcChecker
+	for module in checker.program.modules
+		for fn in module.functions
+			tcCheckFunction checker fn
+		for implDecl in module.impls
+			for method in implDecl.methods
+				tcCheckFunction checker method
+
+tcCheckFunction checker;~TcChecker fn;TcFunction
+	sig = tcFindFunctionSig checker fn
+	flow TcFlowState;
+	flow.currentFunction = fn.name
+	flow.currentHost = fn.host
+	flow.currentReturn = sig.returnType
+	tcPushScope flow
+	i usize = 0
+	for param in fn.params
+		paramType = tcUnknownType
+		if i islt sig.paramTypes.length
+			paramType = sig.paramTypes{i}
+		if param.isMutableBinding
+			tcDeclareMutableLocal flow param.name paramType param.span true checker.diagnostics
+		else
+			tcDeclareLocal flow param.name paramType param.span true checker.diagnostics
+		if param.hasDefault
+			defaultType = tcCheckExpr checker param.defaultValue flow
+			if not tcAssignable paramType defaultType
+				message = 'default value for parameter `' + param.name + '` has the wrong type'
+				tcReportTypeMismatch checker param.span paramType defaultType message
+		i += 1
+	returned = tcCheckBlock checker fn.body flow true
+	if sig.returnType.kind isne 'void' and not returned
+		message = 'missing return statement in non-void function `' + fn.name + '`'
+		checker.diagnostics += tcDiagnostic 'TC2010' fn.span message
+	summary = tcEffectSummary flow
+	if summary.length isgt 0
+		checker.program.entryPath = checker.program.entryPath
+
+tcFindFunctionSig checker;TcChecker fn;TcFunction, TcFunctionSig
+	empty TcFunctionSig;
+	if fn.host.length isgt 0 and not fn.isOperator
+		return tcLookupMethod checker.table fn.host fn.name
+	if fn.isOperator
+		key = tcOperatorKey fn.operatorSymbol
+		return checker.table.operators.get key empty
+	return checker.table.functions.get fn.name empty
+
+tcCheckBlock checker;~TcChecker stmts;{TcStmt} flow;~TcFlowState createScope;bool, bool
+	if createScope
+		tcPushScope flow
+	returned = false
+	for stmt in stmts
+		if returned
+			checker.diagnostics += tcDiagnostic 'TC2011' stmt.span 'unreachable statement after return'
+			continue
+		if tcCheckStmt checker stmt flow
+			returned = true
+	if createScope
+		tcPopScope flow
+	return returned
+
+tcCheckStmt checker;~TcChecker stmt;TcStmt flow;~TcFlowState, bool
+	if stmt.kind == 'nothing'
+		return false
+	if stmt.kind == 'return'
+		actual = tcVoidType
+		if stmt.expr.kind isne 'invalid'
+			actual = tcCheckExpr checker stmt.expr flow
+		if flow.currentReturn.kind == 'void'
+			if actual.kind isne 'void'
+				tcReportTypeMismatch checker stmt.span flow.currentReturn actual 'void function should not return a value'
+		else
+			tcCheckValueAssignable checker flow.currentReturn actual stmt.expr stmt.span 'return expression has the wrong type'
+		return true
+	if stmt.kind == 'break' or stmt.kind == 'continue'
+		if flow.inLoop == 0
+			message = stmt.kind + ' used outside of a loop'
+			checker.diagnostics += tcDiagnostic 'TC2012' stmt.span message
+		return false
+	if stmt.kind == 'varDecl'
+		emptyGenerics {string};
+		declared = tcResolveTypeRef checker stmt.typeRef emptyGenerics
+		assigned = false
+		if stmt.expr.kind isne 'invalid'
+			valueType = tcCheckExpr checker stmt.expr flow
+			assigned = true
+			message = 'initializer for local `' + stmt.name + '` has the wrong type'
+			tcCheckValueAssignable checker declared valueType stmt.expr stmt.span message
+		if stmt.isMutableBinding
+			tcDeclareMutableLocal flow stmt.name declared stmt.span assigned checker.diagnostics
+		else
+			tcDeclareLocal flow stmt.name declared stmt.span assigned checker.diagnostics
+		return false
+	if stmt.kind == 'assign'
+		tcCheckAssignment checker stmt flow
+		return false
+	if stmt.kind == 'expr'
+		tcCheckExpr checker stmt.expr flow
+		return false
+	if stmt.kind == 'if'
+		return tcCheckIf checker stmt flow
+	if stmt.kind == 'while'
+		condType = tcCheckExpr checker stmt.expr flow
+		tcRequireBool checker stmt.expr.span condType 'while condition must be bool'
+		flow.inLoop += 1
+		tcCheckBlock checker stmt.body flow true
+		flow.inLoop -= 1
+		return false
+	if stmt.kind == 'forEach' or stmt.kind == 'forRangeInclusive' or stmt.kind == 'forRangeExclusive'
+		tcCheckFor checker stmt flow
+		return false
+	if stmt.kind == 'match'
+		return tcCheckMatch checker stmt flow
+	if stmt.kind == 'try'
+		tcCheckTry checker stmt flow
+		return false
+	return false
+
+tcCheckAssignment checker;~TcChecker stmt;TcStmt flow;~TcFlowState
+	valueType = tcCheckExpr checker stmt.expr flow
+	if stmt.target.kind == 'identifier' and stmt.op == s'='
+		local = tcLookupLocal flow stmt.target.text
+		if local.name.length == 0 and not checker.table.globals.contains stmt.target.text
+			if stmt.isMutableBinding
+				tcDeclareMutableLocal flow stmt.target.text valueType stmt.target.span true checker.diagnostics
+			else
+				tcDeclareLocal flow stmt.target.text valueType stmt.target.span true checker.diagnostics
+			return
+	targetType = tcCheckAssignableTarget checker stmt.target flow
+	if stmt.target.kind == 'identifier'
+		tcRequireMutableLocalAssignment checker stmt.target flow
+	if stmt.op == '+=' or stmt.op == '-=' or stmt.op == '*=' or stmt.op == '/='
+		if not tcCanApplyCompound stmt.op targetType valueType
+			message = 'compound assignment `' + stmt.op + '` is not valid for these types'
+			tcReportTypeMismatch checker stmt.span targetType valueType message
+	else
+		tcCheckValueAssignable checker targetType valueType stmt.expr stmt.span 'assignment value has the wrong type'
+	if stmt.target.kind == 'identifier'
+		tcAssignLocal flow stmt.target.text
+
+tcCheckAssignableTarget checker;~TcChecker target;TcExpr flow;~TcFlowState, TcType
+	if target.kind == 'identifier'
+		local = tcLookupLocal flow target.text
+		if local.name.length isgt 0
+			return local.type
+		if checker.table.globals.contains target.text
+			unknown = tcUnknownType
+			return checker.table.globals.get target.text unknown
+		message = 'assignment target `' + target.text + '` is not declared'
+		checker.diagnostics += tcDiagnostic 'TC2013' target.span message
+		return tcErrorType
+	if target.kind == 'field' or target.kind == 'index'
+		return tcCheckExpr checker target flow
+	checker.diagnostics += tcDiagnostic 'TC2014' target.span 'assignment target is not assignable'
+	return tcErrorType
+
+tcCheckIf checker;~TcChecker stmt;TcStmt flow;~TcFlowState, bool
+	if stmt.conditions.length == 0
+		return false
+	condType = tcCheckExpr checker stmt.conditions{0} flow
+	tcRequireBool checker stmt.conditions{0}.span condType 'if condition must be bool'
+	thenFlow = flow
+	thenReturns = tcCheckBlock checker stmt.body thenFlow true
+	allReturn = thenReturns
+	i usize = 0
+	for arm in stmt.arms
+		if i + 1 islt stmt.conditions.length
+			branchCond = tcCheckExpr checker stmt.conditions{i + 1} flow
+			tcRequireBool checker stmt.conditions{i + 1}.span branchCond 'elif condition must be bool'
+		branchFlow = flow
+		branchReturns = tcCheckBlock checker arm.body branchFlow true
+		allReturn = allReturn and branchReturns
+		i += 1
+	if stmt.elseBody.length isgt 0
+		elseFlow = flow
+		elseReturns = tcCheckBlock checker stmt.elseBody elseFlow true
+		return allReturn and elseReturns
+	return false
+
+tcCheckFor checker;~TcChecker stmt;TcStmt flow;~TcFlowState
+	sourceType = tcCheckExpr checker stmt.expr flow
+	loopType = tcUnknownType
+	if stmt.kind == 'forRangeInclusive' or stmt.kind == 'forRangeExclusive'
+		if not tcIsNumeric sourceType
+			tcReportTypeMismatch checker stmt.expr.span tcIntType sourceType 'range start must be numeric'
+		if stmt.conditions.length isgt 0
+			endType = tcCheckExpr checker stmt.conditions{0} flow
+			if not tcIsNumeric endType
+				tcReportTypeMismatch checker stmt.conditions{0}.span tcIntType endType 'range end must be numeric'
+		loopType = sourceType
+	elif sourceType.kind == 'array'
+		loopType = tcInnerType sourceType
+	elif sourceType.kind == 'map'
+		keyType = tcInnerType sourceType
+		valueType = tcSecondInnerType sourceType
+		pairTypes {TcType};
+		pairTypes += keyType
+		pairTypes += valueType
+		loopType = tcTupleType pairTypes
+	elif tcIsString sourceType
+		loopType = tcCharType
+	else
+		typeText = tcTypeDisplay sourceType
+		message = 'cannot iterate over value of type ' + typeText
+		checker.diagnostics += tcDiagnostic 'TC2015' stmt.expr.span message
+	flow.inLoop += 1
+	tcPushScope flow
+	tcDeclareLocal flow stmt.name loopType stmt.span true checker.diagnostics
+	tcCheckBlock checker stmt.body flow false
+	tcPopScope flow
+	flow.inLoop -= 1
+
+tcCheckMatch checker;~TcChecker stmt;TcStmt flow;~TcFlowState, bool
+	matchedType = tcCheckExpr checker stmt.expr flow
+	hasDefault = false
+	covered {string};
+	allReturn = true
+	for arm in stmt.arms
+		if arm.name == 'default'
+			hasDefault = true
+		else
+			tcCheckPattern checker arm matchedType flow covered
+		armFlow = flow
+		tcPushScope armFlow
+		tcBindPatternNames checker arm matchedType armFlow
+		armReturns = tcCheckBlock checker arm.body armFlow false
+		tcPopScope armFlow
+		allReturn = allReturn and armReturns
+	exhaustive = hasDefault or tcMatchIsExhaustive checker matchedType covered
+	if checker.options.checkExhaustiveMatches and matchedType.kind == 'nominal' and checker.table.enums.contains matchedType.name and not exhaustive
+		message = 'match on enum `' + matchedType.name + '` is not exhaustive'
+		checker.diagnostics += tcDiagnostic 'TC2016' stmt.span message
+	return exhaustive and allReturn and stmt.arms.length isgt 0
+
+tcCheckTry checker;~TcChecker stmt;TcStmt flow;~TcFlowState
+	tryFlow = flow
+	tcCheckBlock checker stmt.body tryFlow true
+	catchFlow = flow
+	tcPushScope catchFlow
+	exceptionType = tcNominalType 'Exception'
+	tcDeclareLocal catchFlow stmt.name exceptionType stmt.span true checker.diagnostics
+	tcCheckBlock checker stmt.elseBody catchFlow false
+	tcPopScope catchFlow
+	for effect in tryFlow.effects
+		if effect isne 'maybe_unwrap'
+			tcAddEffect flow effect
+
+tcCheckPattern checker;~TcChecker arm;TcStmt matchedType;TcType flow;~TcFlowState covered;~{string}
+	if arm.expr.kind == 'field'
+		variant = arm.expr.text
+		owner = ''
+		if arm.expr.children.length isgt 0 and arm.expr.children{0}.kind == 'identifier'
+			owner = arm.expr.children{0}.text
+		if matchedType.kind == 'nominal' and owner.length isgt 0 and owner isne matchedType.name
+			message = 'match pattern belongs to `' + owner + '`, not `' + matchedType.name + '`'
+			checker.diagnostics += tcDiagnostic 'TC2017' arm.expr.span message
+		covered += variant
+		return
+	if arm.expr.kind == 'identifier' and matchedType.kind == 'nominal'
+		key = matchedType.name + '.' + arm.expr.text
+		owner = checker.table.enumVariants.get arm.expr.text ''
+		if checker.table.dataEnumVariants.contains key or owner == matchedType.name
+			covered += arm.expr.text
+			return
+	patternType = tcCheckExpr checker arm.expr flow
+	if not tcAssignable matchedType patternType and not tcAssignable patternType matchedType
+		tcReportTypeMismatch checker arm.expr.span matchedType patternType 'match pattern type does not match matched value'
+
+tcBindPatternNames checker;~TcChecker arm;TcStmt matchedType;TcType flow;~TcFlowState
+	variant = ''
+	if arm.expr.kind == 'field'
+		variant = arm.expr.text
+	elif arm.expr.kind == 'identifier'
+		variant = arm.expr.text
+	key = matchedType.name + '.' + variant
+	if key.length == 1 or not checker.table.dataEnumVariants.contains key
+		return
+	emptyInfo TcEnumVariantInfo;
+	info = checker.table.dataEnumVariants.get key emptyInfo
+	i usize = 0
+	for bindName in arm.names
+		bindType = tcUnknownType
+		if i islt info.fieldOrder.length
+			fieldName = info.fieldOrder{i}
+			unknown = tcUnknownType
+			bindType = info.fields.get fieldName unknown
+		tcDeclareLocal flow bindName bindType arm.span true checker.diagnostics
+		i += 1
+	if arm.names.length isne info.fieldOrder.length
+		expectedCount = toString info.fieldOrder.length
+		foundCount = toString arm.names.length
+		message = 'data enum variant `' + variant + '` expects ' + expectedCount + ' bindings, found ' + foundCount
+		checker.diagnostics += tcDiagnostic 'TC2018' arm.span message
+
+tcMatchIsExhaustive checker;TcChecker matchedType;TcType covered;{string}, bool
+	if matchedType.kind isne 'nominal'
+		return false
+	if not checker.table.enums.contains matchedType.name
+		return false
+	emptyInfo TcEnumInfo;
+	info = checker.table.enums.get matchedType.name emptyInfo
+	for variant in info.variants.keys
+		if not tcStringListContains covered variant
+			return false
+	return true
+
+tcCheckExpr checker;~TcChecker expr;TcExpr flow;~TcFlowState, TcType
+	if expr.kind == 'invalid'
+		return tcErrorType
+	if expr.kind == 'intLiteral'
+		return tcIntType
+	if expr.kind == 'floatLiteral'
+		return tcFloatType
+	if expr.kind == 'stringLiteral'
+		return tcStringType
+	if expr.kind == 'charLiteral'
+		if expr.text.length isne 1
+			message = 'char literal must contain exactly one Unicode scalar'
+			checker.diagnostics += tcDiagnostic 'E0091' expr.span message
+		return tcCharType
+	if expr.kind == 'boolLiteral'
+		return tcBoolType
+	if expr.kind == 'nilLiteral'
+		checker.diagnostics += tcDiagnostic 'E0042' expr.span '`nil` is not available in safe Drast; use `None` for maybe values'
+		return tcNilType
+	if expr.kind == 'self'
+		if flow.currentHost.length == 0
+			checker.diagnostics += tcDiagnostic 'TC2020' expr.span '`self` is only valid inside an impl method'
+			return tcErrorType
+		return tcNominalType flow.currentHost
+	if expr.kind == 'identifier'
+		return tcCheckIdentifier checker expr flow
+	if expr.kind == 'group'
+		if expr.children.length isgt 0
+			return tcCheckExpr checker expr.children{0} flow
+		return tcUnknownType
+	if expr.kind == 'unary'
+		return tcCheckUnary checker expr flow
+	if expr.kind == 'cast'
+		return tcCheckCast checker expr flow
+	if expr.kind == 'tryExpr'
+		return tcCheckTryExpression checker expr flow
+	if expr.kind == 'binary'
+		return tcCheckBinary checker expr flow
+	if expr.kind == 'field'
+		return tcCheckField checker expr flow
+	if expr.kind == 'index'
+		return tcCheckIndex checker expr flow
+	if expr.kind == 'call' or expr.kind == 'batchCall'
+		return tcCheckCall checker expr flow
+	if expr.kind == 'constructor'
+		return tcCheckConstructor checker expr flow
+	if expr.kind == 'array'
+		return tcCheckArray checker expr flow
+	if expr.kind == 'heap'
+		return tcCheckHeap checker expr flow
+	if expr.kind == 'tuple'
+		parts {TcType};
+		for child in expr.children
+			parts += tcCheckExpr checker child flow
+		return tcTupleType parts
+	if expr.kind == 'enumShorthand'
+		owner = checker.table.enumVariants.get expr.text ''
+		if owner.length == 0
+			message = 'unknown enum shorthand `.' + expr.text + '`'
+			checker.diagnostics += tcDiagnostic 'TC2021' expr.span message
+			return tcErrorType
+		return tcNominalType owner
+	return tcUnknownType
+
+tcCheckIdentifier checker;~TcChecker expr;TcExpr flow;~TcFlowState, TcType
+	local = tcLookupLocal flow expr.text
+	if local.name.length isgt 0
+		if not local.assigned
+			message = 'local `' + expr.text + '` may be used before assignment'
+			checker.diagnostics += tcDiagnostic 'TC2022' expr.span message
+		return local.type
+	if checker.table.globals.contains expr.text
+		unknown = tcUnknownType
+		return checker.table.globals.get expr.text unknown
+	if flow.currentHost.length isgt 0 and checker.table.structs.contains flow.currentHost
+		emptyInfo TcStructInfo;
+		info = checker.table.structs.get flow.currentHost emptyInfo
+		if info.fields.contains expr.text
+			unknown = tcUnknownType
+			return info.fields.get expr.text unknown
+		if tcHasMethod checker.table flow.currentHost expr.text
+			method = tcLookupMethod checker.table flow.currentHost expr.text
+			if method.paramTypes.length == 0
+				return method.returnType
+			return tcFunctionType method.paramTypes method.returnType
+	if checker.table.functions.contains expr.text
+		emptySig TcFunctionSig;
+		sig = checker.table.functions.get expr.text emptySig
+		if sig.paramTypes.length == 0
+			return sig.returnType
+		return tcFunctionType sig.paramTypes sig.returnType
+	if expr.text == 'None'
+		return tcNilType
+	if checker.table.newtypes.contains expr.text
+		emptyInfo TcNewtypeInfo;
+		info = checker.table.newtypes.get expr.text emptyInfo
+		return tcNewtypeType expr.text info.underlying
+	if checker.table.structs.contains expr.text or checker.table.enums.contains expr.text or checker.table.protocols.contains expr.text
+		return tcNominalType expr.text
+	if tcIsPrimitiveName expr.text
+		return tcPrimitiveByName expr.text
+	message = 'undeclared identifier `' + expr.text + '`'
+	checker.diagnostics += tcDiagnostic 'TC2023' expr.span message
+	return tcErrorType
+
+tcCheckUnary checker;~TcChecker expr;TcExpr flow;~TcFlowState, TcType
+	if expr.children.length == 0
+		return tcErrorType
+	inner = tcCheckExpr checker expr.children{0} flow
+	if expr.op == 'not'
+		tcRequireBool checker expr.span inner '`not` requires bool'
+		return tcBoolType
+	if expr.op == s'-'
+		if not tcIsNumeric inner
+			tcReportTypeMismatch checker expr.span tcIntType inner 'unary minus requires a numeric value'
+		return inner
+	if expr.op == s'~'
+		// TODO(borrow-check): address-of currently produces a pointer type without proving the owner outlives the borrow.
+		return tcPointerType inner
+	if expr.op == s'`'
+		if inner.kind == 'pointer'
+			return tcInnerType inner
+		typeText = tcTypeDisplay inner
+		message = 'cannot dereference non-pointer type ' + typeText
+		checker.diagnostics += tcDiagnostic 'TC2024' expr.span message
+		return tcErrorType
+	return tcUnknownType
+
+tcCheckBinary checker;~TcChecker expr;TcExpr flow;~TcFlowState, TcType
+	if expr.children.length islt 2
+		return tcErrorType
+	left = tcCheckExpr checker expr.children{0} flow
+	right = tcCheckExpr checker expr.children{1} flow
+	op = expr.op
+	if op == 'and' or op == 'or'
+		tcRequireBool checker expr.children{0}.span left 'left operand must be bool'
+		tcRequireBool checker expr.children{1}.span right 'right operand must be bool'
+		return tcBoolType
+	if op == '==' or op == 'iseq' or op == 'isne'
+		if not tcAssignable left right and not tcAssignable right left
+			tcReportTypeMismatch checker expr.span left right 'equality operands must be comparable'
+		return tcBoolType
+	if op == 'islt' or op == 'isgt' or op == 'islteq' or op == 'isgteq' or op == 'islte' or op == 'isgte'
+		if not tcAssignable left right and not tcAssignable right left
+			tcReportTypeMismatch checker expr.span left right 'comparison operands must have compatible types'
+		return tcBoolType
+	if op == s'+'
+		if tcIsString left or tcIsString right
+			return tcStringType
+	if op == s'+' or op == s'-' or op == s'*' or op == s'/' or op == s'%' or op == '&+' or op == '&-' or op == '&*' or op == '&<<' or op == '|+|' or op == '|-|' or op == '|*|'
+		if not tcIsNumeric left or not tcIsNumeric right
+			message = 'operator `' + op + '` requires numeric operands'
+			tcReportTypeMismatch checker expr.span left right message
+			return tcErrorType
+		if not tcTypeEquals left right
+			tcReportNumericConversion checker expr.span left right
+			return tcErrorType
+		if left.name == 'f64' or right.name == 'f64'
+			return tcDoubleType
+		if left.name == 'f32' or right.name == 'f32'
+			return tcFloatType
+		return left
+	return tcUnknownType
+
+tcCheckField checker;~TcChecker expr;TcExpr flow;~TcFlowState, TcType
+	if expr.children.length == 0
+		return tcErrorType
+	leftExpr = expr.children{0}
+	leftType = tcCheckExpr checker leftExpr flow
+	if leftExpr.kind == 'identifier' and checker.table.enums.contains leftExpr.text
+		emptyEnum TcEnumInfo;
+		enumInfo = checker.table.enums.get leftExpr.text emptyEnum
+		if enumInfo.variants.contains expr.text
+			return tcNominalType leftExpr.text
+	if leftType.kind == 'newtype' and expr.text == 'inner'
+		return tcInnerType leftType
+	special = tcSpecialFieldType leftType expr.text
+	if special.kind isne 'unknown'
+		return special
+	if leftType.kind == 'maybe'
+		typeText = tcTypeDisplay leftType
+		message = 'type `' + typeText + '` has no field `' + expr.text + '`; unwrap it with `match`, `if let`, `.value_or[...]`, or `->force[]`'
+		checker.diagnostics += tcDiagnostic 'E0040' expr.span message
+		return tcErrorType
+	host = tcNominalName leftType
+	if host.length isgt 0 and checker.table.structs.contains host
+		emptyInfo TcStructInfo;
+		info = checker.table.structs.get host emptyInfo
+		if info.fields.contains expr.text
+			unknown = tcUnknownType
+			return info.fields.get expr.text unknown
+		if tcHasMethod checker.table host expr.text
+			method = tcLookupMethod checker.table host expr.text
+			if method.paramTypes.length == 0
+				return method.returnType
+			return tcFunctionType method.paramTypes method.returnType
+	typeText = tcTypeDisplay leftType
+	message = 'type `' + typeText + '` has no field or zero-argument method `' + expr.text + '`'
+	checker.diagnostics += tcDiagnostic 'TC2026' expr.span message
+	return tcErrorType
+
+tcCheckIndex checker;~TcChecker expr;TcExpr flow;~TcFlowState, TcType
+	if expr.children.length islt 2
+		return tcErrorType
+	base = tcCheckExpr checker expr.children{0} flow
+	indexType = tcCheckExpr checker expr.children{1} flow
+	if base.kind == 'array'
+		if not tcIsInteger indexType
+			tcReportTypeMismatch checker expr.children{1}.span tcIntType indexType 'array index must be an integer'
+		return tcInnerType base
+	if tcIsString base
+		message = '`string` is not indexable by integer; use `.bytes[]`, `.chars[]`, `.byte_at[i]`, or `.slice[start..end]`'
+		checker.diagnostics += tcDiagnostic 'E0090' expr.span message
+		return tcErrorType
+	if base.kind == 'map'
+		keyType = tcInnerType base
+		if not tcAssignable keyType indexType
+			tcReportTypeMismatch checker expr.children{1}.span keyType indexType 'map key has the wrong type'
+		return tcSecondInnerType base
+	typeText = tcTypeDisplay base
+	message = 'type `' + typeText + '` is not indexable'
+	checker.diagnostics += tcDiagnostic 'TC2027' expr.span message
+	return tcErrorType
+
+tcCheckCall checker;~TcChecker expr;TcExpr flow;~TcFlowState, TcType
+	if expr.children.length == 0
+		return tcErrorType
+	callee = expr.children{0}
+	argTypes {TcType};
+	i usize = 1
+	while i islt expr.children.length
+		argTypes += tcCheckExpr checker expr.children{i} flow
+		i += 1
+	if callee.kind == 'identifier'
+		if checker.table.functions.contains callee.text
+			emptySig TcFunctionSig;
+			sig = checker.table.functions.get callee.text emptySig
+			return tcCheckSignatureCall checker sig callee expr argTypes
+		if flow.currentHost.length isgt 0 and tcHasMethod checker.table flow.currentHost callee.text
+			sig = tcLookupMethod checker.table flow.currentHost callee.text
+			return tcCheckSignatureCall checker sig callee expr argTypes
+		if tcIsPrimitiveName callee.text or checker.table.structs.contains callee.text
+			return tcCheckConstructorLike checker callee.text expr argTypes
+		message = 'cannot call undeclared function `' + callee.text + '`'
+		checker.diagnostics += tcDiagnostic 'TC2028' callee.span message
+		return tcErrorType
+	if callee.kind == 'field'
+		if callee.children.length == 0
+			return tcErrorType
+		receiverType = tcCheckExpr checker callee.children{0} flow
+		special = tcSpecialMethodReturn receiverType callee.text argTypes
+		if special.kind isne 'unknown'
+			if tcIsStringMutationMethod callee.text
+				tcRequireMutableReceiver checker callee.children{0} flow callee.span
+			tcValidateSpecialMethod checker callee receiverType argTypes
+			return special
+		host = tcNominalName receiverType
+		if host.length isgt 0 and tcHasMethod checker.table host callee.text
+			sig = tcLookupMethod checker.table host callee.text
+			return tcCheckSignatureCall checker sig callee expr argTypes
+		typeText = tcTypeDisplay receiverType
+		message = 'type `' + typeText + '` has no method `' + callee.text + '`'
+		checker.diagnostics += tcDiagnostic 'TC2029' callee.span message
+		return tcErrorType
+	calleeType = tcCheckExpr checker callee flow
+	if calleeType.kind == 'function' or calleeType.kind == 'closure'
+		return tcCheckFunctionTypeCall checker calleeType expr argTypes
+	typeText = tcTypeDisplay calleeType
+	message = 'cannot call value of type ' + typeText
+	checker.diagnostics += tcDiagnostic 'TC2030' callee.span message
+	return tcErrorType
+
+tcCheckSignatureCall checker;~TcChecker sig;TcFunctionSig callee;TcExpr call;TcExpr argTypes;{TcType}, TcType
+	typeArgs {TcType};
+	for argRef in callee.typeRef.args
+		typeArgs += tcResolveTypeRef checker argRef sig.typeParams
+	if typeArgs.length == 0 and sig.typeParams.length isgt 0
+		typeArgs = tcInferTypeArguments sig argTypes
+	paramTypes = sig.paramTypes
+	returnType = sig.returnType
+	if typeArgs.length isgt 0
+		resolvedParams {TcType};
+		for paramType in sig.paramTypes
+			resolvedParams += tcSubstitute paramType sig.typeParams typeArgs
+		paramTypes = resolvedParams
+		returnType = tcSubstitute sig.returnType sig.typeParams typeArgs
+		tcValidateConcreteBounds checker sig typeArgs call.span
+	minArity = tcMinRequiredArgs sig
+	if argTypes.length islt minArity
+		foundCount = toString argTypes.length
+		message = 'wrong argument count for `' + sig.name + '`: expected at least ' + toString minArity + ', found ' + foundCount
+		checker.diagnostics += tcDiagnostic 'TC2031' call.span message
+		return returnType
+	isVariadicCall = tcSignatureIsVariadic sig
+	if not isVariadicCall and argTypes.length isgt paramTypes.length
+		expectedCount = toString paramTypes.length
+		foundCount = toString argTypes.length
+		message = 'wrong argument count for `' + sig.name + '`: expected ' + expectedCount + ', found ' + foundCount
+		checker.diagnostics += tcDiagnostic 'TC2032' call.span message
+		return returnType
+	i usize = 0
+	while i islt argTypes.length
+		expected = tcUnknownType
+		if i islt paramTypes.length
+			expected = paramTypes{i}
+			if expected.kind == 'variadic'
+				expected = tcInnerType expected
+		elif isVariadicCall and paramTypes.length isgt 0
+			expected = tcInnerType paramTypes{paramTypes.length - 1}
+		found = argTypes{i}
+		argIndex = i + 1
+		message = 'argument ' + toString argIndex + ' for `' + sig.name + '` has the wrong type'
+		valueExpr = call.children{argIndex}
+		tcCheckValueAssignable checker expected found valueExpr call.span message
+		i += 1
+	return returnType
+
+tcCheckFunctionTypeCall checker;~TcChecker fnType;TcType call;TcExpr argTypes;{TcType}, TcType
+	if argTypes.length isne fnType.params.length
+		expectedCount = toString fnType.params.length
+		foundCount = toString argTypes.length
+		message = 'wrong argument count for function value: expected ' + expectedCount + ', found ' + foundCount
+		checker.diagnostics += tcDiagnostic 'TC2033' call.span message
+	i usize = 0
+	while i islt argTypes.length and i islt fnType.params.length
+		argIndex = i + 1
+		message = 'argument ' + toString argIndex + ' has the wrong type'
+		valueExpr = call.children{argIndex}
+		tcCheckValueAssignable checker fnType.params{i} argTypes{i} valueExpr call.span message
+		i += 1
+	if fnType.args.length isgt 0
+		return fnType.args{0}
+	return tcUnknownType
+
+tcCheckConstructor checker;~TcChecker expr;TcExpr flow;~TcFlowState, TcType
+	argTypes {TcType};
+	i usize = 1
+	while i islt expr.children.length
+		argTypes += tcCheckExpr checker expr.children{i} flow
+		i += 1
+	return tcCheckConstructorLike checker expr.text expr argTypes
+
+tcCheckConstructorLike checker;~TcChecker name;string expr;TcExpr argTypes;{TcType}, TcType
+	if name == 'Some'
+		if argTypes.length isne 1
+			checker.diagnostics += tcDiagnostic 'E0043' expr.span '`Some[...]` expects exactly one value'
+			return tcErrorType
+		return tcMaybeType argTypes{0}
+	if name == 'Ok'
+		if argTypes.length isne 1
+			checker.diagnostics += tcDiagnostic 'E0032' expr.span '`Ok[...]` expects exactly one value'
+			return tcErrorType
+		resultType = tcNominalType 'Result'
+		resultType.args += argTypes{0}
+		resultType.args += tcUnknownType
+		return resultType
+	if name == 'Err'
+		if argTypes.length isne 1
+			checker.diagnostics += tcDiagnostic 'E0033' expr.span '`Err[...]` expects exactly one error value'
+			return tcErrorType
+		resultType = tcNominalType 'Result'
+		resultType.args += tcUnknownType
+		resultType.args += argTypes{0}
+		return resultType
+	if tcIsPrimitiveName name
+		if argTypes.length isne 1
+			message = 'primitive constructor `' + name + '` expects one argument'
+			checker.diagnostics += tcDiagnostic 'TC2034' expr.span message
+		return tcPrimitiveByName name
+	if checker.table.newtypes.contains name
+		emptyInfo TcNewtypeInfo;
+		info = checker.table.newtypes.get name emptyInfo
+		if argTypes.length isne 1
+			message = 'newtype constructor `' + name + '` expects exactly one value'
+			checker.diagnostics += tcDiagnostic 'E0062' expr.span message
+			return tcNewtypeType name info.underlying
+		argExpr = tcConstructorArgumentExpr expr 0
+		tcCheckValueAssignable checker info.underlying argTypes{0} argExpr expr.span 'newtype constructor value has the wrong type'
+		return tcNewtypeType name info.underlying
+	if checker.table.structs.contains name
+		emptyInfo TcStructInfo;
+		info = checker.table.structs.get name emptyInfo
+		expectedCount usize = info.fields.keys.length
+		if argTypes.length isne expectedCount
+			foundCount = toString argTypes.length
+			message = 'constructor for `' + name + '` expects ' + toString expectedCount + ' arguments, found ' + foundCount
+			checker.diagnostics += tcDiagnostic 'TC2035' expr.span message
+		i usize = 0
+		for fieldName in info.fields.keys
+			if i islt argTypes.length
+				unknown = tcUnknownType
+				expected = info.fields.get fieldName unknown
+				message = 'constructor field `' + fieldName + '` has the wrong type'
+				argExpr = tcConstructorArgumentExpr expr i
+				tcCheckValueAssignable checker expected argTypes{i} argExpr expr.span message
+			i += 1
+		return tcNominalType name
+	for enumName in checker.table.enums.keys
+		key = enumName + '.' + name
+		if checker.table.dataEnumVariants.contains key
+			emptyVariant TcEnumVariantInfo;
+			info = checker.table.dataEnumVariants.get key emptyVariant
+			if argTypes.length isne info.fieldOrder.length
+				expectedCount = toString info.fieldOrder.length
+				foundCount = toString argTypes.length
+				message = 'data enum constructor `' + key + '` expects ' + expectedCount + ' arguments, found ' + foundCount
+				checker.diagnostics += tcDiagnostic 'TC2036' expr.span message
+			return tcNominalType enumName
+	message = 'unknown constructor `' + name + '`'
+	checker.diagnostics += tcDiagnostic 'TC2037' expr.span message
+	return tcErrorType
+
+tcConstructorArgumentExpr expr;TcExpr index;usize, TcExpr
+	childIndex = index
+	if expr.kind == 'constructor'
+		childIndex = index + 1
+	if childIndex islt expr.children.length
+		return expr.children{childIndex}
+	return expr
+
+tcCheckArray checker;~TcChecker expr;TcExpr flow;~TcFlowState, TcType
+	if expr.children.length == 0
+		unknown = tcUnknownType
+		return tcArrayType unknown
+	if expr.children.length == 1 and expr.children{0}.kind == 'identifier' and tcIsTypeName checker expr.children{0}.text flow
+		element = tcPrimitiveOrNominal checker expr.children{0}.text
+		return tcArrayType element
+	elementType = tcCheckExpr checker expr.children{0} flow
+	i usize = 1
+	while i islt expr.children.length
+		nextType = tcCheckExpr checker expr.children{i} flow
+		if not tcAssignable elementType nextType
+			expectedText = tcTypeDisplay elementType
+			foundText = tcTypeDisplay nextType
+			diag = tcTypeDiagnostic 'E0020' expr.children{i}.span 'array literal elements must have a common type' expectedText foundText 'make every element the same type or split the values into separate arrays'
+			checker.diagnostics += diag
+		i += 1
+	return tcArrayType elementType
+
+tcCheckHeap checker;~TcChecker expr;TcExpr flow;~TcFlowState, TcType
+	emptyGenerics {string};
+	inner = tcResolveTypeRef checker expr.typeRef emptyGenerics
+	argTypes {TcType};
+	for child in expr.children
+		argTypes += tcCheckExpr checker child flow
+	if inner.kind == 'nominal'
+		tcCheckConstructorLike checker inner.name expr argTypes
+	return tcHeapType inner
+
+tcValidateSpecialMethod checker;~TcChecker callee;TcExpr receiver;TcType argTypes;{TcType}
+	if callee.text == 'contains'
+		if receiver.kind == 'array' and argTypes.length isgt 0
+			elementType = tcInnerType receiver
+			if not tcAssignable elementType argTypes{0}
+				tcReportTypeMismatch checker callee.span elementType argTypes{0} 'contains argument has the wrong type'
+	if callee.text == 'get' and receiver.kind == 'map' and argTypes.length isgt 0
+		keyType = tcInnerType receiver
+		if not tcAssignable keyType argTypes{0}
+			tcReportTypeMismatch checker callee.span keyType argTypes{0} 'map get key has the wrong type'
+	if callee.text == 'set' and receiver.kind == 'map' and argTypes.length isgteq 2
+		keyType = tcInnerType receiver
+		valueType = tcSecondInnerType receiver
+		if not tcAssignable keyType argTypes{0}
+			tcReportTypeMismatch checker callee.span keyType argTypes{0} 'map set key has the wrong type'
+		if not tcAssignable valueType argTypes{1}
+			tcReportTypeMismatch checker callee.span valueType argTypes{1} 'map set value has the wrong type'
+	if [callee.text == 'valueOr' or callee.text == 'value_or'] and receiver.kind == 'maybe'
+		innerType = tcInnerType receiver
+		if argTypes.length isne 1
+			checker.diagnostics += tcDiagnostic 'E0044' callee.span 'maybe default unwrap expects exactly one default value'
+		elif not tcAssignable innerType argTypes{0}
+			tcReportTypeMismatch checker callee.span innerType argTypes{0} 'maybe default value has the wrong type'
+	if [callee.text == 'force' or callee.text == 'force_with'] and receiver.kind == 'maybe'
+		if callee.text == 'force' and argTypes.length isne 0
+			checker.diagnostics += tcDiagnostic 'E0045' callee.span '`force[]` does not take arguments'
+		if callee.text == 'force_with' and argTypes.length isne 1
+			checker.diagnostics += tcDiagnostic 'E0046' callee.span '`force_with[...]` expects one panic message'
+	if callee.text == 'byte_at' and tcIsString receiver and argTypes.length isne 1
+		checker.diagnostics += tcDiagnostic 'E0093' callee.span '`byte_at[i]` expects one integer index'
+
+tcResolveTypeRef checker;~TcChecker ref;TcTypeRef generics;{string}, TcType
+	if ref.kind == 'void'
+		return tcVoidType
+	if ref.kind == 'unknown'
+		return tcUnknownType
+	if ref.kind == 'named'
+		if tcStringListContains generics ref.name
+			return tcGenericParamType ref.name
+		if ref.name == 'any'
+			message = '`any` is not a Drast type; give this value a concrete type'
+			checker.diagnostics += tcDiagnostic 'E0024' ref.span message
+			return tcErrorType
+		if tcIsLegacyPrimitiveName ref.name
+			message = s'`' + ref.name + '` is not a fixed-width Drast type'
+			diag = tcDiagnostic 'E0053' ref.span message
+			diag.help = 'use an explicit type such as `i32`, `u32`, `f32`, or `f64`'
+			checker.diagnostics += diag
+			return tcErrorType
+		prim = tcPrimitiveByName ref.name
+		if prim.kind == 'primitive'
+			return prim
+		if checker.table.newtypes.contains ref.name
+			emptyInfo TcNewtypeInfo;
+			info = checker.table.newtypes.get ref.name emptyInfo
+			return tcNewtypeType ref.name info.underlying
+		if checker.table.structs.contains ref.name or checker.table.enums.contains ref.name or checker.table.protocols.contains ref.name
+			return tcNominalType ref.name
+		if ref.name == 'Exception'
+			return tcNominalType ref.name
+		message = 'unknown type `' + ref.name + '`'
+		checker.diagnostics += tcDiagnostic 'TC2038' ref.span message
+		return tcErrorType
+	if ref.kind == 'array'
+		inner = tcResolveTypeRef checker ref.args{0} generics
+		return tcArrayType inner
+	if ref.kind == 'maybe'
+		inner = tcResolveTypeRef checker ref.args{0} generics
+		return tcMaybeType inner
+	if ref.kind == 'reference'
+		inner = tcResolveTypeRef checker ref.args{0} generics
+		// TODO(borrow-check): reference types are accepted structurally until lifetime and exclusive-borrow checks exist.
+		return tcReferenceType inner
+	if ref.kind == 'pointer'
+		inner = tcResolveTypeRef checker ref.args{0} generics
+		return tcPointerType inner
+	if ref.kind == 'heap'
+		inner = tcResolveTypeRef checker ref.args{0} generics
+		return tcHeapType inner
+	if ref.kind == 'variadic'
+		inner = tcResolveTypeRef checker ref.args{0} generics
+		return tcVariadicType inner
+	if ref.kind == 'tuple'
+		parts {TcType};
+		for arg in ref.args
+			parts += tcResolveTypeRef checker arg generics
+		return tcTupleType parts
+	if ref.kind == 'genericApply'
+		if ref.name == 'map'
+			if ref.args.length isne 2
+				checker.diagnostics += tcDiagnostic 'TC2039' ref.span 'map type requires key and value type arguments'
+				return tcErrorType
+			keyType = tcResolveTypeRef checker ref.args{0} generics
+			valueType = tcResolveTypeRef checker ref.args{1} generics
+			return tcMapType keyType valueType
+		if ref.name == 'Result'
+			if ref.args.length isne 2
+				checker.diagnostics += tcDiagnostic 'E0034' ref.span '`Result` requires Ok and Err type arguments'
+				return tcErrorType
+			resultType = tcNominalType 'Result'
+			resultType.args += tcResolveTypeRef checker ref.args{0} generics
+			resultType.args += tcResolveTypeRef checker ref.args{1} generics
+			return resultType
+		base = tcNominalType ref.name
+		for arg in ref.args
+			base.args += tcResolveTypeRef checker arg generics
+		return base
+	return tcUnknownType
+
+tcInferTypeArguments sig;TcFunctionSig argTypes;{TcType}, {TcType}
+	out {TcType};
+	for paramName in sig.typeParams
+		inferred = tcUnknownType
+		i usize = 0
+		while i islt sig.paramTypes.length and i islt argTypes.length
+			paramType = sig.paramTypes{i}
+			if paramType.kind == 'generic' and paramType.name == paramName
+				inferred = argTypes{i}
+			i += 1
+		out += inferred
+	return out
+
+tcValidateConcreteBounds checker;~TcChecker sig;TcFunctionSig typeArgs;{TcType} span;SourceSpan
+	for bound in sig.bounds
+		idx = tcStringListIndex sig.typeParams bound.param
+		if idx isgteq 0 and idx islt typeArgs.length
+			if not tcConformsTo checker.table typeArgs{idx} bound.protocolName
+				typeText = tcTypeDisplay typeArgs{idx}
+				message = 'type `' + typeText + '` does not satisfy protocol bound `' + bound.protocolName + '`'
+				checker.diagnostics += tcDiagnostic 'TC2040' span message
+
+tcMinRequiredArgs sig;TcFunctionSig, usize
+	count usize = 0
+	for param in sig.params
+		if not param.hasDefault and not param.isVariadic
+			count += 1
+	return count
+
+tcSignatureIsVariadic sig;TcFunctionSig, bool
+	if sig.params.length == 0
+		return false
+	return sig.params{sig.params.length - 1}.isVariadic
+
+tcRequireBool checker;~TcChecker span;SourceSpan actual;TcType message;string
+	if not tcIsBool actual
+		code = 'E0080'
+		help = 'write an explicit boolean comparison such as `value != 0`'
+		if actual.kind == 'maybe'
+			code = 'E0081'
+			help = 'use `if let`, `match`, or compare the maybe value explicitly'
+		expectedText = tcTypeDisplay tcBoolType
+		foundText = tcTypeDisplay actual
+		diag = tcTypeDiagnostic code span message expectedText foundText help
+		checker.diagnostics += diag
+
+tcReportTypeMismatch checker;~TcChecker span;SourceSpan expected;TcType found;TcType message;string
+	expectedText = tcTypeDisplay expected
+	foundText = tcTypeDisplay found
+	diag = tcTypeDiagnostic 'E0023' span message expectedText foundText 'make the value type match the annotated or inferred type'
+	checker.diagnostics += diag
+
+tcCheckCast checker;~TcChecker expr;TcExpr flow;~TcFlowState, TcType
+	if expr.children.length == 0
+		return tcErrorType
+	sourceType = tcCheckExpr checker expr.children{0} flow
+	emptyGenerics {string};
+	targetType = tcResolveTypeRef checker expr.typeRef emptyGenerics
+	if not tcCanExplicitCast sourceType targetType
+		message = 'cannot cast `' + tcTypeDisplay sourceType + '` to `' + tcTypeDisplay targetType + '`'
+		expectedText = tcTypeDisplay targetType
+		foundText = tcTypeDisplay sourceType
+		diag = tcTypeDiagnostic 'E0023' expr.span message expectedText foundText 'use an explicit conversion supported by the target type'
+		checker.diagnostics += diag
+	return targetType
+
+tcCanExplicitCast sourceType;TcType targetType;TcType, bool
+	if tcTypeEquals sourceType targetType
+		return true
+	if sourceType.kind == 'newtype'
+		underlying = tcInnerType sourceType
+		if tcTypeEquals underlying targetType
+			return true
+	if tcIsNumeric sourceType and tcIsNumeric targetType
+		return true
+	if tcIsBool sourceType and tcIsInteger targetType
+		return true
+	return false
+
+tcCheckTryExpression checker;~TcChecker expr;TcExpr flow;~TcFlowState, TcType
+	if expr.children.length == 0
+		return tcErrorType
+	valueType = tcCheckExpr checker expr.children{0} flow
+	if valueType.kind == 'maybe'
+		if flow.currentReturn.kind == 'maybe' or flow.currentReturn.name == 'Result'
+			return tcInnerType valueType
+		message = '`try` on a maybe value requires this function to return `maybe T` or `Result[T, E]`'
+		checker.diagnostics += tcDiagnostic 'E0047' expr.span message
+		return tcInnerType valueType
+	if valueType.name == 'Result'
+		if flow.currentReturn.name isne 'Result' and flow.currentReturn.kind isne 'maybe'
+			message = '`try` on a Result value requires this function to return `Result[T, E]` or `maybe T`'
+			checker.diagnostics += tcDiagnostic 'E0031' expr.span message
+		if valueType.args.length isgt 0
+			return valueType.args{0}
+		return tcUnknownType
+	message = '`try` requires a maybe or Result value'
+	checker.diagnostics += tcDiagnostic 'E0031' expr.span message
+	return tcErrorType
+
+tcCheckValueAssignable checker;~TcChecker expected;TcType found;TcType valueExpr;TcExpr span;SourceSpan message;string
+	if expected.kind == 'error' or found.kind == 'error' or expected.kind == 'unknown' or found.kind == 'unknown'
+		return
+	if expected.kind == 'newtype' or found.kind == 'newtype'
+		tcCheckNewtypeAssignable checker expected found span message
+		return
+	if expected.kind == 'maybe'
+		if found.kind == 'nil'
+			return
+		if found.kind == 'maybe' and tcAssignable expected found
+			return
+		typeText = tcTypeDisplay found
+		expectedText = tcTypeDisplay expected
+		diag = tcTypeDiagnostic 'E0041' span message expectedText typeText 'wrap the value with `Some[...]` or return `None`'
+		checker.diagnostics += diag
+		return
+	if found.kind == 'maybe'
+		expectedText = tcTypeDisplay expected
+		foundText = tcTypeDisplay found
+		diag = tcTypeDiagnostic 'E0041' span 'cannot use a maybe value where a concrete value is expected' expectedText foundText 'unwrap it with `match`, `if let`, `.value_or[...]`, or `->force[]`'
+		checker.diagnostics += diag
+		return
+	if tcIsInteger expected and tcExprIsIntegerLiteral valueExpr
+		literalValue = tcIntegerLiteralValue valueExpr
+		if not tcIntegerLiteralFits literalValue expected
+			messageText = 'integer literal ' + toString literalValue + ' does not fit in `' + tcTypeDisplay expected + '`'
+			checker.diagnostics += tcDiagnostic 'E0050' span messageText
+		return
+	if tcIsFloat expected and tcExprIsFloatLiteral valueExpr
+		return
+	if tcIsFloat expected and tcExprIsIntegerLiteral valueExpr
+		expectedText = tcTypeDisplay expected
+		diag = tcTypeDiagnostic 'E0070' span 'integer literal cannot initialize a float binding without an explicit cast' expectedText 'integer literal' 'write a float literal such as `1.0` or cast with `as`'
+		checker.diagnostics += diag
+		return
+	if tcIsInteger expected and tcIsFloat found
+		expectedText = tcTypeDisplay expected
+		foundText = tcTypeDisplay found
+		diag = tcTypeDiagnostic 'E0071' span 'cannot implicitly convert a float to an integer' expectedText foundText 'cast explicitly after choosing rounding behavior'
+		checker.diagnostics += diag
+		return
+	if tcIsFloat expected and tcIsInteger found
+		expectedText = tcTypeDisplay expected
+		foundText = tcTypeDisplay found
+		diag = tcTypeDiagnostic 'E0071' span 'cannot implicitly convert an integer to a float' expectedText foundText 'use `as` when the conversion is intentional'
+		checker.diagnostics += diag
+		return
+	if tcIsInteger expected and tcIsInteger found and not tcTypeEquals expected found
+		tcReportNumericConversion checker span expected found
+		return
+	if tcIsFloat expected and tcIsFloat found and not tcTypeEquals expected found
+		expectedText = tcTypeDisplay expected
+		foundText = tcTypeDisplay found
+		diag = tcTypeDiagnostic 'E0070' span 'float literal or value has the wrong width' expectedText foundText 'use the target float type explicitly or cast with `as`'
+		checker.diagnostics += diag
+		return
+	if not tcAssignable expected found
+		tcReportTypeMismatch checker span expected found message
+
+tcCheckNewtypeAssignable checker;~TcChecker expected;TcType found;TcType span;SourceSpan message;string
+	if tcTypeEquals expected found
+		return
+	expectedText = tcTypeDisplay expected
+	foundText = tcTypeDisplay found
+	if expected.kind == 'newtype' and found.kind == 'newtype'
+		diag = tcTypeDiagnostic 'E0060' span message expectedText foundText 'convert through `.inner` only when mixing units is intentional'
+		checker.diagnostics += diag
+		return
+	if expected.kind == 'newtype'
+		help = 'construct the newtype explicitly with `' + expected.name + '[value]`'
+		diag = tcTypeDiagnostic 'E0061' span message expectedText foundText help
+		checker.diagnostics += diag
+		return
+	if found.kind == 'newtype'
+		diag = tcTypeDiagnostic 'E0061' span message expectedText foundText 'project the underlying value explicitly with `.inner` or `as`'
+		checker.diagnostics += diag
+
+tcReportNumericConversion checker;~TcChecker span;SourceSpan expected;TcType found;TcType
+	if [tcIsSignedInteger expected and tcIsUnsignedInteger found] or [tcIsUnsignedInteger expected and tcIsSignedInteger found]
+		expectedText = tcTypeDisplay expected
+		foundText = tcTypeDisplay found
+		diag = tcTypeDiagnostic 'E0052' span 'cannot implicitly convert between signed and unsigned integer types' expectedText foundText 'use `as` and handle out-of-range values explicitly'
+		checker.diagnostics += diag
+		return
+	expectedText = tcTypeDisplay expected
+	foundText = tcTypeDisplay found
+	diag = tcTypeDiagnostic 'E0051' span 'cannot implicitly convert between integer widths' expectedText foundText 'use `as` when the conversion is intentional'
+	checker.diagnostics += diag
+
+tcExprIsIntegerLiteral expr;TcExpr, bool
+	if expr.kind == 'intLiteral'
+		return true
+	if expr.kind == 'unary' and expr.op == s'-' and expr.children.length == 1
+		return expr.children{0}.kind == 'intLiteral'
+	return false
+
+tcExprIsFloatLiteral expr;TcExpr, bool
+	if expr.kind == 'floatLiteral'
+		return true
+	if expr.kind == 'unary' and expr.op == s'-' and expr.children.length == 1
+		return expr.children{0}.kind == 'floatLiteral'
+	return false
+
+tcIntegerLiteralValue expr;TcExpr, int
+	if expr.kind == 'intLiteral'
+		parsed = parseInt expr.text
+		return parsed.valueOr 0
+	if expr.kind == 'unary' and expr.op == s'-' and expr.children.length == 1
+		inner = tcIntegerLiteralValue expr.children{0}
+		return 0 - inner
+	return 0
+
+tcRequireMutableLocalAssignment checker;~TcChecker target;TcExpr flow;~TcFlowState
+	local = tcLookupLocal flow target.text
+	if local.name.length == 0
+		return
+	if local.isMutableLocal
+		return
+	message = 'cannot assign to immutable binding `' + target.text + '`'
+	diag = tcDiagnostic 'E0010' target.span message
+	diag.help = 'declare it as `mut ' + target.text + '` to allow reassignment'
+	checker.diagnostics += diag
+
+tcIsStringMutationMethod name;string, bool
+	return name == 'push_str' or name == 'insert' or name == 'replace'
+
+tcRequireMutableReceiver checker;~TcChecker receiver;TcExpr flow;~TcFlowState span;SourceSpan
+	if receiver.kind isne 'identifier'
+		return
+	local = tcLookupLocal flow receiver.text
+	if local.name.length == 0 or local.isMutableLocal
+		return
+	message = 'cannot mutate immutable string binding `' + receiver.text + '`'
+	diag = tcDiagnostic 'E0092' span message
+	diag.help = 'declare it as `mut ' + receiver.text + '` before calling mutating string methods'
+	checker.diagnostics += diag
+
+tcCanApplyCompound op;string left;TcType right;TcType, bool
+	canAppend = tcIsString left or left.kind == 'array'
+	if op == '+=' and canAppend
+		return true
+	return tcIsNumeric left and tcIsNumeric right
+
+tcIsPrimitiveName name;string, bool
+	return name == 'i8' or name == 'i16' or name == 'i32' or name == 'i64' or name == 'u8' or name == 'u16' or name == 'u32' or name == 'u64' or name == 'isize' or name == 'usize' or name == 'f32' or name == 'f64' or name == 'bool' or name == 'char' or name == 'string'
+
+tcIsTypeName checker;TcChecker name;string flow;TcFlowState, bool
+	if tcHasLocal flow name
+		return false
+	return tcIsPrimitiveName name or checker.table.structs.contains name or checker.table.enums.contains name or checker.table.protocols.contains name or checker.table.newtypes.contains name
+
+tcPrimitiveOrNominal checker;TcChecker name;string, TcType
+	if tcIsPrimitiveName name
+		return tcPrimitiveByName name
+	if checker.table.newtypes.contains name
+		emptyInfo TcNewtypeInfo;
+		info = checker.table.newtypes.get name emptyInfo
+		return tcNewtypeType name info.underlying
+	return tcNominalType name
+
+tcStringListContains values;{string} target;string, bool
+	for value in values
+		if value == target
+			return true
+	return false
+
+tcStringListIndex values;{string} target;string, int
+	i = 0
+	for value in values
+		if value == target
+			return i
+		i += 1
+	return -1

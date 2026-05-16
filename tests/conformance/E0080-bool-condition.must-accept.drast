@@ -1,0 +1,6 @@
+// E0080 accept: if conditions are bool.
+main, i32
+	ok = true
+	if ok
+		return 0
+	return 1

@@ -1,0 +1,4 @@
+// E0023 reject: unrelated concrete types do not implicitly convert.
+main, i32
+	name string = 5
+	return 0

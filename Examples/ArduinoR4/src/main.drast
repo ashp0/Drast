@@ -1,0 +1,264 @@
+// Pulse - analog sensor sampler and event detector for the Arduino Uno R4 WiFi.
+//
+// Reads an analog sensor on A0, smooths it through a ring buffer, computes a
+// running mean and variance online, and reports "events" when the latest sample
+// drifts more than two standard deviations from the running mean. Uses non
+// blocking timing so the loop never blocks waiting on hardware.
+
+use Arduino.h
+
+PIN_BUTTON const = 2
+PIN_LED const = 13
+PIN_SENSOR const = A0
+SAMPLE_INTERVAL_MS const = 25
+REPORT_INTERVAL_MS const = 500
+HISTORY_CAPACITY const = 32
+DEBOUNCE_MS const = 50
+CALIBRATION_SAMPLES const = 64
+EVENT_SIGMA const = 2
+
+enum SystemPhase
+	Boot
+	Calibrating
+	Running
+	Alarm
+
+enum Edge
+	Idle
+	Falling
+	Rising
+
+struct Ring
+	private values {int}
+	private capacity int
+	private cursor int
+	private filled bool
+
+impl Ring
+	init capacity;int
+		self.capacity = capacity
+		self.cursor = 0
+		self.filled = false
+
+	push value;int
+		if self.values.length islt self.capacity
+			self.values += value
+			return
+		self.values{self.cursor} = value
+		self.cursor += 1
+		if self.cursor isgteq self.capacity
+			self.cursor = 0
+			self.filled = true
+
+	size, int
+		return self.values.length
+
+	sum, long
+		total long = 0
+		i = 0
+		while i islt self.values.length
+			total += self.values{i}
+			i += 1
+		return total
+
+	mean, int
+		count = self.values.length
+		if count == 0
+			return 0
+		return Int [self.sum / count]
+
+	varianceTimesN, long
+		mean = self.mean
+		total long = 0
+		i = 0
+		while i islt self.values.length
+			delta = self.values{i} - mean
+			total += delta * delta
+			i += 1
+		return total
+
+	latest, int
+		count = self.values.length
+		if count == 0
+			return 0
+		if self.filled
+			idx = self.cursor - 1
+			if idx islt 0
+				idx = self.capacity - 1
+			return self.values{idx}
+		return self.values{count - 1}
+
+struct ButtonDebouncer
+	private lastState int
+	private candidate int
+	private candidateSince unsigned long
+	private stableSince unsigned long
+	private window unsigned long
+
+impl ButtonDebouncer
+	init pin;int window;unsigned long
+		pinMode pin INPUT_PULLUP
+		self.window = window
+		self.lastState = digitalRead pin
+		self.candidate = self.lastState
+		self.candidateSince = millis
+		self.stableSince = millis
+
+	sample pin;int now;unsigned long, Edge
+		current = digitalRead pin
+		if current isne self.candidate
+			self.candidate = current
+			self.candidateSince = now
+			return Edge.Idle
+		elapsed = now - self.candidateSince
+		if elapsed islt self.window
+			return Edge.Idle
+		if self.candidate == self.lastState
+			return Edge.Idle
+		self.lastState = self.candidate
+		self.stableSince = now
+		if self.candidate == LOW
+			return Edge.Falling
+		return Edge.Rising
+
+struct PulseDevice
+	private phase SystemPhase
+	private samples Ring
+	private lastSampleMs unsigned long
+	private lastReportMs unsigned long
+	private phaseSince unsigned long
+	private button ButtonDebouncer
+	private alarmCount int
+	private spikeCount int
+
+impl PulseDevice
+	init
+		self.phase = SystemPhase.Boot
+		self.samples = Ring[HISTORY_CAPACITY]
+		self.lastSampleMs = 0
+		self.lastReportMs = 0
+		self.phaseSince = 0
+		self.button = ButtonDebouncer[PIN_BUTTON DEBOUNCE_MS]
+		self.alarmCount = 0
+		self.spikeCount = 0
+
+	begin
+		pinMode PIN_LED OUTPUT
+		digitalWrite PIN_LED LOW
+		Serial.begin 115200
+		now = millis
+		self.transitionTo SystemPhase.Calibrating now
+		Serial.println 'pulse: calibrating'
+
+	tick
+		now = millis
+		edge = self.button.sample PIN_BUTTON now
+		if edge == Edge.Falling
+			self.handleButtonPress now
+		if now - self.lastSampleMs isgteq SAMPLE_INTERVAL_MS
+			self.lastSampleMs = now
+			reading = analogRead PIN_SENSOR
+			self.samples.push reading
+			self.applyPhaseRules now reading
+		if now - self.lastReportMs isgteq REPORT_INTERVAL_MS
+			self.lastReportMs = now
+			self.reportTelemetry now
+
+	private handleButtonPress now;unsigned long
+		Serial.println 'pulse: recalibrate requested'
+		self.spikeCount = 0
+		self.alarmCount = 0
+		self.transitionTo SystemPhase.Calibrating now
+
+	private applyPhaseRules now;unsigned long reading;int
+		match self.phase
+			SystemPhase.Boot
+				self.transitionTo SystemPhase.Calibrating now
+			SystemPhase.Calibrating
+				if self.samples.size isgteq CALIBRATION_SAMPLES
+					self.transitionTo SystemPhase.Running now
+					Serial.println 'pulse: running'
+			SystemPhase.Running
+				if self.isSpike reading
+					self.spikeCount += 1
+					if self.spikeCount isgt 4
+						self.alarmCount += 1
+						self.transitionTo SystemPhase.Alarm now
+						Serial.println 'pulse: alarm'
+				else
+					self.spikeCount = 0
+			SystemPhase.Alarm
+				if now - self.phaseSince isgt 2000
+					self.transitionTo SystemPhase.Running now
+					Serial.println 'pulse: clear'
+			default
+				nothing
+
+	private isSpike reading;int, bool
+		if self.samples.size islt 4
+			return false
+		mean = self.samples.mean
+		varN = self.samples.varianceTimesN
+		count long = self.samples.size
+		thresholdSq = [EVENT_SIGMA * EVENT_SIGMA] * varN
+		delta = reading - mean
+		if delta islt 0
+			delta = -delta
+		deltaSq long = delta
+		deltaSq = deltaSq * deltaSq
+		return [deltaSq * count] isgt thresholdSq
+
+	private transitionTo next;SystemPhase now;unsigned long
+		self.phase = next
+		self.phaseSince = now
+		self.refreshLed
+
+	private refreshLed
+		match self.phase
+			SystemPhase.Boot
+				digitalWrite PIN_LED LOW
+			SystemPhase.Calibrating
+				digitalWrite PIN_LED HIGH
+			SystemPhase.Running
+				digitalWrite PIN_LED LOW
+			SystemPhase.Alarm
+				digitalWrite PIN_LED HIGH
+			default
+				nothing
+
+	private reportTelemetry now;unsigned long
+		Serial.print 'state='
+		Serial.print self.phaseName
+		Serial.print ' samples='
+		Serial.print self.samples.size
+		Serial.print ' mean='
+		Serial.print self.samples.mean
+		Serial.print ' latest='
+		Serial.print self.samples.latest
+		Serial.print ' spikes='
+		Serial.print self.spikeCount
+		Serial.print ' alarms='
+		Serial.print self.alarmCount
+		Serial.print ' uptimeMs='
+		Serial.println now
+
+	private phaseName, string
+		match self.phase
+			SystemPhase.Boot
+				return 'boot'
+			SystemPhase.Calibrating
+				return 'calibrating'
+			SystemPhase.Running
+				return 'running'
+			SystemPhase.Alarm
+				return 'alarm'
+			default
+				return 'unknown'
+
+device PulseDevice;
+
+setup
+	device.begin
+
+loop
+	device.tick

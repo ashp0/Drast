@@ -54,6 +54,8 @@ impl Parser
 			self.ast.methods += marker
 
 	private parseOperator host;string, CFunction
+		oldHost = self.currentHost
+		self.currentHost = host
 		fn CFunction;
 		fn.host = host
 		fn.isMethod = true
@@ -70,6 +72,7 @@ impl Parser
 				fn.returnText = 'bool'
 			else
 				fn.returnText = 'void'
+		self.currentHost = oldHost
 		return fn
 
 
@@ -83,7 +86,11 @@ impl Codegen
 		out.reserve 512
 		out += '    virtual ~' + proto.name + '() = default;\n'
 		for fn in proto.methods
-			out += '    virtual ' + fn.returnText + ' ' + fn.name + '(' + self.paramList fn false + ') = 0;\n'
+			protoDecl = '    virtual ' + fn.returnText + ' ' + fn.name + '(' + self.paramList fn false + ')'
+			if fn.returnText isne 'void'
+				protoDecl += ' const'
+			protoDecl += ' = 0;\n'
+			out += protoDecl
 		out += '};\n'
 		return out
 

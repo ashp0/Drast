@@ -1,0 +1,104 @@
+use drast
+
+struct SourceSpan
+	file string
+	line int
+	column int
+	endLine int
+	endColumn int
+
+struct TcRelatedSpan
+	span SourceSpan
+	message string
+
+struct TcDiagnostic
+	code string
+	severity string
+	message string
+	expected string
+	found string
+	help string
+	span SourceSpan
+	related {TcRelatedSpan}
+
+struct TypeCheckOptions
+	strict bool
+	followImports bool
+	checkExhaustiveMatches bool
+	allowCompatibilityQuirks bool
+
+impl SourceSpan
+	init
+		self.file = ''
+		self.line = 1
+		self.column = 1
+		self.endLine = 1
+		self.endColumn = 1
+
+impl TcRelatedSpan
+	init
+		self.message = ''
+
+impl TcDiagnostic
+	init
+		self.code = ''
+		self.severity = 'error'
+		self.message = ''
+		self.expected = ''
+		self.found = ''
+		self.help = ''
+
+impl TypeCheckOptions
+	init
+		self.strict = true
+		self.followImports = true
+		self.checkExhaustiveMatches = true
+		self.allowCompatibilityQuirks = false
+
+tcSpan file;string line;int column;int, SourceSpan
+	span SourceSpan;
+	span.file = file
+	span.line = line
+	span.column = column
+	span.endLine = line
+	span.endColumn = column
+	return span
+
+tcDiagnostic code;string span;SourceSpan message;string, TcDiagnostic
+	diag TcDiagnostic;
+	diag.code = code
+	diag.span = span
+	diag.message = message
+	diag.severity = 'error'
+	return diag
+
+tcTypeDiagnostic code;string span;SourceSpan message;string expected;string found;string help;string, TcDiagnostic
+	diag = tcDiagnostic code span message
+	diag.expected = expected
+	diag.found = found
+	diag.help = help
+	return diag
+
+tcAddRelated diagnostic;~TcDiagnostic span;SourceSpan message;string
+	related TcRelatedSpan;
+	related.span = span
+	related.message = message
+	diagnostic.related += related
+
+tcDiagnosticText diagnostic;TcDiagnostic, string
+	out = diagnostic.code + ': ' + diagnostic.message
+	if diagnostic.expected.length isgt 0 or diagnostic.found.length isgt 0
+		out += ' (expected '
+		if diagnostic.expected.length isgt 0
+			out += diagnostic.expected
+		else
+			out += 'unknown'
+		out += ', found '
+		if diagnostic.found.length isgt 0
+			out += diagnostic.found
+		else
+			out += 'unknown'
+		out += ')'
+	if diagnostic.help.length isgt 0
+		out += ' help: ' + diagnostic.help
+	return out

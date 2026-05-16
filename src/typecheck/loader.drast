@@ -1,0 +1,147 @@
+use drast
+use diagnostics
+use ast
+use parser
+
+struct TcLoadResult
+	program TcProgram
+	diagnostics {TcDiagnostic}
+
+struct TcModuleLoader
+	private options TypeCheckOptions
+	private loaded map`[string bool]
+	private loading map`[string bool]
+	private program TcProgram
+	private diagnostics {TcDiagnostic}
+
+impl TcLoadResult
+	init
+		nothing
+
+impl TcModuleLoader
+	init
+		nothing
+
+	configure options;TypeCheckOptions
+		self.options = options
+
+	loadFile path;string, TcLoadResult
+		result TcLoadResult;
+		normalized = normalizePath path
+		self.program.entryPath = normalized
+		self.loadModule normalized ''
+		result.program = self.program
+		for diag in self.diagnostics
+			result.diagnostics += diag
+		return result
+
+	loadSource source;string file;string, TcLoadResult
+		result TcLoadResult;
+		self.program.entryPath = file
+		parser TcSyntaxParser;
+		parser.configure source file
+		parse = parser.parse
+		for diag in parse.diagnostics
+			self.diagnostics += diag
+		self.program.modules += parse.module
+		result.program = self.program
+		for diag in self.diagnostics
+			result.diagnostics += diag
+		return result
+
+	private loadModule path;string importer;string
+		normalized = normalizePath path
+		isLoading = self.loading.get normalized false
+		if self.loading.contains normalized and isLoading
+			span = self.loaderSpan importer 1 1
+			message = 'circular import: ' + normalized
+			self.diagnostics += self.loaderDiagnostic 'TC3001' span message
+			return
+		if self.loaded.contains normalized
+			return
+		if not fileExists normalized
+			span = self.loaderSpan importer 1 1
+			if importer.length == 0
+				span.file = normalized
+			message = 'module not found: ' + normalized
+			self.diagnostics += self.loaderDiagnostic 'TC3002' span message
+			return
+		self.loading.set normalized true
+		source = readFile normalized
+		parser TcSyntaxParser;
+		parser.configure source normalized
+		parse = parser.parse
+		for diag in parse.diagnostics
+			self.diagnostics += diag
+		if self.options.followImports
+			for useDecl in parse.module.uses
+				if self.shouldLoadUse useDecl
+					resolved = self.resolveUse normalized useDecl.path
+					if resolved.length == 0
+						message = 'module not found: ' + useDecl.path
+						self.diagnostics += self.loaderDiagnostic 'TC3003' useDecl.span message
+					else
+						self.loadModule resolved normalized
+		self.program.modules += parse.module
+		self.loaded.set normalized true
+		self.loading.set normalized false
+
+	private shouldLoadUse useDecl;TcUse, bool
+		if useDecl.path == 'std' or useDecl.path == 'no_runtime'
+			return false
+		if useDecl.header
+			return false
+		return true
+
+	private resolveUse importer;string path;string, string
+		if path == 'drast'
+			return self.resolvePrelude importer
+		candidate string;
+		if self.isAbsolutePath path
+			candidate = path
+		else
+			dir = pathDirname importer
+			candidate = pathJoin dir path
+		candidate = normalizePath candidate
+		if not candidate.endsWith '.drast'
+			withExt = candidate + '.drast'
+			if fileExists withExt
+				return normalizePath withExt
+		if fileExists candidate
+			return normalizePath candidate
+		return ''
+
+	private resolvePrelude importer;string, string
+		dir = pathDirname importer
+		local = normalizePath (dir + '/drast_flavour.drast')
+		if fileExists local
+			return local
+		parent = normalizePath (dir + '/../drast_flavour.drast')
+		if fileExists parent
+			return parent
+		home = getEnv 'DRAST_HOME'
+		if home.length isgt 0
+			fromHome = normalizePath (home + '/drast_flavour.drast')
+			if fileExists fromHome
+				return fromHome
+		return ''
+
+	private isAbsolutePath path;string, bool
+		return path.startsWith '/'
+
+	private loaderSpan file;string line;int column;int, SourceSpan
+		span SourceSpan;
+		span.file = file
+		span.line = line
+		span.column = column
+		span.endLine = line
+		span.endColumn = column
+		return span
+
+	private loaderDiagnostic code;string span;SourceSpan message;string, TcDiagnostic
+		diag TcDiagnostic;
+		diag.code = code
+		diag.severity = 'error'
+		diag.span = span
+		diag.message = message
+		return diag

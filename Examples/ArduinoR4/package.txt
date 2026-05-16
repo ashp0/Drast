@@ -1,0 +1,10 @@
+package PulseR4
+version 0.1.0
+default pulse
+
+target pulse
+	kind binary
+	entry src/main.drast
+	output build/bin/pulse
+	generated build/generated/pulse
+	cxx c++17

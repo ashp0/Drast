@@ -1,0 +1,6 @@
+// E0082 reject: assignment is not an expression.
+main, i32
+	mut value = 5
+	if value = 6
+		return 0
+	return 1

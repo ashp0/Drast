@@ -1,7 +1,7 @@
 // # TEST: foreach loop over array
 // # EXPECT: pass
 
-use std
+use drast
 
 main, int
 	values = {1 2 3}

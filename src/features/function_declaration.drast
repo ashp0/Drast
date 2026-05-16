@@ -48,6 +48,15 @@ impl Parser
 			self.methodReturns.set methodKey fn.returnText
 		elif fn.name.length isgt 0
 			self.functionReturns.set fn.name fn.returnText
+			if fn.typeParams.length isgt 0
+				typeParamStr string;
+				tpi = 0
+				for tp in fn.typeParams
+					if tpi isgt 0
+						typeParamStr += ','
+					typeParamStr += tp
+					tpi += 1
+				self.functionTypeParams.set fn.name typeParamStr
 		self.consumeStatementEnd
 		self.skipNewlines
 		if self.check TokenKind.Indent
@@ -84,6 +93,7 @@ impl Parser
 			g.typeText = ex.typeText
 			if g.typeText.length == 0
 				g.typeText = 'auto'
+		self.globalTypes.set g.name g.typeText
 		self.ast.globals += g
 		self.consumeStatementEnd
 
@@ -116,6 +126,15 @@ impl Codegen
 				out += self.paramList fn false
 			out += ') {\n' + fn.body + '}\n'
 			return out
+		isConst = false
+		if isMethodDef and fn.name isne 'init' and fn.name isne 'deinit' and fn.returnText isne 'void'
+			if not self.isMethodBodyMutating fn.body
+				isConst = true
+		isOverride = false
+		if isMethodDef and fn.name isne 'init' and fn.name isne 'deinit'
+			proto = self.protocolFor ast fn.host
+			if proto.length isgt 0
+				isOverride = true
 		if fn.typeParams.length isgt 0 and not isMethodDef
 			out += self.templatePrefix fn.typeParams
 		if isMethodDef
@@ -126,13 +145,23 @@ impl Codegen
 				out += self.templatePrefix fn.typeParams
 			hostName = self.templateName fn.host hostParams
 			if fn.name == 'init'
-				out += hostName + '::' + fn.host + '(' + self.paramList fn false + ') {\n'
+				initList = self.extractInitializerList fn
+				if initList.length isgt 0
+					out += hostName + '::' + fn.host + '(' + self.initParamList fn + ')\n'
+					out += '    : ' + initList + ' {}\n'
+					return out
+				else
+					out += hostName + '::' + fn.host + '(' + self.initParamList fn + ') {\n'
 			elif fn.name == 'deinit'
 				out += hostName + '::~' + fn.host + '() {\n'
 			else
-				out += fn.returnText + ' ' + hostName + '::' + fn.name + '(' + self.paramList fn false + ') {\n'
+				out += fn.returnText + ' ' + hostName + '::' + fn.name + '(' + self.paramList fn false + ')'
+				if isConst
+					out += ' const'
+				out += ' {\n'
 		else
-			runtimeMain = fn.name == 'main' and fn.params.length == 0 and ast.usesStd and not ast.noRuntime
+			needsArgs = self.astUsesArgs ast
+			runtimeMain = fn.name == 'main' and fn.params.length == 0 and needsArgs and not ast.noRuntime
 			out += fn.returnText + ' ' + fn.name + '('
 			if runtimeMain
 				out += 'int argc, char **argv'
@@ -140,10 +169,19 @@ impl Codegen
 				out += self.paramList fn true
 			out += ') {\n'
 			if runtimeMain
-				out += '    drast::setArgs(argc, argv);\n'
+				out += '    __drt::setArgs(argc, argv);\n'
 		out += fn.body
 		out += '}\n'
 		return out
+
+	private astUsesArgs ast;AST, bool
+		for fn in ast.functions
+			if fn.body.contains '__drt::args(' or fn.body.contains '__drt::arg('
+				return true
+		for m in ast.methods
+			if m.body.contains '__drt::args(' or m.body.contains '__drt::arg('
+				return true
+		return false
 
 	private paramList fn;CFunction defaults;bool, string
 		out string;
@@ -152,15 +190,158 @@ impl Codegen
 		for p in fn.params
 			if i isgt 0
 				out += ', '
-			out += self.paramCppType p + ' ' + p.name
+			out += self.paramCppType p fn.body + ' ' + p.name
 			if defaults and p.hasDefault
 				out += ' = ' + p.defaultCode
 			i += 1
 		return out
 
-	private paramCppType p;CParam, string
+	private paramCppType p;CParam body;string, string
 		if p.isVariadic
 			return p.typeText
+		if p.typeText.endsWith s'&'
+			baseType = p.typeText.substring 0 ;to [p.typeText.length - 1]
+			if self.isParamMutatedInBody p.name body
+				return baseType + '&'
+			return 'const ' + baseType + '&'
 		if self.isCheapValueType p.typeText
 			return p.typeText
 		return 'const ' + p.typeText + '&'
+
+	private initParamList fn;CFunction, string
+		out string;
+		out.reserve 256
+		i = 0
+		for p in fn.params
+			if i isgt 0
+				out += ', '
+			if self.shouldMoveValueType p.typeText
+				out += p.typeText + ' ' + p.name
+			else
+				out += self.paramCppType p fn.body + ' ' + p.name
+			i += 1
+		return out
+
+	private extractInitializerList fn;CFunction, string
+		lines = fn.body.split s'\n'
+		allFieldAssigns = true
+		inits {string};
+		for line in lines
+			trimmed = line.trim
+			if trimmed.length == 0
+				continue
+			if not trimmed.startsWith 'this->'
+				allFieldAssigns = false
+				break
+			if not trimmed.contains ' = '
+				allFieldAssigns = false
+				break
+			parts = trimmed.split ' = '
+			if parts.length islt 2
+				allFieldAssigns = false
+				break
+			field = parts{0}.substring 6 ;to parts{0}.length
+			value = parts{1}
+			if value.endsWith s';'
+				value = value.substring 0 ;to [value.length - 1]
+			paramType = self.getParamType fn value
+			if paramType.length isgt 0 and self.shouldMoveValueType paramType
+				inits += field + '(std::move(' + value + '))'
+			else
+				inits += field + '(' + value + ')'
+		if not allFieldAssigns or inits.length == 0
+			return ''
+		out string;
+		i = 0
+		for init in inits
+			if i isgt 0
+				out += ',\n      '
+			out += init
+			i += 1
+		return out
+
+	private getParamType fn;CFunction name;string, string
+		for p in fn.params
+			if p.name == name
+				return p.typeText
+		return ''
+
+	private isMethodBodyMutating body;string, bool
+		if not body.contains 'this->'
+			return false
+		thisArrow = 'this'
+		thisArrow += '->'
+		advanceCall = thisArrow + 'advance('
+		advanceCharCall = thisArrow + 'advanceChar('
+		consumeCall = thisArrow + 'consume('
+		currentMatchCall = thisArrow + 'currentMatch('
+		nextCall = thisArrow + 'next('
+		processIndentCall = thisArrow + 'processIndent('
+		parseCall = thisArrow + 'parse'
+		readIdentifierCall = thisArrow + 'readIdentifier('
+		readNumberCall = thisArrow + 'readNumber('
+		readQuotedCall = thisArrow + 'readQuoted('
+		skipCall = thisArrow + 'skip'
+		loadFileCall = thisArrow + 'loadFile('
+		reportCall = thisArrow + 'report'
+		lines = body.split s'\n'
+		for line in lines
+			trimmed = line.trim
+			if trimmed.contains 'this->'
+				if trimmed.contains advanceCall or trimmed.contains advanceCharCall or trimmed.contains consumeCall or trimmed.contains currentMatchCall
+					return true
+				if trimmed.contains nextCall or trimmed.contains processIndentCall or trimmed.contains parseCall or trimmed.contains readIdentifierCall or trimmed.contains readNumberCall or trimmed.contains readQuotedCall or trimmed.contains skipCall or trimmed.contains loadFileCall or trimmed.contains reportCall
+					return true
+				if trimmed.startsWith 'this->' and trimmed.contains ' = ' and not trimmed.contains '=='
+					return true
+				if trimmed.startsWith 'this->' and [trimmed.contains ' +=' or trimmed.contains ' -=']
+					return true
+				if trimmed.startsWith 'this->' and [trimmed.contains '.push_back(' or trimmed.contains '.insert(' or trimmed.contains '.erase(' or trimmed.contains '.clear(']
+					return true
+				if trimmed.contains '->push_back(' or trimmed.contains '->insert(' or trimmed.contains '->erase(' or trimmed.contains '->clear('
+					return true
+		return false
+
+	private isParamMutatedInBody name;string body;string, bool
+		assignCheck = name + ' ='
+		plusEq = name + ' +='
+		minusEq = name + ' -='
+		dotCheck = name + s'.'
+		arrowCheck = name + '->'
+		argCheck = name + s','
+		argCheckEnd = name + s')'
+
+		if body.contains assignCheck
+			return true
+		if body.contains plusEq
+			return true
+		if body.contains minusEq
+			return true
+		if body.contains dotCheck
+			lines = body.split s'\n'
+			for line in lines
+				if line.contains dotCheck
+					if line.contains ' = ' and not line.contains '=='
+						return true
+					if line.contains ' +=' or line.contains ' -='
+						return true
+					if line.contains '.push_back(' or line.contains '.insert(' or line.contains '.erase(' or line.contains '.clear('
+						return true
+		if body.contains arrowCheck
+			lines = body.split s'\n'
+			for line in lines
+				if line.contains arrowCheck
+					if line.contains ' = ' and not line.contains '=='
+						return true
+					if line.contains ' +=' or line.contains ' -='
+						return true
+					if line.contains '->push_back(' or line.contains '->insert(' or line.contains '->erase(' or line.contains '->clear('
+						return true
+		if body.contains s'('
+			parenCheck = s'(' + name
+			if body.contains parenCheck
+				return true
+			commaCheck = ', ' + name
+			if body.contains commaCheck
+				return true
+		return false

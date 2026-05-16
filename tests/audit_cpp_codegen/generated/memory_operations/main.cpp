@@ -1,4 +1,6 @@
-#include "runtime/drast_runtime.hpp"
+#include <memory>
+#include <string>
+#include <utility>
 
 struct Node;
 
@@ -10,25 +12,24 @@ struct Node {
 };
 
 void appendBang(std::string& text);
-int readNode(Node& node);
+int readNode(const Node& node);
 
 void appendBang(std::string& text) {
     text += "!";
 }
 
-int readNode(Node& node) {
+int readNode(const Node& node) {
     return node.value;
 }
 
-int main(int argc, char **argv) {
-    drast::setArgs(argc, argv);
+int main() {
     std::string label = "root";
     appendBang(label);
-    std::string* pointer = &label;
-    std::string copied = *pointer;
+    const std::string& pointer = label;
+    std::string copied = pointer;
     Node stack = Node(7, copied);
-    std::shared_ptr<Node> heap = std::make_shared<Node>(9, copied);
-    std::shared_ptr<Node> alias = heap;
-    return readNode(stack) + alias->value;
+    std::unique_ptr<Node> heap = std::make_unique<Node>(9, std::move(copied));
+    const Node& alias = *heap;
+    return readNode(std::move(stack)) + alias.value;
 }
 

@@ -1,7 +1,7 @@
 // # TEST: audit protocol conformance and operator emission
 // # EXPECT: pass
 
-use std
+use drast
 
 protocol Shape
 	area, int

@@ -1,7 +1,7 @@
 // # TEST: audit loops and map helper emission
 // # EXPECT: pass
 
-use std
+use drast
 
 countWords words;{string}, int
 	counts map`[string int];

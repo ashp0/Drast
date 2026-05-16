@@ -1,0 +1,141 @@
+use drast
+use diagnostics
+use types
+use ast
+use symbols
+
+tcBuiltinSignatures, {TcFunctionSig}
+	sigs {TcFunctionSig};
+
+	// I/O and CLI runtime helpers from SYNTAX.md.
+	voidType = tcVoidType
+	stringType = tcStringType
+	boolType = tcBoolType
+	intType = tcIntType
+	doubleType = tcDoubleType
+	stringArrayType = tcArrayType stringType
+	maybeIntType = tcMaybeType intType
+	maybeDoubleType = tcMaybeType doubleType
+
+	sigs += tcBuiltinFn 'print' voidType true
+	sigs += tcBuiltinFn 'println' voidType true
+	sigs += tcBuiltinFn 'printf' voidType true
+	sigs += tcBuiltinFn 'getInput' stringType false
+	sigs += tcBuiltinFn 'arg' stringType false
+	sigs += tcBuiltinFn 'readFile' stringType false
+	sigs += tcBuiltinFn 'writeFile' boolType false
+	sigs += tcBuiltinFn 'fileExists' boolType false
+	sigs += tcBuiltinFn 'args' stringArrayType false
+	sigs += tcBuiltinFn 'toString' stringType true
+	sigs += tcBuiltinFn 'parseInt' maybeIntType false
+	sigs += tcBuiltinFn 'parseFloat' maybeDoubleType false
+	sigs += tcBuiltinFn 'charCode' intType false
+	sigs += tcBuiltinFn 'isAlpha' boolType false
+	sigs += tcBuiltinFn 'isDigit' boolType false
+	sigs += tcBuiltinFn 'isWhitespace' boolType false
+	sigs += tcBuiltinFn 'clearErrors' voidType false
+	sigs += tcBuiltinFn 'reportError' voidType false
+	sigs += tcBuiltinFn 'errorCount' intType false
+	sigs += tcBuiltinFn 'hasErrors' boolType false
+	sigs += tcBuiltinFn 'emitErrors' voidType false
+
+	// Build/runtime helpers exposed by the current compiler runtime.
+	sigs += tcBuiltinFn 'getEnv' stringType false
+	sigs += tcBuiltinFn 'currentDir' stringType false
+	sigs += tcBuiltinFn 'normalizePath' stringType false
+	sigs += tcBuiltinFn 'isAbsolutePath' boolType false
+	sigs += tcBuiltinFn 'pathJoin' stringType false
+	sigs += tcBuiltinFn 'pathDirname' stringType false
+	sigs += tcBuiltinFn 'pathBasename' stringType false
+	sigs += tcBuiltinFn 'pathStem' stringType false
+	sigs += tcBuiltinFn 'isDirectory' boolType false
+	sigs += tcBuiltinFn 'ensureDir' boolType false
+	sigs += tcBuiltinFn 'removeDirRecursive' boolType false
+	sigs += tcBuiltinFn 'sourceNewerThanTarget' boolType false
+	sigs += tcBuiltinFn 'targetMissingOrOlder' boolType false
+	sigs += tcBuiltinFn 'sourceOutputPath' stringType false
+	sigs += tcBuiltinFn 'sourceIncludeDirs' stringArrayType false
+	sigs += tcBuiltinFn 'discoverDrastSources' stringArrayType false
+	sigs += tcBuiltinFn 'moduleDependencies' stringArrayType false
+	sigs += tcBuiltinFn 'orderDrastSources' stringArrayType false
+	sigs += tcBuiltinFn 'findExecutable' stringType false
+	sigs += tcBuiltinFn 'runProcess' intType false
+	sigs += tcBuiltinFn 'runExecutable' intType false
+	return sigs
+
+tcBuiltinFn name;string returnType;TcType isVariadicParam;bool, TcFunctionSig
+	sig TcFunctionSig;
+	sig.name = name
+	sig.returnType = returnType
+	if isVariadicParam
+		param TcParam;
+		param.name = 'values'
+		param.isVariadic = true
+		unknown = tcUnknownType
+		paramType = tcVariadicType unknown
+		param.typeRef.kind = 'unknown'
+		sig.params += param
+		sig.paramTypes += paramType
+	return sig
+
+tcAddBuiltins table;~TcSymbolTable diagnostics;~{TcDiagnostic}
+	for sig in tcBuiltinSignatures
+		if not table.functions.contains sig.name
+			table.functions.set sig.name sig
+
+tcSpecialFieldType receiver;TcType name;string, TcType
+	if name == 'length'
+		if receiver.kind == 'array' or tcIsString receiver
+			return tcUsizeType
+	if name == 'lineCount' and tcIsString receiver
+		return tcUsizeType
+	if name == 'splitWhitespace' and tcIsString receiver
+		return tcArrayType [tcStringType]
+	if name == 'trim' and tcIsString receiver
+		return tcStringType
+	if name == 'asInt' and tcIsString receiver
+		return tcMaybeType [tcIntType]
+	if name == 'lowercase'
+		return tcStringType
+	if name == 'bytes' and tcIsString receiver
+		return tcArrayType [tcU8Type]
+	if name == 'chars' and tcIsString receiver
+		return tcArrayType [tcCharType]
+	if name == 'keys' and receiver.kind == 'map'
+		keyType = tcInnerType receiver
+		return tcArrayType keyType
+	if name == 'values' and receiver.kind == 'map'
+		valueType = tcSecondInnerType receiver
+		return tcArrayType valueType
+	return tcUnknownType
+
+tcSpecialMethodReturn receiver;TcType name;string args;{TcType}, TcType
+	if name == 'contains' or name == 'startsWith' or name == 'endsWith'
+		return tcBoolType
+	if name == 'find'
+		return tcIntType
+	if name == 'replace'
+		return tcStringType
+	if name == 'split'
+		stringType = tcStringType
+		return tcArrayType stringType
+	if name == 'get' and receiver.kind == 'map'
+		valueType = tcSecondInnerType receiver
+		return tcMaybeType valueType
+	if name == 'set' and receiver.kind == 'map'
+		return tcVoidType
+	if name == 'clear'
+		return tcVoidType
+	if name == 'removeAt' or name == 'remove'
+		return tcVoidType
+	if name == 'substring'
+		return tcStringType
+	if [name == 'valueOr' or name == 'value_or' or name == 'force' or name == 'force_with'] and receiver.kind == 'maybe'
+		return tcInnerType receiver
+	if name == 'byte_at' and tcIsString receiver
+		return tcMaybeType [tcU8Type]
+	if name == 'slice' and tcIsString receiver
+		return tcStringType
+	if name == 'push_str' and tcIsString receiver
+		return tcVoidType
+	return tcUnknownType

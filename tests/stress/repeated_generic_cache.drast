@@ -1,7 +1,7 @@
 // # TEST: repeated generic parsing and constructor cache stress
 // # EXPECT: pass
 
-use std
+use drast
 
 struct CacheBox`[T]
 	value T

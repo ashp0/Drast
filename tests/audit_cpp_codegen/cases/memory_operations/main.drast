@@ -1,7 +1,7 @@
 // # TEST: audit reference, pointer, and heap shared pointer emission
 // # EXPECT: pass
 
-use std
+use drast
 
 struct Node
 	value int

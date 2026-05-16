@@ -1,4 +1,4 @@
-use std
+use drast
 use platform
 use package
 
@@ -8,6 +8,9 @@ writeXmakeProject target;BuildTarget xmakeDir;string outputPath;string cppPaths;
 		return false
 	xmakeFile = platformPathJoin xmakeDir 'xmake.lua'
 	content = renderXmakeProject target outputPath cppPaths includeDirs
+	if platformFileExists xmakeFile
+		if platformReadFile xmakeFile == content
+			return true
 	if not platformWriteFile xmakeFile content
 		reportError xmakeFile 1 1 'failed to write generated xmake.lua'
 		return false

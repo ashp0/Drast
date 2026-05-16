@@ -1,4 +1,4 @@
-use std
+use drast
 use token
 use lexer
 use ast
@@ -17,12 +17,17 @@ struct Parser
 
 	private structFieldTypes map`[string string]
 	private functionReturns map`[string string]
+	private functionTypeParams map`[string string]
 	private methodReturns map`[string string]
+	private globalTypes map`[string string]
 	private localTypes map`[string string]
 	private enumVariants map`[string string]
+	private enumVariantNames map`[string string]
+	private ambiguousEnumVariants map`[string string]
 	private dataEnumVariants map`[string string]
 	private currentHost string
 	private indent int
+	private pendingGenericArgs {string}
 
 impl Parser
 	init
@@ -48,10 +53,15 @@ impl Parser
 		self.ast.globals.clear
 		self.structFieldTypes.clear
 		self.functionReturns.clear
+		self.functionTypeParams.clear
 		self.methodReturns.clear
+		self.globalTypes.clear
 		self.localTypes.clear
 		self.enumVariants.clear
+		self.enumVariantNames.clear
+		self.ambiguousEnumVariants.clear
 		self.dataEnumVariants.clear
+		self.pendingGenericArgs.clear
 
 	setNoRuntime value;bool
 		self.noRuntime = value
@@ -84,6 +94,9 @@ impl Parser
 			self.currentIndex = 0
 			self.predeclareFunctions
 			self.predeclareEnums
+			self.predeclareStructs
+			self.predeclareImpls
+			self.predeclareGlobals
 		self.tokens = savedTokens
 		self.currentIndex = savedIndex
 		self.currentFile = savedFile
@@ -244,6 +257,31 @@ impl Parser
 		reportError self.currentFile self.peekCurrent.location.line self.peekCurrent.location.column 'expected end of statement'
 		self.skipLine
 
+	private isUsedLater name;string, bool
+		i = self.currentIndex
+		while i islt self.tokens.length
+			tok = self.tokens{i}
+			if tok.kind == TokenKind.Identifier and tok.text == name
+				return true
+			if tok.kind == TokenKind.End
+				break
+			i += 1
+		return false
+
+	private isCheapValueType typeText;string, bool
+		if typeText == 'auto' or typeText.startsWith 'const '
+			return true
+		if typeText.endsWith s'&' or typeText.endsWith s'*'
+			return true
+		if typeText == 'bool' or typeText == 'char' or typeText == 'int' or typeText == 'unsigned int' or typeText == 'float' or typeText == 'double' or typeText == 'std::size_t' or typeText == 'TokenKind' or typeText == 'CStmt'
+			return true
+		if typeText.startsWith 'std::initializer_list<'
+			return true
+		return false
+
+	private shouldMoveValueType typeText;string, bool
+		return not self.isCheapValueType typeText
+
 	private skipLine
 		while not self.check TokenKind.Newline and not self.check TokenKind.End and not self.check TokenKind.Dedent
 			self.advance
@@ -262,7 +300,7 @@ impl Parser
 		last = -1
 		i usize = 0
 		while i islt path.length
-			if path{i} == '/'
+			if path{i} == c'/'
 				last = i
 			i += 1
 		if last islt 0
@@ -317,3 +355,184 @@ impl Parser
 
 	private isHeaderPath path;string, bool
 		return path.endsWith '.h' or path.endsWith '.hpp' or path.endsWith '.hh' or path.endsWith '.hxx'
+
+	private predeclareStructs
+		i usize = 0
+		depth = 0
+		while i islt self.tokens.length
+			k = self.tokens{i}.kind
+			if k == TokenKind.Indent
+				depth += 1
+			elif k == TokenKind.Dedent
+				depth -= 1
+			elif depth == 0 and k == TokenKind.Struct
+				i = self.predeclareStructAt i
+				continue
+			i += 1
+
+	private predeclareStructAt start;usize, usize
+		i = start + 1
+		if i isgteq self.tokens.length or self.tokens{i}.kind isne TokenKind.Identifier
+			return i
+		structName = self.tokens{i}.text
+		while i islt self.tokens.length and self.tokens{i}.kind isne TokenKind.Indent
+			i += 1
+		if i isgteq self.tokens.length
+			return i
+		i += 1
+		bodyDepth = 1
+		while i islt self.tokens.length and bodyDepth isgt 0
+			k = self.tokens{i}.kind
+			if k == TokenKind.Indent
+				bodyDepth += 1
+			elif k == TokenKind.Dedent
+				bodyDepth -= 1
+				if bodyDepth == 0
+					return i + 1
+			elif bodyDepth == 1
+				if k == TokenKind.Private or k == TokenKind.Preview or k == TokenKind.Fileprivate
+					i += 1
+					continue
+				if k == TokenKind.Identifier
+					fieldName = self.tokens{i}.text
+					savedIndex = self.currentIndex
+					self.currentIndex = i + 1
+					t = self.parseType
+					fieldKey = structName + '.' + fieldName
+					self.structFieldTypes.set fieldKey t.text
+					i = self.currentIndex
+					self.currentIndex = savedIndex
+					while i islt self.tokens.length and self.tokens{i}.kind isne TokenKind.Newline and self.tokens{i}.kind isne TokenKind.Dedent and self.tokens{i}.kind isne TokenKind.End
+						i += 1
+					continue
+			i += 1
+		return i
+
+	private predeclareImpls
+		i usize = 0
+		depth = 0
+		while i islt self.tokens.length
+			k = self.tokens{i}.kind
+			if k == TokenKind.Indent
+				depth += 1
+			elif k == TokenKind.Dedent
+				depth -= 1
+			elif depth == 0 and k == TokenKind.Impl
+				i = self.predeclareImplAt i
+				continue
+			i += 1
+
+	private predeclareImplAt start;usize, usize
+		i = start + 1
+		if i isgteq self.tokens.length or self.tokens{i}.kind isne TokenKind.Identifier
+			return i
+		host = self.tokens{i}.text
+		while i islt self.tokens.length and self.tokens{i}.kind isne TokenKind.Indent
+			i += 1
+		if i isgteq self.tokens.length
+			return i
+		i += 1
+		bodyDepth = 1
+		while i islt self.tokens.length and bodyDepth isgt 0
+			k = self.tokens{i}.kind
+			if k == TokenKind.Indent
+				bodyDepth += 1
+			elif k == TokenKind.Dedent
+				bodyDepth -= 1
+				if bodyDepth == 0
+					return i + 1
+			elif bodyDepth == 1
+				if k == TokenKind.Private or k == TokenKind.Preview
+					i += 1
+					continue
+				if k == TokenKind.Operator
+					operatorName = 'operator'
+					j = i + 1
+					if j islt self.tokens.length and self.tokens{j}.kind == TokenKind.LeftBracket
+						j += 1
+						while j islt self.tokens.length and self.tokens{j}.kind isne TokenKind.RightBracket and self.tokens{j}.kind isne TokenKind.End
+							operatorName += self.tokens{j}.text
+							j += 1
+					ret = self.predeclareFunctionReturn i
+					methodKey = host + '.' + operatorName
+					self.methodReturns.set methodKey ret
+				elif k == TokenKind.Identifier
+					name = self.tokens{i}.text
+					ret = self.predeclareFunctionReturn i
+					methodKey = host + '.' + name
+					self.methodReturns.set methodKey ret
+			i += 1
+		return i
+
+	private predeclareGlobals
+		i usize = 0
+		depth = 0
+		lineStart = true
+		while i islt self.tokens.length
+			k = self.tokens{i}.kind
+			if k == TokenKind.Newline
+				lineStart = true
+			elif k == TokenKind.Indent
+				depth += 1
+				lineStart = true
+			elif k == TokenKind.Dedent
+				depth -= 1
+				lineStart = true
+			elif depth == 0 and lineStart and k == TokenKind.Identifier
+				if self.classifyTopLevelAt i == 'global'
+					name = self.tokens{i}.text
+					globalType = self.predeclareGlobalType i
+					if globalType.length isgt 0
+						self.globalTypes.set name globalType
+				lineStart = false
+			elif k isne TokenKind.End
+				lineStart = false
+			i += 1
+
+	private classifyTopLevelAt start;usize, string
+		i = start + 1
+		while i islt self.tokens.length
+			k = self.tokens{i}.kind
+			if k == TokenKind.Newline or k == TokenKind.End or k == TokenKind.Indent or k == TokenKind.Dedent
+				break
+			if k == TokenKind.Equal or k == TokenKind.Const
+				return 'global'
+			i += 1
+		return 'function'
+
+	private predeclareGlobalType start;usize, string
+		i = start + 1
+		if i islt self.tokens.length and self.tokens{i}.kind == TokenKind.Const
+			return ''
+		if i islt self.tokens.length and self.tokens{i}.kind isne TokenKind.Equal
+			savedIndex = self.currentIndex
+			self.currentIndex = i
+			t = self.parseType
+			self.currentIndex = savedIndex
+			return t.text
+		return 'auto'
+
+	private predeclareFunctionReturn start;usize, string
+		i = start + 1
+		depth = 0
+		while i islt self.tokens.length
+			k = self.tokens{i}.kind
+			if k == TokenKind.Newline or k == TokenKind.End or k == TokenKind.Indent or k == TokenKind.Dedent
+				return 'void'
+			if k == TokenKind.LeftBracket or k == TokenKind.LeftBrace or k == TokenKind.LeftParen
+				depth += 1
+			elif k == TokenKind.RightBracket or k == TokenKind.RightBrace or k == TokenKind.RightParen
+				depth -= 1
+			elif depth == 0 and k == TokenKind.Comma
+				savedIndex = self.currentIndex
+				self.currentIndex = i + 1
+				maybeReturn = false
+				if self.currentMatch TokenKind.Maybe
+					maybeReturn = true
+				t = self.parseType
+				self.currentIndex = savedIndex
+				if maybeReturn
+					return 'std::optional<' + t.text + '>'
+				return t.text
+			i += 1
+		return 'void'

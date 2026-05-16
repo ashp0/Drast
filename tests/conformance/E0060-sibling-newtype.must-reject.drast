@@ -1,0 +1,10 @@
+// E0060 reject: sibling newtypes with the same representation are distinct.
+type Metres = i32
+type Seconds = i32
+
+travel distance;Metres, i32
+	return distance.inner
+
+main, i32
+	duration = Seconds[60]
+	return travel duration

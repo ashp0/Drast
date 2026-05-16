@@ -383,6 +383,14 @@ inline std::string normalizePath(const std::string& path) {
 	return std::filesystem::path(path).lexically_normal().string();
 }
 
+inline std::string canonicalPath(const std::string& path) {
+	std::error_code ec;
+	auto canonical = std::filesystem::weakly_canonical(std::filesystem::path(path), ec);
+	if (ec)
+		return normalizePath(path);
+	return canonical.lexically_normal().string();
+}
+
 inline std::string currentDir() {
 	std::error_code ec;
 	auto cwd = std::filesystem::current_path(ec);
@@ -518,11 +526,29 @@ inline std::vector<std::string> discoverDrastSources(const std::string& root) {
 	while (!ec && it != end) {
 		const auto& entry = *it;
 		auto name = entry.path().filename().string();
-		if (entry.is_directory(ec) && (name == ".drast" || name == ".git")) {
+		if (entry.is_directory(ec) && (name == ".drast" || name == ".git" || name == "build")) {
 			it.disable_recursion_pending();
 		} else if (entry.is_regular_file(ec) && entry.path().extension() == ".drast") {
 			out.push_back(entry.path().lexically_normal().string());
 		}
+		it.increment(ec);
+	}
+	std::sort(out.begin(), out.end());
+	out.erase(std::unique(out.begin(), out.end()), out.end());
+	return out;
+}
+
+inline std::vector<std::string> discoverDrastSourceSiblings(const std::string& root) {
+	std::vector<std::string> out;
+	std::error_code ec;
+	if (!std::filesystem::exists(root, ec))
+		return out;
+	std::filesystem::directory_iterator it(root, std::filesystem::directory_options::skip_permission_denied, ec);
+	std::filesystem::directory_iterator end;
+	while (!ec && it != end) {
+		const auto& entry = *it;
+		if (entry.is_regular_file(ec) && entry.path().extension() == ".drast")
+			out.push_back(entry.path().lexically_normal().string());
 		it.increment(ec);
 	}
 	std::sort(out.begin(), out.end());
@@ -662,7 +688,7 @@ inline std::vector<std::string> orderDrastSources(const std::string& entry, cons
 	std::string normalized_entry = normalizePath(entry);
 	candidates.insert(normalized_entry);
 	if (auto_discover) {
-		for (const auto& source : discoverDrastSources(root)) {
+		for (const auto& source : discoverDrastSourceSiblings(root)) {
 			candidates.insert(normalizePath(source));
 		}
 	}
@@ -820,6 +846,10 @@ inline std::string getEnv(const std::string& name) {
 
 inline std::string normalizePath(const std::string& path) {
 	return drast::normalizePath(path);
+}
+
+inline std::string canonicalPath(const std::string& path) {
+	return drast::canonicalPath(path);
 }
 
 inline bool isAbsolutePath(const std::string& path) {

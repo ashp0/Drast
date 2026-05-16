@@ -1,0 +1,11 @@
+// E0040 reject: a maybe value has no fields until it is unwrapped.
+struct User
+	name string
+
+find_user, maybe User
+	return None
+
+main, i32
+	user = find_user
+	name = user.name
+	return 0

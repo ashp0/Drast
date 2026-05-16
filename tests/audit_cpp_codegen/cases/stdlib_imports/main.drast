@@ -1,0 +1,15 @@
+// # TEST: audit stdlib, prelude, and third-party import emission
+// # EXPECT: pass
+
+use vector
+use iostream as std
+use drast
+use SomeLib.hpp
+use Arduino.h
+use file header/stdlib_imports.hpp
+
+main, int
+	values vector`[int] = {1 2 3}
+	touched = touch_stream std.cout
+	base = some_lib_bonus values.length
+	return arduino_pin base + touched

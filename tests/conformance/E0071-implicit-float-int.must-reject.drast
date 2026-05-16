@@ -1,0 +1,4 @@
+// E0071 reject: f64 does not implicitly convert to i32.
+main, i32
+	value i32 = 1.0
+	return value

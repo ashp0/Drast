@@ -1,4 +1,6 @@
-#include "runtime/drast_runtime.hpp"
+#include <string>
+#include <utility>
+#include <vector>
 
 struct Sample;
 
@@ -19,7 +21,7 @@ int scoreName(const std::string& name) {
 
 int sumValues(const std::vector<int>& values) {
     int total = 0;
-    for (auto& value : values) {
+    for (const auto& value : values) {
         total += value;
     }
     return total;
@@ -31,13 +33,12 @@ std::string combine(const Sample& sample, const std::string& suffix) {
     return text;
 }
 
-int main(int argc, char **argv) {
-    drast::setArgs(argc, argv);
+int main() {
     std::vector<int> values = {1, 2, 3, 4};
     Sample sample = Sample("alpha", values);
-    int total = sumValues(values);
+    int total = sumValues(std::move(values));
     total += scoreName(sample.name);
-    std::string label = combine(sample, "-done");
+    std::string label = combine(std::move(sample), "-done");
     return total + label.size();
 }
 
