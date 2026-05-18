@@ -1,8 +1,543 @@
 use drast
-use '../token'
-use '../lexer'
-use diagnostics
+use token
+use lexer
 use ast
+use diagnostics
+
+struct Parser
+	private tokens {Token}
+	private currentIndex usize
+	private currentFile string
+	private currentDir string
+	private noRuntime bool
+	private usesStd bool
+	private followImports bool
+	private loaded {string}
+	private loading {string}
+	private ast AST
+
+	private structFieldTypes map`[string string]
+	private functionReturns map`[string string]
+	private functionTypeParams map`[string string]
+	private methodReturns map`[string string]
+	private globalTypes map`[string string]
+	private localTypes map`[string string]
+	private enumVariants map`[string string]
+	private enumVariantNames map`[string string]
+	private ambiguousEnumVariants map`[string string]
+	private dataEnumVariants map`[string string]
+	private currentHost string
+	private indent int
+	private pendingGenericArgs {string}
+
+impl Parser
+	init
+		self.currentIndex = 0
+		self.noRuntime = false
+		self.usesStd = false
+		self.followImports = true
+		self.currentFile = ''
+		self.currentDir = ''
+		self.currentHost = ''
+		self.indent = 0
+
+	deinit
+		self.tokens.clear
+		self.loaded.clear
+		self.loading.clear
+		self.ast.includeLines.clear
+		self.ast.structs.clear
+		self.ast.enums.clear
+		self.ast.protocols.clear
+		self.ast.functions.clear
+		self.ast.methods.clear
+		self.ast.globals.clear
+		self.structFieldTypes.clear
+		self.functionReturns.clear
+		self.functionTypeParams.clear
+		self.methodReturns.clear
+		self.globalTypes.clear
+		self.localTypes.clear
+		self.enumVariants.clear
+		self.enumVariantNames.clear
+		self.ambiguousEnumVariants.clear
+		self.dataEnumVariants.clear
+		self.pendingGenericArgs.clear
+
+	setNoRuntime value;bool
+		self.noRuntime = value
+
+	setFollowImports value;bool
+		self.followImports = value
+
+	parseFile path;string, AST
+		normalized = self.normalizePath path
+		self.followImports = true
+		self.loadFile normalized
+		self.ast.usesStd = self.usesStd
+		self.ast.noRuntime = self.noRuntime
+		return self.ast
+
+	predeclareProjectFiles paths;{string}
+		savedTokens = self.tokens
+		savedIndex = self.currentIndex
+		savedFile = self.currentFile
+		savedDir = self.currentDir
+		for path in paths
+			normalized = self.normalizePath path
+			if not fileExists normalized
+				continue
+			self.currentFile = normalized
+			self.currentDir = self.dirname normalized
+			source = readFile normalized
+			lex = Lexer[source normalized]
+			self.tokens = lex.lex
+			self.currentIndex = 0
+			self.predeclareFunctions
+			self.predeclareEnums
+			self.predeclareStructs
+			self.predeclareImpls
+			self.predeclareGlobals
+		self.tokens = savedTokens
+		self.currentIndex = savedIndex
+		self.currentFile = savedFile
+		self.currentDir = savedDir
+
+	parseSingleFile path;string, AST
+		normalized = self.normalizePath path
+		savedAst = self.ast
+		savedFollow = self.followImports
+		fresh AST;
+		self.ast = fresh
+		self.followImports = false
+		self.loadSingleFile normalized
+		self.ast.usesStd = self.usesStd
+		self.ast.noRuntime = self.noRuntime
+		out = self.ast
+		self.ast = savedAst
+		self.followImports = savedFollow
+		return out
+
+	private loadFile path;string
+		normalized = self.normalizePath path
+		if self.loading.contains normalized
+			message = 'circular import: ' + normalized
+			reportError self.currentFile self.peekCurrent.location.line self.peekCurrent.location.column message
+			return
+		if self.loaded.contains normalized
+			return
+		if not fileExists normalized
+			message = 'module not found: ' + normalized
+			reportError self.currentFile self.peekCurrent.location.line self.peekCurrent.location.column message
+			return
+		self.loaded += normalized
+		self.loading += normalized
+
+		savedTokens = self.tokens
+		savedIndex = self.currentIndex
+		savedFile = self.currentFile
+		savedDir = self.currentDir
+
+		self.currentFile = normalized
+		self.currentDir = self.dirname normalized
+		source = readFile normalized
+		lex = Lexer[source normalized]
+		self.tokens = lex.lex
+		self.currentIndex = 0
+		self.predeclareFunctions
+		self.predeclareEnums
+		self.parseTokens
+
+		if self.loading.length isgt 0
+			lastLoading = self.loading.length - 1
+			self.loading.removeAt lastLoading
+		self.tokens = savedTokens
+		self.currentIndex = savedIndex
+		self.currentFile = savedFile
+		self.currentDir = savedDir
+
+	private loadSingleFile path;string
+		normalized = self.normalizePath path
+		if not fileExists normalized
+			message = 'module not found: ' + normalized
+			reportError normalized 1 1 message
+			return
+
+		savedTokens = self.tokens
+		savedIndex = self.currentIndex
+		savedFile = self.currentFile
+		savedDir = self.currentDir
+
+		self.currentFile = normalized
+		self.currentDir = self.dirname normalized
+		source = readFile normalized
+		lex = Lexer[source normalized]
+		self.tokens = lex.lex
+		self.currentIndex = 0
+		self.predeclareFunctions
+		self.predeclareEnums
+		self.parseTokens
+
+		self.tokens = savedTokens
+		self.currentIndex = savedIndex
+		self.currentFile = savedFile
+		self.currentDir = savedDir
+
+	private parseTokens
+		self.skipNewlines
+		while not self.check TokenKind.End
+			if self.currentMatch TokenKind.Use
+				self.parseUse
+			elif self.currentMatch TokenKind.Struct
+				self.parseStruct false
+			elif self.currentMatch TokenKind.Enum
+				self.parseEnum false
+			elif self.currentMatch TokenKind.Protocol
+				self.parseProtocol
+			elif self.currentMatch TokenKind.Impl
+				self.parseImpl
+			elif self.currentMatch TokenKind.Fileprivate
+				if self.currentMatch TokenKind.Struct
+					self.parseStruct true
+				elif self.currentMatch TokenKind.Enum
+					self.parseEnum true
+				else
+					self.skipLine
+			elif self.check TokenKind.Identifier
+				if self.classifyTopLevel == 'global'
+					self.parseGlobal
+				else
+					fn = self.parseFunction '' false
+					self.ast.functions += fn
+					self.functionReturns.set fn.name fn.returnText
+			else
+				self.skipLine
+			self.skipNewlines
+
+
+impl Parser
+	private currentMatch kind;TokenKind, bool
+		if not self.check kind
+			return false
+		self.advance
+		return true
+
+	private check kind;TokenKind, bool
+		if self.currentIndex isgteq self.tokens.length
+			return kind == TokenKind.End
+		return self.tokens{self.currentIndex}.kind == kind
+
+	private advance, Token
+		t = self.tokens{self.currentIndex}
+		if not self.check TokenKind.End
+			self.currentIndex += 1
+		return t
+
+	private consume kind;TokenKind message;string, Token
+		if self.check kind
+			return self.advance
+		reportError self.currentFile self.peekCurrent.location.line self.peekCurrent.location.column message
+		return self.advance
+
+	private peek offset;usize, Token
+		i = self.currentIndex + offset
+		if i isgteq self.tokens.length
+			return self.tokens{self.tokens.length - 1}
+		return self.tokens{i}
+
+	private peekCurrent, Token
+		return self.peek 0
+
+	private skipNewlines
+		while self.currentMatch TokenKind.Newline
+			continue
+
+	private consumeStatementEnd
+		if self.currentMatch TokenKind.Newline or self.check TokenKind.Dedent or self.check TokenKind.End
+			return
+		reportError self.currentFile self.peekCurrent.location.line self.peekCurrent.location.column 'expected end of statement'
+		self.skipLine
+
+	private isUsedLater name;string, bool
+		i = self.currentIndex
+		while i islt self.tokens.length
+			tok = self.tokens{i}
+			if tok.kind == TokenKind.Identifier and tok.text == name
+				return true
+			if tok.kind == TokenKind.End
+				break
+			i += 1
+		return false
+
+	private isCheapValueType typeText;string, bool
+		if typeText == 'auto' or typeText.startsWith 'const '
+			return true
+		if typeText.endsWith s'&' or typeText.endsWith s'*'
+			return true
+		if typeText == 'bool' or typeText == 'char' or typeText == 'int' or typeText == 'unsigned int' or typeText == 'float' or typeText == 'double' or typeText == 'std::size_t' or typeText == 'TokenKind' or typeText == 'CStmt'
+			return true
+		if typeText.startsWith 'std::initializer_list<'
+			return true
+		return false
+
+	private shouldMoveValueType typeText;string, bool
+		return not self.isCheapValueType typeText
+
+	private skipLine
+		while not self.check TokenKind.Newline and not self.check TokenKind.End and not self.check TokenKind.Dedent
+			self.advance
+		self.currentMatch TokenKind.Newline
+
+	private indentText, string
+		out string;
+		out.reserve 64
+		i = 0
+		while i islt self.indent
+			out += '    '
+			i += 1
+		return out
+
+	private dirname path;string, string
+		last = -1
+		i usize = 0
+		while i islt path.length
+			if path{i} == c'/'
+				last = i
+			i += 1
+		if last islt 0
+			return s'.'
+		return path.substring 0 last
+
+	private isAbsolutePath path;string, bool
+		return path.startsWith s'/'
+
+	private normalizePath path;string, string
+		absolute = self.isAbsolutePath path
+		parts = path.split s'/'
+		clean {string};
+		for part in parts
+			if part.length == 0 or part == s'.'
+				continue
+			if part == s'..'
+				if clean.length isgt 0 and clean{clean.length - 1} isne s'..'
+					lastPart = clean.length - 1
+					clean.removeAt lastPart
+				elif not absolute
+					clean += part
+			else
+				clean += part
+		out string;
+		if absolute
+			out = s'/'
+		for part in clean
+			if out.length isgt 0 and not out.endsWith s'/'
+				out += s'/'
+			out += part
+		if out.length == 0
+			if absolute
+				return s'/'
+			return s'.'
+		return out
+
+	private resolveModule path;string, string
+		candidate string;
+		if self.isAbsolutePath path
+			candidate = path
+		else
+			candidate = self.currentDir + '/' + path
+		candidate = self.normalizePath candidate
+		if not candidate.endsWith '.drast'
+			withExt = candidate + '.drast'
+			if fileExists withExt
+				return self.normalizePath withExt
+		if fileExists candidate
+			return self.normalizePath candidate
+		return ''
+
+	private isHeaderPath path;string, bool
+		return path.endsWith '.h' or path.endsWith '.hpp' or path.endsWith '.hh' or path.endsWith '.hxx'
+
+	private predeclareStructs
+		i usize = 0
+		depth = 0
+		while i islt self.tokens.length
+			k = self.tokens{i}.kind
+			if k == TokenKind.Indent
+				depth += 1
+			elif k == TokenKind.Dedent
+				depth -= 1
+			elif depth == 0 and k == TokenKind.Struct
+				i = self.predeclareStructAt i
+				continue
+			i += 1
+
+	private predeclareStructAt start;usize, usize
+		i = start + 1
+		if i isgteq self.tokens.length or self.tokens{i}.kind isne TokenKind.Identifier
+			return i
+		structName = self.tokens{i}.text
+		while i islt self.tokens.length and self.tokens{i}.kind isne TokenKind.Indent
+			i += 1
+		if i isgteq self.tokens.length
+			return i
+		i += 1
+		bodyDepth = 1
+		while i islt self.tokens.length and bodyDepth isgt 0
+			k = self.tokens{i}.kind
+			if k == TokenKind.Indent
+				bodyDepth += 1
+			elif k == TokenKind.Dedent
+				bodyDepth -= 1
+				if bodyDepth == 0
+					return i + 1
+			elif bodyDepth == 1
+				if k == TokenKind.Private or k == TokenKind.Preview or k == TokenKind.Fileprivate
+					i += 1
+					continue
+				if k == TokenKind.Identifier
+					fieldName = self.tokens{i}.text
+					savedIndex = self.currentIndex
+					self.currentIndex = i + 1
+					t = self.parseType
+					fieldKey = structName + '.' + fieldName
+					self.structFieldTypes.set fieldKey t.text
+					i = self.currentIndex
+					self.currentIndex = savedIndex
+					while i islt self.tokens.length and self.tokens{i}.kind isne TokenKind.Newline and self.tokens{i}.kind isne TokenKind.Dedent and self.tokens{i}.kind isne TokenKind.End
+						i += 1
+					continue
+			i += 1
+		return i
+
+	private predeclareImpls
+		i usize = 0
+		depth = 0
+		while i islt self.tokens.length
+			k = self.tokens{i}.kind
+			if k == TokenKind.Indent
+				depth += 1
+			elif k == TokenKind.Dedent
+				depth -= 1
+			elif depth == 0 and k == TokenKind.Impl
+				i = self.predeclareImplAt i
+				continue
+			i += 1
+
+	private predeclareImplAt start;usize, usize
+		i = start + 1
+		if i isgteq self.tokens.length or self.tokens{i}.kind isne TokenKind.Identifier
+			return i
+		host = self.tokens{i}.text
+		while i islt self.tokens.length and self.tokens{i}.kind isne TokenKind.Indent
+			i += 1
+		if i isgteq self.tokens.length
+			return i
+		i += 1
+		bodyDepth = 1
+		while i islt self.tokens.length and bodyDepth isgt 0
+			k = self.tokens{i}.kind
+			if k == TokenKind.Indent
+				bodyDepth += 1
+			elif k == TokenKind.Dedent
+				bodyDepth -= 1
+				if bodyDepth == 0
+					return i + 1
+			elif bodyDepth == 1
+				if k == TokenKind.Private or k == TokenKind.Preview
+					i += 1
+					continue
+				if k == TokenKind.Operator
+					operatorName = 'operator'
+					j = i + 1
+					if j islt self.tokens.length and self.tokens{j}.kind == TokenKind.LeftBracket
+						j += 1
+						while j islt self.tokens.length and self.tokens{j}.kind isne TokenKind.RightBracket and self.tokens{j}.kind isne TokenKind.End
+							operatorName += self.tokens{j}.text
+							j += 1
+					ret = self.predeclareFunctionReturn i
+					methodKey = host + '.' + operatorName
+					self.methodReturns.set methodKey ret
+				elif k == TokenKind.Identifier
+					name = self.tokens{i}.text
+					ret = self.predeclareFunctionReturn i
+					methodKey = host + '.' + name
+					self.methodReturns.set methodKey ret
+			i += 1
+		return i
+
+	private predeclareGlobals
+		i usize = 0
+		depth = 0
+		lineStart = true
+		while i islt self.tokens.length
+			k = self.tokens{i}.kind
+			if k == TokenKind.Newline
+				lineStart = true
+			elif k == TokenKind.Indent
+				depth += 1
+				lineStart = true
+			elif k == TokenKind.Dedent
+				depth -= 1
+				lineStart = true
+			elif depth == 0 and lineStart and k == TokenKind.Identifier
+				if self.classifyTopLevelAt i == 'global'
+					name = self.tokens{i}.text
+					globalType = self.predeclareGlobalType i
+					if globalType.length isgt 0
+						self.globalTypes.set name globalType
+				lineStart = false
+			elif k isne TokenKind.End
+				lineStart = false
+			i += 1
+
+	private classifyTopLevelAt start;usize, string
+		i = start + 1
+		while i islt self.tokens.length
+			k = self.tokens{i}.kind
+			if k == TokenKind.Newline or k == TokenKind.End or k == TokenKind.Indent or k == TokenKind.Dedent
+				break
+			if k == TokenKind.Equal or k == TokenKind.Const
+				return 'global'
+			i += 1
+		return 'function'
+
+	private predeclareGlobalType start;usize, string
+		i = start + 1
+		if i islt self.tokens.length and self.tokens{i}.kind == TokenKind.Const
+			return ''
+		if i islt self.tokens.length and self.tokens{i}.kind isne TokenKind.Equal
+			savedIndex = self.currentIndex
+			self.currentIndex = i
+			t = self.parseType
+			self.currentIndex = savedIndex
+			return t.text
+		return 'auto'
+
+	private predeclareFunctionReturn start;usize, string
+		i = start + 1
+		depth = 0
+		while i islt self.tokens.length
+			k = self.tokens{i}.kind
+			if k == TokenKind.Newline or k == TokenKind.End or k == TokenKind.Indent or k == TokenKind.Dedent
+				return 'void'
+			if k == TokenKind.LeftBracket or k == TokenKind.LeftBrace or k == TokenKind.LeftParen
+				depth += 1
+			elif k == TokenKind.RightBracket or k == TokenKind.RightBrace or k == TokenKind.RightParen
+				depth -= 1
+			elif depth == 0 and k == TokenKind.Comma
+				savedIndex = self.currentIndex
+				self.currentIndex = i + 1
+				maybeReturn = false
+				if self.currentMatch TokenKind.Maybe
+					maybeReturn = true
+				t = self.parseType
+				self.currentIndex = savedIndex
+				if maybeReturn
+					return 'std::optional<' + t.text + '>'
+				return t.text
+			i += 1
+		return 'void'
+
 
 struct TcParseResult
 	module TcModule

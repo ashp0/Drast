@@ -4,81 +4,142 @@ use build_system
 use package
 use parser
 use ast
+use codegen
+
+// `drast headers` emits a C/C++ header (`.h`) and matching implementation
+// (`.cpp`) next to every Drast source file processed. Each generated pair is
+// self-contained and marked read-only so editors and version control treat them
+// as build artifacts. Re-running the command is cheap: pairs are regenerated
+// only when the Drast source is newer than the existing outputs.
+//
+// Operating modes (chosen automatically):
+//   1. Explicit files  — `drast headers a.drast b.drast`
+//   2. Package mode    — package.txt in cwd or a parent: emits headers for
+//                        every .drast file reachable from each binary target.
+//   3. Standalone mode — no package.txt: recursively scans cwd for .drast
+//                        files. This is the path used for Arduino projects
+//                        where Drast files live alongside the .ino sketch.
 
 handleHeaders positional;{string}, int
 	clearErrors
-	start = platformCurrentDir
-	root = findPackageRoot start
-	if root.length == 0
-		reportError start 1 1 'package.txt not found in current directory or any parent'
-		emitErrors
-		return 1
-	manifestPath = platformPathJoin root 'package.txt'
-	manifest = parsePackageFile manifestPath
+	cwd = platformCurrentDir
+	sources = collectHeaderSources cwd positional
 	if hasErrors
 		emitErrors
 		return 1
-	targetName = ''
-	if positional.length isgt 2
-		targetName = positional{2}
-	if targetName.length == 0
-		targetName = manifest.defaultTarget
-	idx = packageTargetIndex manifest targetName
-	if idx islt 0
-		message = 'unknown target: ' + targetName
-		reportError manifestPath 1 1 message
+	if sources.length == 0
+		reportError cwd 1 1 'no .drast files found'
 		emitErrors
 		return 1
-	target = manifest.targets{idx}
-	if target.kind isne 'binary'
-		message = 'headers can only be emitted for binary targets, got: ' + target.kind
-		reportError manifestPath 1 1 message
-		emitErrors
-		return 1
-	entryPath = platformAbsoluteFromRoot manifest.root target.entry
-	if not platformFileExists entryPath
-		reportError entryPath 1 1 'entry file not found'
-		emitErrors
-		return 1
-	sourceRoot = platformPathDirname entryPath
-	autoDiscover = shouldAutoDiscoverSources manifest entryPath
-	sources = orderDrastSources entryPath sourceRoot autoDiscover
 	parser Parser;
 	parser.predeclareProjectFiles sources
-	all AST;
+	wroteAny = false
+	skipped = 0
 	for source in sources
+		sourceDir = platformPathDirname source
+		stem = platformPathStem source
+		hname = stem + '.h'
+		cppname = stem + '.cpp'
+		hpath = platformPathJoin sourceDir hname
+		cpppath = platformPathJoin sourceDir cppname
+		// Skip when both outputs exist and are newer than the source.
+		hStale = targetMissingOrOlder source hpath
+		cppStale = targetMissingOrOlder source cpppath
+		if not hStale and not cppStale
+			skipped += 1
+			continue
 		unitAst = parser.parseSingleFile source
-		all = mergeAst all unitAst
-	if hasErrors
-		emitErrors
-		return 1
-	headerName = target.name + '.h'
-	implName = target.name + '.cpp'
-	headerPath = platformPathJoin manifest.root headerName
-	implPath = platformPathJoin manifest.root implName
-	guard = generateGuardName target.name
-	ns = namespaceFor target
-	headerSource = renderHeader target guard ns all
-	implSource = renderImplementation target headerName all
-	if platformFileExists headerPath
-		platformMakeWritable headerPath
-	if platformFileExists implPath
-		platformMakeWritable implPath
-	if not platformWriteFile headerPath headerSource
-		reportError headerPath 1 1 'failed to write header'
-		emitErrors
-		return 1
-	if not platformWriteFile implPath implSource
-		reportError implPath 1 1 'failed to write implementation'
-		emitErrors
-		return 1
-	platformMakeReadOnly headerPath
-	platformMakeReadOnly implPath
-	message = 'wrote ' + headerPath
-	println message
-	message = 'wrote ' + implPath
-	println message
+		if hasErrors
+			emitErrors
+			return 1
+		target BuildTarget;
+		target.name = stem
+		guard = generateGuardName stem
+		emptyNs = ''
+		headerSource = renderHeader target guard emptyNs unitAst
+		implSource = renderImplementation target hname unitAst
+		if platformFileExists hpath
+			platformMakeWritable hpath
+		if platformFileExists cpppath
+			platformMakeWritable cpppath
+		if not platformWriteFile hpath headerSource
+			reportError hpath 1 1 'failed to write header'
+			emitErrors
+			return 1
+		if not platformWriteFile cpppath implSource
+			reportError cpppath 1 1 'failed to write implementation'
+			emitErrors
+			return 1
+		platformMakeReadOnly hpath
+		platformMakeReadOnly cpppath
+		hMsg = 'wrote ' + hpath
+		cppMsg = 'wrote ' + cpppath
+		println hMsg
+		println cppMsg
+		wroteAny = true
+	if not wroteAny
+		if skipped isgt 0
+			println 'all headers up to date'
+		else
+			println 'nothing to do'
 	return 0
+
+collectHeaderSources cwd;string positional;{string}, {string}
+	out {string};
+	// Mode 1: explicitFiles file arguments after the `headers` command.
+	explicitFiles {string};
+	i = 2
+	while i islt positional.length
+		explicitFiles += positional{i}
+		i += 1
+	if explicitFiles.length isgt 0
+		for f in explicitFiles
+			abs string;
+			if isAbsolutePath f
+				abs = f
+			else
+				abs = platformPathJoin cwd f
+			abs = platformNormalizePath abs
+			if not platformFileExists abs
+				reportError abs 1 1 'file not found'
+				continue
+			out += abs
+		return out
+	// Mode 2: package.txt mode (every binary target's reachable .drast files).
+	root = findPackageRoot cwd
+	if root.length isgt 0
+		manifestPath = platformPathJoin root 'package.txt'
+		manifest = parsePackageFile manifestPath
+		if hasErrors
+			return out
+		for tgt in manifest.targets
+			if tgt.kind isne 'binary'
+				continue
+			entryPath = platformAbsoluteFromRoot manifest.root tgt.entry
+			if not platformFileExists entryPath
+				continue
+			sourceRoot = platformPathDirname entryPath
+			autoDiscover = shouldAutoDiscoverSources manifest entryPath
+			files = orderDrastSources entryPath sourceRoot autoDiscover
+			for f in files
+				out = appendIfNew out f
+		return out
+	// Mode 3: standalone mode — recursively discover .drast files in cwd.
+	discovered = discoverDrastSources cwd
+	for f in discovered
+		out = appendIfNew out f
+	return out
+
+// Append `value` to `list` if it is not already present. The caller is responsible
+// for passing in a mutable list reference; `~mut` borrow checking is not enforced
+// in the legacy parser path yet (see HANDOFF.md Phase 3 / borrow checker).
+appendIfNew list;{string} value;string, {string}
+	for existing in list
+		if existing == value
+			return list
+	out = list
+	out += value
+	return out
 
 generateGuardName name;string, string
 	out string;
@@ -162,21 +223,23 @@ charToChar code;int, char
 renderHeader target;BuildTarget guard;string ns;string all;AST, string
 	out string;
 	out.reserve 4096
-	out += '// Auto-generated by `drast headers` for target `' + target.name + '`.\n'
-	out += '// This file is regenerated on every `drast headers` invocation and is\n'
-	out += '// installed read-only. Do not edit by hand.\n'
+	out += '// Auto-generated by `drast headers` from `' + target.name + '.drast`.\n'
+	out += '// Read-only: this file is overwritten on every `drast headers` run.\n'
+	out += '// Do not edit by hand.\n'
 	out += '#ifndef ' + guard + '\n'
 	out += '#define ' + guard + '\n'
 	out += '\n'
-	out += '#include <cstddef>\n'
+	// `<cstdint>` covers the sized-integer typedefs (int32_t, uint8_t, etc.) the
+	// codegen now emits unconditionally. It is tiny and ubiquitous; including it
+	// here matches what the body needs without forcing larger STL headers.
 	out += '#include <cstdint>\n'
-	out += '#include <memory>\n'
-	out += '#include <optional>\n'
-	out += '#include <string>\n'
-	out += '#include <tuple>\n'
-	out += '#include <unordered_map>\n'
-	out += '#include <variant>\n'
-	out += '#include <vector>\n'
+	// Forward every user `use Header.h` directive into the generated header so
+	// callers (e.g. an Arduino .ino) inherit the same prerequisites as the body.
+	for line in all.includeLines
+		extra = line
+		if not extra.endsWith s'\n'
+			extra += s'\n'
+		out += extra
 	out += '\n'
 	if all.enums.length isgt 0
 		for en in all.enums
@@ -194,10 +257,12 @@ renderHeader target;BuildTarget guard;string ns;string all;AST, string
 		for proto in all.protocols
 			out += renderProtocolDecl proto
 		out += '\n'
+	cg Codegen;
 	for st in all.structs
 		if st.isFileprivate
 			continue
-		out += renderStructDecl st all
+		out += cg.emitStructDecl st all
+		out += '\n'
 	for fn in all.functions
 		if fn.name == 'main'
 			continue
@@ -207,7 +272,9 @@ renderHeader target;BuildTarget guard;string ns;string all;AST, string
 			continue
 		if fn.typeParams.length isgt 0
 			continue
-		out += renderFunctionDecl fn
+		// Use the codegen's own forward-declaration emitter so the header
+		// signature matches the .cpp definition exactly (const&, defaults, etc.).
+		out += cg.emitFunctionForward fn
 	out += '\n'
 	out += '#endif // ' + guard + '\n'
 	return out
@@ -217,30 +284,14 @@ isPreludeFunctionName name;string, bool
 
 renderImplementation target;BuildTarget headerName;string all;AST, string
 	out string;
-	out.reserve 1024
-	out += '// Auto-generated by `drast headers` for target `' + target.name + '`.\n'
-	out += '// Link this translation unit against your generated Drast objects to expose\n'
-	out += '// the C++ surface declared in ' + headerName + '. Re-run `drast headers` to\n'
-	out += '// regenerate.\n'
+	out.reserve 32768
+	out += '// Auto-generated by `drast headers` from `' + target.name + '.drast`.\n'
+	out += '// Drop-in implementation: compile this file together with ' + headerName + '.\n'
+	out += '// Read-only: overwritten on every `drast headers` run. Do not edit by hand.\n'
 	out += '#include "' + headerName + '"\n'
 	out += '\n'
-	out += '// The Drast-emitted translation units under build/generated/ provide the\n'
-	out += '// concrete implementations referenced in the companion header.\n'
-	return out
-
-namespaceFor target;BuildTarget, string
-	out string;
-	i = 0
-	while i islt target.name.length
-		ch = target.name{i}
-		c = charCode ch
-		if [c isgteq charCode 'A' and c islteq charCode 'Z'] or [c isgteq charCode 'a' and c islteq charCode 'z'] or [c isgteq charCode '0' and c islteq charCode '9'] or ch == c'_'
-			out += ch
-		else
-			out += '_'
-		i += 1
-	if out.length == 0
-		return 'drast_pkg'
+	cg Codegen;
+	out += cg.emitDefinitionsOnly all
 	return out
 
 renderEnumDecl en;CEnum, string
@@ -271,31 +322,6 @@ renderProtocolDecl proto;CProtocol, string
 			first = false
 		out += ') = 0;\n'
 	out += '};\n'
-	return out
-
-renderStructDecl st;CStruct all;AST, string
-	out string;
-	out += 'struct ' + st.name + ' {\n'
-	for field in st.fields
-		if field.visibility == 'private'
-			continue
-		out += '    ' + cppTypeFor field.typeText + ' ' + field.name + ';\n'
-	for method in all.methods
-		if method.host isne st.name
-			continue
-		if method.visibility == 'private'
-			continue
-		if method.name == 'init' or method.name == 'deinit'
-			continue
-		out += '    ' + cppTypeFor method.returnText + ' ' + method.name + '('
-		first = true
-		for param in method.params
-			if not first
-				out += ', '
-			out += cppTypeFor param.typeText + ' ' + param.name
-			first = false
-		out += ');\n'
-	out += '};\n\n'
 	return out
 
 renderFunctionDecl fn;CFunction, string

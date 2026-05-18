@@ -96,10 +96,37 @@ impl Parser
 		return out
 
 	private typeName name;string, string
+		// Sized integer / float aliases from SEMANTICS.md §3.1 / §3.4.
+		// These emit <cstdint> names so generated C++ has explicit widths on every target.
+		if name == 'i8'
+			return 'int8_t'
+		if name == 'i16'
+			return 'int16_t'
+		if name == 'i32'
+			return 'int32_t'
+		if name == 'i64'
+			return 'int64_t'
+		if name == 'u8'
+			return 'uint8_t'
+		if name == 'u16'
+			return 'uint16_t'
+		if name == 'u32'
+			return 'uint32_t'
+		if name == 'u64'
+			return 'uint64_t'
+		if name == 'isize'
+			return 'intptr_t'
+		if name == 'f32'
+			return 'float'
+		if name == 'f64'
+			return 'double'
+		// Legacy spellings (still accepted by the bootstrap compiler; rejected by the
+		// strict semantic checker as E0053). Map to the new sized equivalents in C++ so
+		// generated code is consistent regardless of which spelling source code uses.
 		if name == 'int' or name == 'Int'
-			return 'int'
+			return 'int32_t'
 		if name == 'uint' or name == 'UInt'
-			return 'unsigned int'
+			return 'uint32_t'
 		if name == 'float' or name == 'Float'
 			return 'float'
 		if name == 'double' or name == 'Double'
@@ -119,7 +146,15 @@ impl Parser
 		return self.qualifyName name
 
 	private isBuiltinType name;string, bool
-		return name == 'int' or name == 'Int' or name == 'uint' or name == 'UInt' or name == 'float' or name == 'Float' or name == 'double' or name == 'Double' or name == 'bool' or name == 'Bool' or name == 'char' or name == 'Char' or name == 'string' or name == 'String' or name == 'usize'
+		if name == 'i8' or name == 'i16' or name == 'i32' or name == 'i64'
+			return true
+		if name == 'u8' or name == 'u16' or name == 'u32' or name == 'u64'
+			return true
+		if name == 'isize' or name == 'usize'
+			return true
+		if name == 'f32' or name == 'f64'
+			return true
+		return name == 'int' or name == 'Int' or name == 'uint' or name == 'UInt' or name == 'float' or name == 'Float' or name == 'double' or name == 'Double' or name == 'bool' or name == 'Bool' or name == 'char' or name == 'Char' or name == 'string' or name == 'String'
 
 	private isStdFunction name;string, bool
 		if not self.usesStd
@@ -267,10 +302,33 @@ impl Parser
 
 impl Codegen
 	private typeName name;string, string
+		// Mirrors the Parser.typeName mapping. Sized aliases preferred.
+		if name == 'i8'
+			return 'int8_t'
+		if name == 'i16'
+			return 'int16_t'
+		if name == 'i32'
+			return 'int32_t'
+		if name == 'i64'
+			return 'int64_t'
+		if name == 'u8'
+			return 'uint8_t'
+		if name == 'u16'
+			return 'uint16_t'
+		if name == 'u32'
+			return 'uint32_t'
+		if name == 'u64'
+			return 'uint64_t'
+		if name == 'isize'
+			return 'intptr_t'
+		if name == 'f32'
+			return 'float'
+		if name == 'f64'
+			return 'double'
 		if name == 'int' or name == 'Int'
-			return 'int'
+			return 'int32_t'
 		if name == 'uint' or name == 'UInt'
-			return 'unsigned int'
+			return 'uint32_t'
 		if name == 'float' or name == 'Float'
 			return 'float'
 		if name == 'double' or name == 'Double'

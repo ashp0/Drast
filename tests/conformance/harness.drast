@@ -1,5 +1,5 @@
 use drast
-use ../../src/typecheck/checker
+use ../../src/checker
 
 printDiagnostics result;TypeCheckResult
 	for diag in result.diagnostics

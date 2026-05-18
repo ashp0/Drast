@@ -204,8 +204,23 @@ impl Codegen
 			if self.isParamMutatedInBody p.name body
 				return baseType + '&'
 			return 'const ' + baseType + '&'
-		if self.isCheapValueType p.typeText
+		// Drast bindings (including function parameters) are immutable unless
+		// declared `mut`. The bootstrap compiler approximates that here by
+		// emitting `const` on parameter types whose name is not reassigned in
+		// the body. This matches the by-reference branch above so headers and
+		// `.cpp` definitions always agree.
+		if p.typeText.startsWith 'const '
 			return p.typeText
+		// Pointers: skip the const prefix. `const T*` would make the pointee
+		// const, which is a semantic change rather than the binding-immutability
+		// we want. Full pointer-binding immutability (`T* const`) waits on the
+		// borrow checker; see HANDOFF.md Phase 3.
+		if p.typeText.endsWith s'*'
+			return p.typeText
+		if self.isCheapValueType p.typeText
+			if self.isParamMutatedInBody p.name body
+				return p.typeText
+			return 'const ' + p.typeText
 		return 'const ' + p.typeText + '&'
 
 	private initParamList fn;CFunction, string

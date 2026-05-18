@@ -2,6 +2,7 @@ use drast
 use token
 use lexer
 use ast
+use diagnostics
 
 struct Parser
 	private tokens {Token}
@@ -536,3 +537,1066 @@ impl Parser
 				return t.text
 			i += 1
 		return 'void'
+
+
+struct TcParseResult
+	module TcModule
+	diagnostics {TcDiagnostic}
+
+struct TcSyntaxParser
+	private tokens {Token}
+	private currentIndex usize
+	private currentFile string
+	private diagnostics {TcDiagnostic}
+	private arrayLiteralDepth int
+
+impl TcParseResult
+	init
+		nothing
+
+impl TcSyntaxParser
+	init
+		self.currentIndex = 0
+		self.currentFile = ''
+		self.arrayLiteralDepth = 0
+
+	configure source;string file;string
+		self.currentIndex = 0
+		self.currentFile = file
+		self.diagnostics.clear
+		self.tokens.clear
+		lex = Lexer[source file]
+		self.tokens = lex.lex
+
+	parse, TcParseResult
+		result TcParseResult;
+		module TcModule;
+		module.path = self.currentFile
+		self.skipNewlines
+		while not self.check TokenKind.End
+			if self.currentMatch TokenKind.Use
+				module.uses += self.parseUse
+			elif self.currentMatch TokenKind.Struct
+				module.structs += self.parseStruct false
+			elif self.currentMatch TokenKind.Enum
+				module.enums += self.parseEnum false
+			elif self.currentMatch TokenKind.Protocol
+				module.protocols += self.parseProtocol
+			elif self.currentMatch TokenKind.Impl
+				module.impls += self.parseImpl
+			elif self.currentMatch TokenKind.Fileprivate
+				if self.currentMatch TokenKind.Struct
+					module.structs += self.parseStruct true
+				elif self.currentMatch TokenKind.Enum
+					module.enums += self.parseEnum true
+				else
+					self.errorAtCurrent 'TC0001' 'fileprivate can only prefix a struct or enum'
+					self.skipLine
+			elif self.check TokenKind.Identifier and self.peekCurrent.text == 'type'
+				module.typeAliases += self.parseTypeAlias
+			elif self.check TokenKind.Identifier
+				if self.classifyTopLevel == 'global'
+					module.globals += self.parseGlobal
+				else
+					module.functions += self.parseFunction '' false
+			else
+				self.errorAtCurrent 'TC0002' 'unexpected top-level token'
+				self.skipLine
+			self.skipNewlines
+		result.module = module
+		for diag in self.diagnostics
+			result.diagnostics += diag
+		return result
+
+	private parseUse, TcUse
+		useDecl TcUse;
+		useDecl.span = self.spanFromToken [self.previous]
+		quoted = false
+		path string;
+		if self.check TokenKind.StringLiteral or self.check TokenKind.CharLiteral
+			path = self.advance.text
+			quoted = true
+		else
+			if self.check TokenKind.Identifier and self.peekCurrent.text == 'file'
+				self.advance
+				quoted = true
+			while not self.check TokenKind.Newline and not self.check TokenKind.End
+				path += self.advance.text
+		useDecl.path = path
+		useDecl.quoted = quoted
+		useDecl.header = self.isHeaderPath path
+		if path.length == 0
+			self.errorAtCurrent 'TC0003' 'empty use path'
+		self.consumeStatementEnd
+		return useDecl
+
+	private parseStruct isFileprivate;bool, TcStructDecl
+		nameTok = self.consume TokenKind.Identifier 'expected struct name'
+		st TcStructDecl;
+		st.name = nameTok.text
+		st.isFileprivate = isFileprivate
+		st.span = self.spanFromToken nameTok
+		if self.currentMatch TokenKind.Backtick
+			self.consume TokenKind.LeftBracket 'expected generic parameter list'
+			while not self.check TokenKind.RightBracket and not self.check TokenKind.End
+				if self.currentMatch TokenKind.Comma
+					continue
+				paramTok = self.consume TokenKind.Identifier 'expected generic parameter'
+				st.typeParams += paramTok.text
+			self.consume TokenKind.RightBracket 'expected generic parameter close'
+		self.consumeStatementEnd
+		self.skipNewlines
+		if not self.currentMatch TokenKind.Indent
+			self.errorAtCurrent 'TC0004' 'expected struct block'
+			return st
+		while not self.check TokenKind.Dedent and not self.check TokenKind.End
+			visibility = 'public'
+			if self.currentMatch TokenKind.Private
+				visibility = 'private'
+			elif self.currentMatch TokenKind.Preview
+				visibility = 'preview'
+			elif self.currentMatch TokenKind.Fileprivate
+				visibility = 'fileprivate'
+			fieldTok = self.consume TokenKind.Identifier 'expected field name'
+			field TcField;
+			field.name = fieldTok.text
+			field.visibility = visibility
+			field.span = self.spanFromToken fieldTok
+			field.typeRef = self.parseTypeRef
+			self.currentMatch TokenKind.Semicolon
+			self.consumeStatementEnd
+			st.fields += field
+			self.skipNewlines
+		self.consume TokenKind.Dedent 'expected struct end'
+		return st
+
+	private parseEnum isFileprivate;bool, TcEnumDecl
+		nameTok = self.consume TokenKind.Identifier 'expected enum name'
+		en TcEnumDecl;
+		en.name = nameTok.text
+		en.isFileprivate = isFileprivate
+		en.span = self.spanFromToken nameTok
+		while self.currentMatch TokenKind.Dot
+			partTok = self.consume TokenKind.Identifier 'expected nested enum name'
+			en.name += '.' + partTok.text
+		self.consumeStatementEnd
+		self.skipNewlines
+		if not self.currentMatch TokenKind.Indent
+			self.errorAtCurrent 'TC0005' 'expected enum block'
+			return en
+		while not self.check TokenKind.Dedent and not self.check TokenKind.End
+			while self.check TokenKind.Identifier
+				variant TcEnumVariant;
+				varTok = self.advance
+				variant.name = varTok.text
+				variant.span = self.spanFromToken varTok
+				if self.check TokenKind.Identifier and [self.peek 1].kind == TokenKind.Semicolon
+					while self.check TokenKind.Identifier and [self.peek 1].kind == TokenKind.Semicolon
+						fieldTok = self.advance
+						self.consume TokenKind.Semicolon 'expected enum payload separator'
+						field TcField;
+						field.name = fieldTok.text
+						field.span = self.spanFromToken fieldTok
+						field.typeRef = self.parseTypeRef
+						variant.fields += field
+					en.isData = true
+				else
+					while self.check TokenKind.Identifier
+						variant.name += '_' + self.advance.text
+				en.variants += variant
+				if not self.currentMatch TokenKind.Semicolon
+					break
+			self.consumeStatementEnd
+			self.skipNewlines
+		self.consume TokenKind.Dedent 'expected enum end'
+		return en
+
+	private parseProtocol, TcProtocolDecl
+		proto TcProtocolDecl;
+		nameTok = self.consume TokenKind.Identifier 'expected protocol name'
+		proto.name = nameTok.text
+		proto.span = self.spanFromToken nameTok
+		self.consumeStatementEnd
+		self.skipNewlines
+		if not self.currentMatch TokenKind.Indent
+			self.errorAtCurrent 'TC0006' 'expected protocol block'
+			return proto
+		while not self.check TokenKind.Dedent and not self.check TokenKind.End
+			fn = self.parseFunction '' true
+			proto.methods += fn
+			self.skipNewlines
+		self.consume TokenKind.Dedent 'expected protocol end'
+		return proto
+
+	private parseImpl, TcImplDecl
+		implDecl TcImplDecl;
+		hostTok = self.consume TokenKind.Identifier 'expected impl host'
+		implDecl.host = hostTok.text
+		implDecl.span = self.spanFromToken hostTok
+		if self.currentMatch TokenKind.As
+			protoTok = self.consume TokenKind.Identifier 'expected protocol name'
+			implDecl.protocolName = protoTok.text
+		self.consumeStatementEnd
+		self.skipNewlines
+		if not self.currentMatch TokenKind.Indent
+			self.errorAtCurrent 'TC0007' 'expected impl block'
+			return implDecl
+		while not self.check TokenKind.Dedent and not self.check TokenKind.End
+			if self.currentMatch TokenKind.Private or self.currentMatch TokenKind.Preview
+				nothing
+			if self.currentMatch TokenKind.Operator
+					implDecl.methods += self.parseOperator implDecl.host
+				else
+					implDecl.methods += self.parseFunction implDecl.host true
+			self.skipNewlines
+		self.consume TokenKind.Dedent 'expected impl end'
+		return implDecl
+
+	private parseTypeAlias, TcTypeAlias
+		self.consume TokenKind.Identifier 'expected type declaration'
+		nameTok = self.consume TokenKind.Identifier 'expected newtype name'
+		alias TcTypeAlias;
+		alias.name = nameTok.text
+		alias.span = self.spanFromToken nameTok
+		self.consume TokenKind.Equal 'expected = in type declaration'
+		alias.underlying = self.parseTypeRef
+		self.consumeStatementEnd
+		return alias
+
+	private parseOperator host;string, TcFunction
+		fn TcFunction;
+		fn.name = 'operator'
+		fn.host = host
+		fn.isMethod = true
+		fn.isOperator = true
+		fn.span = self.spanFromToken [self.previous]
+		self.consume TokenKind.LeftBracket 'expected operator bracket'
+		while not self.check TokenKind.RightBracket and not self.check TokenKind.End
+			fn.operatorSymbol += self.advance.text
+		self.consume TokenKind.RightBracket 'expected operator close'
+		fn.name += fn.operatorSymbol
+		self.parseFunctionTail fn
+		return fn
+
+	private parseFunction host;string isMethod;bool, TcFunction
+		nameTok = self.consume TokenKind.Identifier 'expected function name'
+		fn TcFunction;
+		fn.name = nameTok.text
+		fn.host = host
+		fn.isMethod = isMethod
+		fn.span = self.spanFromToken nameTok
+		self.parseFunctionTail fn
+		return fn
+
+	private parseFunctionTail fn;~TcFunction
+		if self.currentMatch TokenKind.Backtick
+			self.consume TokenKind.LeftBracket 'expected generic parameter list'
+			while not self.check TokenKind.RightBracket and not self.check TokenKind.End
+				if self.currentMatch TokenKind.Comma
+					continue
+				paramTok = self.consume TokenKind.Identifier 'expected generic parameter'
+				fn.typeParams += paramTok.text
+			self.consume TokenKind.RightBracket 'expected generic parameter close'
+		while not self.check TokenKind.Comma and not self.check TokenKind.Newline and not self.check TokenKind.End
+			param TcParam;
+			nextToken = self.peek 1
+			if self.check TokenKind.Identifier and self.peekCurrent.text == 'mut' and self.isIdentLikeKind nextToken.kind
+				self.advance
+				param.isMutableBinding = true
+			nameTok = self.consumeIdentLike 'expected parameter name'
+			param.name = nameTok.text
+			param.span = self.spanFromToken nameTok
+			if self.currentMatch TokenKind.Semicolon
+				param.typeRef = self.parseTypeRef
+				if param.typeRef.kind == 'variadic'
+					param.isVariadic = true
+			else
+				message = 'parameter `' + param.name + '` requires a type annotation'
+				self.diagnostics += tcDiagnostic 'E0021' param.span message
+				param.typeRef = self.unknownTypeRef param.span
+			if self.currentMatch TokenKind.Semicolon
+				param.defaultValue = self.parseExpression
+				param.hasDefault = true
+			fn.params += param
+		if self.currentMatch TokenKind.Comma
+			if self.currentMatch TokenKind.Maybe
+				fn.returnsMaybe = true
+			fn.returnRef = self.parseTypeRef
+			if fn.returnsMaybe
+				fn.returnRef = self.constructedTypeRef 'maybe' fn.returnRef fn.returnRef.span
+			if self.currentMatch TokenKind.Discard
+				fn.discardReturn = true
+		else
+			fn.returnRef.kind = 'void'
+			fn.returnRef.name = 'Void'
+			fn.returnRef.span = fn.span
+		self.consumeStatementEnd
+		self.skipNewlines
+		if self.currentMatch TokenKind.Indent
+			fn.body = self.parseBlockAfterIndent
+		self.skipNewlines
+		if self.currentMatch TokenKind.With
+			self.parseWithBounds fn
+
+	private parseWithBounds fn;~TcFunction
+		while not self.check TokenKind.Newline and not self.check TokenKind.End
+			if self.currentMatch TokenKind.Comma
+				continue
+			bound TcGenericBound;
+			paramTok = self.consume TokenKind.Identifier 'expected generic bound parameter'
+			bound.param = paramTok.text
+			bound.span = self.spanFromToken paramTok
+			if self.currentMatch TokenKind.As
+				protoTok = self.consume TokenKind.Identifier 'expected protocol in generic bound'
+				bound.protocolName = protoTok.text
+			else
+				self.errorAtCurrent 'TC0008' 'expected `as` in generic bound'
+				break
+			fn.bounds += bound
+		self.consumeStatementEnd
+
+	private parseGlobal, TcGlobal
+		nameTok = self.consume TokenKind.Identifier 'expected global name'
+		global TcGlobal;
+		global.name = nameTok.text
+		global.span = self.spanFromToken nameTok
+		if self.currentMatch TokenKind.Const
+			global.isConst = true
+		if not self.check TokenKind.Equal
+			global.typeRef = self.parseTypeRef
+			global.hasType = true
+		if self.currentMatch TokenKind.Equal
+			global.initializer = self.parseExpression
+			global.hasInitializer = true
+		else
+			self.errorAtCurrent 'TC0009' 'expected global initializer'
+		self.consumeStatementEnd
+		return global
+
+	private parseBlockAfterIndent, {TcStmt}
+		stmts {TcStmt};
+		self.skipNewlines
+		if self.check TokenKind.Dedent or self.check TokenKind.End
+			self.errorAtCurrent 'TC0010' 'empty block body; use `nothing` if this is intentional'
+		while not self.check TokenKind.Dedent and not self.check TokenKind.End
+			stmts += self.parseStatement
+			self.skipNewlines
+		self.consume TokenKind.Dedent 'expected block end'
+		return stmts
+
+	private parseStatement, TcStmt
+		if self.currentMatch TokenKind.Return
+			stmt = self.makeStmt 'return' self.previous
+			if not self.isStatementEnd
+				stmt.expr = self.parseExpression
+			self.consumeStatementEnd
+			return stmt
+		if self.currentMatch TokenKind.Break
+			stmt = self.makeStmt 'break' self.previous
+			self.consumeStatementEnd
+			return stmt
+		if self.currentMatch TokenKind.Continue
+			stmt = self.makeStmt 'continue' self.previous
+			self.consumeStatementEnd
+			return stmt
+		if self.currentMatch TokenKind.Nothing
+			stmt = self.makeStmt 'nothing' self.previous
+			self.consumeStatementEnd
+			return stmt
+		if self.check TokenKind.If
+			return self.parseIf
+		if self.check TokenKind.While
+			return self.parseWhile
+		if self.check TokenKind.For
+			return self.parseFor
+		if self.check TokenKind.Match
+			return self.parseMatch
+		if self.check TokenKind.Try
+			return self.parseTryCatch
+		return self.parseSimpleStatement
+
+	private parseIf, TcStmt
+		start = self.consume TokenKind.If 'expected if'
+		if self.lineContainsAssignmentExpression
+			diagSpan = self.spanFromToken start
+			self.diagnostics += tcDiagnostic 'E0082' diagSpan 'assignment is not an expression; use `==` for comparison'
+		stmt = self.makeStmt 'if' start
+		stmt.conditions += self.parseExpression
+		self.consumeStatementEnd
+		self.skipNewlines
+		self.consume TokenKind.Indent 'expected if block'
+		for bodyStmt in self.parseBlockAfterIndent
+			stmt.body += bodyStmt
+		self.skipNewlines
+		while self.currentMatch TokenKind.Elif
+			if self.lineContainsAssignmentExpression
+				diagSpan = self.spanFromToken [self.previous]
+				self.diagnostics += tcDiagnostic 'E0082' diagSpan 'assignment is not an expression; use `==` for comparison'
+			stmt.conditions += self.parseExpression
+			self.consumeStatementEnd
+			self.skipNewlines
+			self.consume TokenKind.Indent 'expected elif block'
+			branch = self.makeStmt 'elifBlock' self.previous
+			branch.body = self.parseBlockAfterIndent
+			stmt.arms += branch
+			self.skipNewlines
+		if self.currentMatch TokenKind.Else
+			self.consumeStatementEnd
+			self.skipNewlines
+			self.consume TokenKind.Indent 'expected else block'
+			stmt.elseBody = self.parseBlockAfterIndent
+		return stmt
+
+	private parseWhile, TcStmt
+		start = self.consume TokenKind.While 'expected while'
+		if self.lineContainsAssignmentExpression
+			diagSpan = self.spanFromToken start
+			self.diagnostics += tcDiagnostic 'E0082' diagSpan 'assignment is not an expression; use `==` for comparison'
+		stmt = self.makeStmt 'while' start
+		stmt.expr = self.parseExpression
+		self.consumeStatementEnd
+		self.skipNewlines
+		self.consume TokenKind.Indent 'expected while block'
+		stmt.body = self.parseBlockAfterIndent
+		return stmt
+
+	private parseFor, TcStmt
+		start = self.consume TokenKind.For 'expected for'
+		stmt = self.makeStmt 'forEach' start
+		nameTok = self.consume TokenKind.Identifier 'expected loop variable'
+		stmt.name = nameTok.text
+		self.consume TokenKind.In 'expected in'
+		stmt.expr = self.parseExpression
+		if self.currentMatch TokenKind.To
+			stmt.kind = 'forRangeInclusive'
+			stmt.conditions += self.parseExpression
+			if self.currentMatch TokenKind.Step
+				stmt.target = self.parseExpression
+		elif self.currentMatch TokenKind.Until
+			stmt.kind = 'forRangeExclusive'
+			stmt.conditions += self.parseExpression
+			if self.currentMatch TokenKind.Step
+				stmt.target = self.parseExpression
+		self.consumeStatementEnd
+		self.skipNewlines
+		self.consume TokenKind.Indent 'expected for block'
+		stmt.body = self.parseBlockAfterIndent
+		return stmt
+
+	private parseTryCatch, TcStmt
+		start = self.consume TokenKind.Try 'expected try'
+		diagSpan = self.spanFromToken start
+		self.diagnostics += tcDiagnostic 'E0030' diagSpan '`try`/`catch` blocks are not Drast exceptions; use `Result[T, E]` and prefix `try expr` for recoverable errors'
+		stmt = self.makeStmt 'try' start
+		self.consumeStatementEnd
+		self.skipNewlines
+		self.consume TokenKind.Indent 'expected try block'
+		stmt.body = self.parseBlockAfterIndent
+		self.skipNewlines
+		self.consume TokenKind.Catch 'expected catch'
+		stmt.name = '_1'
+		if self.currentMatch TokenKind.Semicolon
+			bindTok = self.consume TokenKind.Identifier 'expected catch binding'
+			stmt.name = bindTok.text
+		self.consumeStatementEnd
+		self.skipNewlines
+		self.consume TokenKind.Indent 'expected catch block'
+		stmt.elseBody = self.parseBlockAfterIndent
+		return stmt
+
+	private parseMatch, TcStmt
+		start = self.consume TokenKind.Match 'expected match'
+		stmt = self.makeStmt 'match' start
+		stmt.expr = self.parseExpression
+		self.consumeStatementEnd
+		self.skipNewlines
+		self.consume TokenKind.Indent 'expected match block'
+		while not self.check TokenKind.Dedent and not self.check TokenKind.End
+			arm = self.makeStmt 'matchArm' self.peekCurrent
+			if self.currentMatch TokenKind.Default
+				arm.name = 'default'
+			else
+				arm.expr = self.parsePostfixNoImplicit
+				while self.check TokenKind.Identifier and not self.isStatementEnd
+					arm.names += self.advance.text
+			self.consumeStatementEnd
+			self.skipNewlines
+			self.consume TokenKind.Indent 'expected match arm block'
+			arm.body = self.parseBlockAfterIndent
+			stmt.arms += arm
+			self.skipNewlines
+		self.consume TokenKind.Dedent 'expected match end'
+		return stmt
+
+	private parseSimpleStatement, TcStmt
+		isMutableBinding = false
+		nextToken = self.peek 1
+		if self.check TokenKind.Identifier and self.peekCurrent.text == 'mut' and self.isIdentLikeKind nextToken.kind
+			isMutableBinding = true
+			self.advance
+		assignAt = self.findAssignmentOnLine
+		if self.isIdentLikeKind self.peekCurrent.kind and assignAt islt self.tokens.length
+			if self.isTypedDeclarationBefore assignAt
+				nameTok = self.advance
+				stmt = self.makeStmt 'varDecl' nameTok
+				stmt.name = nameTok.text
+				stmt.isMutableBinding = isMutableBinding
+				stmt.typeRef = self.parseTypeRef
+				stmt.op = '='
+				self.consume TokenKind.Equal 'expected ='
+				stmt.expr = self.parseExpression
+				self.consumeStatementEnd
+				return stmt
+			target = self.parsePostfixNoImplicit
+			opTok = self.advance
+			stmt = self.makeStmt 'assign' opTok
+			stmt.target = target
+			stmt.op = opTok.text
+			stmt.isMutableBinding = isMutableBinding
+			stmt.expr = self.parseExpression
+			self.consumeStatementEnd
+			return stmt
+		if self.isUninitDeclaration
+			nameTok = self.advance
+			stmt = self.makeStmt 'varDecl' nameTok
+			stmt.name = nameTok.text
+			stmt.isMutableBinding = isMutableBinding
+			stmt.typeRef = self.parseTypeRef
+			self.currentMatch TokenKind.Semicolon
+			self.consumeStatementEnd
+			return stmt
+		stmt = self.makeStmt 'expr' self.peekCurrent
+		stmt.expr = self.parseExpression
+		self.consumeStatementEnd
+		return stmt
+
+	private parseTypeRef, TcTypeRef
+		start = self.spanFromToken [self.peekCurrent]
+		if self.currentMatch TokenKind.Tilde
+			inner = self.parseTypeRef
+			return self.constructedTypeRef 'reference' inner start
+		if self.currentMatch TokenKind.Maybe
+			inner = self.parseTypeRef
+			return self.constructedTypeRef 'maybe' inner start
+		if self.currentMatch TokenKind.LeftBrace
+			inner = self.parseTypeRef
+			self.consume TokenKind.RightBrace 'expected array type close'
+			return self.constructedTypeRef 'array' inner start
+		if self.currentMatch TokenKind.AtLeftBracket
+			inner = self.parseTypeRef
+			self.consume TokenKind.RightBracket 'expected heap type close'
+			return self.constructedTypeRef 'heap' inner start
+		if self.currentMatch TokenKind.Variadic
+			self.consume TokenKind.LeftBracket 'expected variadic type bracket'
+			inner = self.parseTypeRef
+			self.consume TokenKind.RightBracket 'expected variadic type close'
+			return self.constructedTypeRef 'variadic' inner start
+		if self.currentMatch TokenKind.Tuple
+			ref TcTypeRef;
+			ref.kind = 'tuple'
+			ref.span = start
+			while self.isTypeStartKind self.peekCurrent.kind
+				ref.args += self.parseTypeRef
+			return ref
+		typeTok = self.consume TokenKind.Identifier 'expected type name'
+		name = typeTok.text
+		while true
+			if self.currentMatch TokenKind.Dot
+				partTok = self.consume TokenKind.Identifier 'expected dotted type'
+				name += '.' + partTok.text
+			elif self.currentMatch TokenKind.DoubleColon
+				partTok = self.consume TokenKind.Identifier 'expected namespaced type'
+				name += '::' + partTok.text
+			else
+				break
+		typeSpan = self.spanFromToken typeTok
+		ref = self.namedTypeRef name typeSpan
+		if [self.check TokenKind.Backtick and [self.peek 1].kind == TokenKind.LeftBracket] or self.check TokenKind.LeftBracket
+			if self.check TokenKind.Backtick
+				self.advance
+			self.consume TokenKind.LeftBracket 'expected generic type bracket'
+			generic TcTypeRef;
+			generic.kind = 'genericApply'
+			generic.name = name
+			generic.span = ref.span
+			while not self.check TokenKind.RightBracket and not self.check TokenKind.End
+				if self.currentMatch TokenKind.Comma
+					continue
+				generic.args += self.parseTypeRef
+			self.consume TokenKind.RightBracket 'expected generic type close'
+			ref = generic
+		while self.currentMatch TokenKind.Backtick
+			ref = self.constructedTypeRef 'pointer' ref start
+		return ref
+
+	private parseExpression, TcExpr
+		return self.parseOr
+
+	private parseOr, TcExpr
+		left = self.parseAnd
+		while self.check TokenKind.Or
+			op = self.advance
+			right = self.parseAnd
+			left = self.binaryExpr left op right
+		return left
+
+	private parseAnd, TcExpr
+		left = self.parseEquality
+		while self.check TokenKind.And
+			op = self.advance
+			right = self.parseEquality
+			left = self.binaryExpr left op right
+		return left
+
+	private parseEquality, TcExpr
+		left = self.parseComparison
+		while self.check TokenKind.EqualEqual or self.check TokenKind.Iseq or self.check TokenKind.Isne
+			op = self.advance
+			right = self.parseComparison
+			left = self.binaryExpr left op right
+		return left
+
+	private parseComparison, TcExpr
+		left = self.parseCast
+		while self.check TokenKind.Islt or self.check TokenKind.Isgt or self.check TokenKind.Islteq or self.check TokenKind.Isgteq or self.isComparisonWordCurrent
+			op = self.advance
+			right = self.parseCast
+			left = self.binaryExpr left op right
+		return left
+
+	private parseCast, TcExpr
+		left = self.parseTerm
+		while self.currentMatch TokenKind.As
+			castExpr = self.makeExpr 'cast' self.previous
+			castExpr.children += left
+			castExpr.typeRef = self.parseTypeRef
+			left = castExpr
+		return left
+
+	private parseTerm, TcExpr
+		left = self.parseFactor
+		while self.check TokenKind.Plus or self.check TokenKind.Minus or self.check TokenKind.WrappingPlus or self.check TokenKind.WrappingMinus or self.check TokenKind.SaturatingPlus or self.check TokenKind.SaturatingMinus or self.check TokenKind.WrappingShiftLeft
+			op = self.advance
+			right = self.parseFactor
+			left = self.binaryExpr left op right
+		return left
+
+	private parseFactor, TcExpr
+		left = self.parseUnary
+		while self.check TokenKind.Star or self.check TokenKind.Slash or self.check TokenKind.Percent or self.check TokenKind.WrappingStar or self.check TokenKind.SaturatingStar
+			op = self.advance
+			right = self.parseUnary
+			left = self.binaryExpr left op right
+		return left
+
+	private parseUnary, TcExpr
+		if self.currentMatch TokenKind.Try
+			opTok = self.previous
+			ex = self.makeExpr 'tryExpr' opTok
+			ex.children += self.parseUnary
+			return ex
+		if self.currentMatch TokenKind.Not or self.currentMatch TokenKind.Minus or self.currentMatch TokenKind.Tilde or self.currentMatch TokenKind.Backtick
+			opTok = self.previous
+			ex = self.makeExpr 'unary' opTok
+			ex.op = opTok.text
+			ex.children += self.parseUnary
+			return ex
+		return self.parsePostfix
+
+	private parseCallArgument, TcExpr
+		if self.currentMatch TokenKind.Try
+			opTok = self.previous
+			ex = self.makeExpr 'tryExpr' opTok
+			ex.children += self.parseCallArgument
+			return ex
+		if self.currentMatch TokenKind.Not or self.currentMatch TokenKind.Minus or self.currentMatch TokenKind.Tilde or self.currentMatch TokenKind.Backtick
+			opTok = self.previous
+			ex = self.makeExpr 'unary' opTok
+			ex.op = opTok.text
+			ex.children += self.parseCallArgument
+			return ex
+		return self.parsePostfixNoImplicit
+
+	private parsePostfix, TcExpr
+		ex = self.parsePostfixNoImplicit
+		if self.isCallee ex and self.isPrimaryStart self.peekCurrent.kind and not self.isComparisonWordCurrent
+			return self.parseImplicitCall ex
+		return ex
+
+	private parsePostfixNoImplicit, TcExpr
+		ex = self.parsePrimary
+		while true
+			if self.currentMatch TokenKind.Dot
+				memberTok = self.consume TokenKind.Identifier 'expected member'
+				field = self.makeExpr 'field' memberTok
+				field.text = memberTok.text
+				field.children += ex
+				ex = field
+				continue
+			if self.check TokenKind.LeftBrace and self.arrayLiteralDepth == 0
+				self.advance
+				index = self.makeExpr 'index' self.previous
+				index.children += ex
+				index.children += self.parseExpression
+				self.consume TokenKind.RightBrace 'expected index close'
+				ex = index
+				continue
+			if self.check TokenKind.LeftBracket and self.isCallee ex
+				ex = self.parseBracketAfterCallee ex
+				continue
+			if self.check TokenKind.Backtick and [self.peek 1].kind == TokenKind.LeftBracket and self.isCallee ex
+				self.advance
+				self.advance
+				while not self.check TokenKind.RightBracket and not self.check TokenKind.End
+					if self.currentMatch TokenKind.Comma
+						continue
+					ex.typeRef.args += self.parseTypeRef
+				self.consume TokenKind.RightBracket 'expected generic call close'
+				continue
+			break
+		return ex
+
+	private parseImplicitCall callee;TcExpr, TcExpr
+		call TcExpr;
+		call.kind = 'call'
+		call.span = callee.span
+		call.children += callee
+		while self.isPrimaryStart self.peekCurrent.kind
+			label = ''
+			nextTok = self.peek 1
+			if self.check TokenKind.Semicolon and self.isIdentLikeKind nextTok.kind
+				self.advance
+				label = self.advance.text
+			call.labels += label
+			call.children += self.parseCallArgument
+		return call
+
+	private parseBracketAfterCallee callee;TcExpr, TcExpr
+		start = self.consume TokenKind.LeftBracket 'expected bracket'
+		if callee.kind == 'identifier' and self.isTypeLike callee.text
+			ctor = self.makeExpr 'constructor' start
+			ctor.text = callee.text
+			ctor.children += callee
+			while not self.check TokenKind.RightBracket and not self.check TokenKind.End
+				if self.currentMatch TokenKind.Semicolon
+					labelTok = self.consume TokenKind.Identifier 'expected label'
+					ctor.labels += labelTok.text
+				else
+					ctor.labels += ''
+				ctor.children += self.parseCallArgument
+				self.currentMatch TokenKind.Comma
+			self.consume TokenKind.RightBracket 'expected bracket close'
+			return ctor
+		call = self.makeExpr 'batchCall' start
+		call.children += callee
+		while not self.check TokenKind.RightBracket and not self.check TokenKind.End
+			if self.currentMatch TokenKind.Newline or self.currentMatch TokenKind.Indent or self.currentMatch TokenKind.Dedent or self.currentMatch TokenKind.Comma
+				continue
+			call.children += self.parseCallArgument
+		self.consume TokenKind.RightBracket 'expected batch close'
+		return call
+
+	private parsePrimary, TcExpr
+		tok = self.peekCurrent
+		if self.currentMatch TokenKind.IntLiteral
+			ex = self.makeExpr 'intLiteral' tok
+			ex.text = tok.text
+			return ex
+		if self.currentMatch TokenKind.FloatLiteral
+			ex = self.makeExpr 'floatLiteral' tok
+			ex.text = tok.text
+			return ex
+		if self.currentMatch TokenKind.StringLiteral
+			ex = self.makeExpr 'stringLiteral' tok
+			ex.text = tok.text
+			return ex
+		if self.currentMatch TokenKind.CharLiteral
+			ex = self.makeExpr 'charLiteral' tok
+			ex.text = tok.text
+			return ex
+		if self.currentMatch TokenKind.True or self.currentMatch TokenKind.False
+			ex = self.makeExpr 'boolLiteral' tok
+			ex.text = tok.text
+			return ex
+		if self.currentMatch TokenKind.Nil
+			return self.makeExpr 'nilLiteral' tok
+		if self.currentMatch TokenKind.Nothing
+			self.errorAtCurrent 'TC0011' '`nothing` is only valid as a statement'
+			span = self.spanFromToken tok
+			return self.invalidExpr span
+		if self.currentMatch TokenKind.Self
+			ex = self.makeExpr 'self' tok
+			ex.text = 'self'
+			return ex
+		if self.check TokenKind.Identifier or self.check TokenKind.To or self.check TokenKind.Until or self.check TokenKind.Step or self.check TokenKind.In
+			t = self.advance
+			ex = self.makeExpr 'identifier' t
+			ex.text = t.text
+			return ex
+		if self.currentMatch TokenKind.Tuple
+			ex = self.makeExpr 'tuple' tok
+			while self.isPrimaryStart self.peekCurrent.kind
+				ex.children += self.parseCallArgument
+			return ex
+		if self.currentMatch TokenKind.LeftParen or self.currentMatch TokenKind.LeftBracket
+			open = tok.kind
+			inner = self.parseExpression
+			if open == TokenKind.LeftParen
+				self.consume TokenKind.RightParen 'expected )'
+			else
+				self.consume TokenKind.RightBracket 'expected ]'
+			group = self.makeExpr 'group' tok
+			group.children += inner
+			return group
+		if self.currentMatch TokenKind.LeftBrace
+			ex = self.makeExpr 'array' tok
+			self.arrayLiteralDepth += 1
+			while not self.check TokenKind.RightBrace and not self.check TokenKind.End
+				if self.currentMatch TokenKind.Comma or self.currentMatch TokenKind.Newline
+					continue
+				ex.children += self.parseExpression
+			self.arrayLiteralDepth -= 1
+			self.consume TokenKind.RightBrace 'expected }'
+			return ex
+		if self.currentMatch TokenKind.AtLeftBracket
+			ex = self.makeExpr 'heap' tok
+			ex.typeRef = self.parseTypeRef
+			while not self.check TokenKind.RightBracket and not self.check TokenKind.End
+				ex.children += self.parseCallArgument
+			self.consume TokenKind.RightBracket 'expected heap close'
+			return ex
+		if self.currentMatch TokenKind.Dot
+			nameTok = self.consume TokenKind.Identifier 'expected enum shorthand'
+			ex = self.makeExpr 'enumShorthand' nameTok
+			ex.text = nameTok.text
+			return ex
+		if self.currentMatch TokenKind.Semicolon
+			if self.check TokenKind.IntLiteral
+				numTok = self.advance
+				ex = self.makeExpr 'positional' numTok
+				ex.text = numTok.text
+				return ex
+			if self.check TokenKind.Identifier
+				nameTok = self.advance
+				ex = self.makeExpr 'identifier' nameTok
+				ex.text = nameTok.text
+				return ex
+		self.errorAtCurrent 'TC0012' 'expected expression'
+		self.advance
+		span = self.spanFromToken tok
+		return self.invalidExpr span
+
+	private binaryExpr left;TcExpr op;Token right;TcExpr, TcExpr
+		out = self.makeExpr 'binary' op
+		out.op = op.text
+		out.children += left
+		out.children += right
+		return out
+
+	private makeStmt kind;string tok;Token, TcStmt
+		span = self.spanFromToken tok
+		stmt TcStmt;
+		stmt.kind = kind
+		stmt.span = span
+		return stmt
+
+	private makeExpr kind;string tok;Token, TcExpr
+		span = self.spanFromToken tok
+		ex TcExpr;
+		ex.kind = kind
+		ex.span = span
+		return ex
+
+	private invalidExpr span;SourceSpan, TcExpr
+		ex TcExpr;
+		ex.kind = 'invalid'
+		ex.span = span
+		ex.resolvedType.kind = 'error'
+		return ex
+
+	private namedTypeRef name;string span;SourceSpan, TcTypeRef
+		ref TcTypeRef;
+		ref.kind = 'named'
+		ref.name = name
+		ref.span = span
+		return ref
+
+	private unknownTypeRef span;SourceSpan, TcTypeRef
+		ref TcTypeRef;
+		ref.kind = 'unknown'
+		ref.span = span
+		return ref
+
+	private constructedTypeRef kind;string inner;TcTypeRef span;SourceSpan, TcTypeRef
+		ref TcTypeRef;
+		ref.kind = kind
+		ref.args += inner
+		ref.span = span
+		return ref
+
+	private currentMatch kind;TokenKind, bool
+		if not self.check kind
+			return false
+		self.advance
+		return true
+
+	private check kind;TokenKind, bool
+		if self.currentIndex isgteq self.tokens.length
+			return kind == TokenKind.End
+		return self.tokens{self.currentIndex}.kind == kind
+
+	private advance, Token
+		t = self.tokens{self.currentIndex}
+		if not self.check TokenKind.End
+			self.currentIndex += 1
+		return t
+
+	private previous, Token
+		if self.currentIndex == 0
+			return self.tokens{0}
+		return self.tokens{self.currentIndex - 1}
+
+	private consume kind;TokenKind message;string, Token
+		if self.check kind
+			return self.advance
+		self.errorAtCurrent 'TC0013' message
+		return self.advance
+
+	private peek offset;usize, Token
+		i = self.currentIndex + offset
+		if i isgteq self.tokens.length
+			return self.tokens{self.tokens.length - 1}
+		return self.tokens{i}
+
+	private peekCurrent, Token
+		return self.peek 0
+
+	private skipNewlines
+		while self.currentMatch TokenKind.Newline
+			continue
+
+	private consumeStatementEnd
+		if self.currentMatch TokenKind.Newline or self.check TokenKind.Dedent or self.check TokenKind.End
+			return
+		self.errorAtCurrent 'TC0014' 'expected end of statement'
+		self.skipLine
+
+	private isStatementEnd, bool
+		return self.check TokenKind.Newline or self.check TokenKind.Dedent or self.check TokenKind.End
+
+	private skipLine
+		while not self.check TokenKind.Newline and not self.check TokenKind.End and not self.check TokenKind.Dedent
+			self.advance
+		self.currentMatch TokenKind.Newline
+
+	private spanFromToken tok;Token, SourceSpan
+		span SourceSpan;
+		span.file = tok.location.file
+		span.line = tok.location.line
+		span.column = tok.location.column
+		span.endLine = tok.location.line
+		span.endColumn = tok.location.column
+		return span
+
+	private errorAtCurrent code;string message;string
+		diag TcDiagnostic;
+		diag.code = code
+		diag.severity = 'error'
+		diag.message = message
+		diag.span = self.spanFromToken self.peekCurrent
+		self.diagnostics += diag
+
+	private classifyTopLevel, string
+		i = self.currentIndex + 1
+		while i islt self.tokens.length
+			k = self.tokens{i}.kind
+			if k == TokenKind.Newline or k == TokenKind.End or k == TokenKind.Indent or k == TokenKind.Dedent
+				break
+			if k == TokenKind.Equal or k == TokenKind.Const
+				return 'global'
+			i += 1
+		return 'function'
+
+	private findAssignmentOnLine, usize
+		i = self.currentIndex
+		depth = 0
+		while i islt self.tokens.length
+			k = self.tokens{i}.kind
+			if k == TokenKind.Newline or k == TokenKind.End or k == TokenKind.Dedent
+				return self.tokens.length
+			if k == TokenKind.LeftBracket or k == TokenKind.LeftBrace or k == TokenKind.LeftParen
+				depth += 1
+			elif k == TokenKind.RightBracket or k == TokenKind.RightBrace or k == TokenKind.RightParen
+				depth -= 1
+			if depth == 0
+				if k == TokenKind.Equal or k == TokenKind.PlusEqual or k == TokenKind.MinusEqual or k == TokenKind.StarEqual or k == TokenKind.SlashEqual
+					return i
+			i += 1
+		return self.tokens.length
+
+	private lineContainsAssignmentExpression, bool
+		return self.findAssignmentOnLine islt self.tokens.length
+
+	private isTypedDeclarationBefore assignAt;usize, bool
+		if not self.check TokenKind.Identifier
+			return false
+		if self.currentIndex + 1 isgteq assignAt
+			return false
+		nextTok = self.peek 1
+		return self.isTypeStartKind nextTok.kind
+
+	private isUninitDeclaration, bool
+		if not self.check TokenKind.Identifier
+			return false
+		nextTok = self.peek 1
+		if not self.isTypeStartKind nextTok.kind
+			return false
+		i = self.currentIndex + 1
+		while i islt self.tokens.length
+			k = self.tokens{i}.kind
+			if k == TokenKind.Newline or k == TokenKind.End or k == TokenKind.Dedent
+				return false
+			if k == TokenKind.Semicolon
+				return true
+			if k == TokenKind.Equal
+				return false
+			i += 1
+		return false
+
+	private isTypeStartKind kind;TokenKind, bool
+		return kind == TokenKind.Identifier or kind == TokenKind.LeftBrace or kind == TokenKind.Tilde or kind == TokenKind.AtLeftBracket or kind == TokenKind.Variadic or kind == TokenKind.Tuple or kind == TokenKind.Maybe
+
+	private isPrimaryStart kind;TokenKind, bool
+		if kind == TokenKind.IntLiteral or kind == TokenKind.FloatLiteral or kind == TokenKind.StringLiteral or kind == TokenKind.CharLiteral
+			return true
+		if kind == TokenKind.Identifier or kind == TokenKind.True or kind == TokenKind.False or kind == TokenKind.Nil or kind == TokenKind.Self
+			return true
+		if kind == TokenKind.LeftParen or kind == TokenKind.LeftBrace or kind == TokenKind.AtLeftBracket or kind == TokenKind.Tilde or kind == TokenKind.Backtick or kind == TokenKind.Dot or kind == TokenKind.Semicolon or kind == TokenKind.Try
+			return true
+		return false
+
+	private isIdentLikeKind kind;TokenKind, bool
+		return kind == TokenKind.Identifier or kind == TokenKind.To or kind == TokenKind.Until or kind == TokenKind.Step or kind == TokenKind.In
+
+	private consumeIdentLike message;string, Token
+		if self.isIdentLikeKind self.peekCurrent.kind
+			return self.advance
+		return self.consume TokenKind.Identifier message
+
+	private isComparisonWordCurrent, bool
+		if not self.check TokenKind.Identifier
+			return false
+		text = self.peekCurrent.text
+		return text == 'isgte' or text == 'islte' or text == 'isgt' or text == 'islt'
+
+	private isCallee ex;TcExpr, bool
+		return ex.kind == 'identifier' or ex.kind == 'field'
+
+	private isTypeLike name;string, bool
+		if name.length == 0
+			return false
+		c = charCode name{0}
+		return c isgteq charCode 'A' and c islteq charCode 'Z'
+
+	private isHeaderPath path;string, bool
+		return path.endsWith '.h' or path.endsWith '.hpp' or path.endsWith '.hh' or path.endsWith '.hxx'

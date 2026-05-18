@@ -2,7 +2,7 @@
 // # EXPECT: pass
 
 use drast
-use ../../src/typecheck/checker
+use ../../src/checker
 
 main, int
 	options TypeCheckOptions;

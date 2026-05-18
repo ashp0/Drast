@@ -13,6 +13,16 @@ impl Codegen
 			return true
 		if typeText.endsWith s'&' or typeText.endsWith s'*'
 			return true
+		// Sized-integer and float aliases produced by typeName mapping. Each is
+		// a small register-width scalar; passing by value is strictly cheaper
+		// than `const T&` and avoids signature drift between the generated
+		// header and `.cpp` (see drast headers / link errors on Arduino).
+		if typeText == 'int8_t' or typeText == 'int16_t' or typeText == 'int32_t' or typeText == 'int64_t'
+			return true
+		if typeText == 'uint8_t' or typeText == 'uint16_t' or typeText == 'uint32_t' or typeText == 'uint64_t'
+			return true
+		if typeText == 'intptr_t'
+			return true
 		if typeText == 'bool' or typeText == 'char' or typeText == 'int' or typeText == 'unsigned int' or typeText == 'float' or typeText == 'double' or typeText == 'std::size_t' or typeText == 'TokenKind' or typeText == 'CStmt'
 			return true
 		if typeText.startsWith 'std::initializer_list<'
@@ -26,6 +36,40 @@ impl Codegen
 		if not self.stateless
 			self.stateless = true
 		return self.emitProgram ast
+
+	emitStructDecl st;CStruct ast;AST, string
+		return self.emitStruct st ast
+
+	emitFunctionForward fn;CFunction, string
+		return self.emitForwardFunction fn
+
+	emitDefinitionsOnly ast;AST, string
+		// Used by `drast headers` to produce a drop-in `.cpp` for embedding (e.g. Arduino).
+		// Intentionally omits `main`: callers want a library translation unit, not an executable.
+		// Includes minimal stdlib headers (only those the body actually references) so the
+		// generated `.cpp` compiles even when the consolidated header is the embedding-only
+		// surface and omits internal dependencies like <utility> for std::move.
+		body string;
+		body.reserve 16384
+		for m in ast.methods
+			if m.name isne '__protocol'
+				body += self.emitFunctionDefinition m true ast
+				body += '\n'
+		for fn in ast.functions
+			if fn.name isne 'main'
+				body += self.emitFunctionDefinition fn false ast
+				body += '\n'
+		support = self.emitSupportBlock body
+		includes = self.emitStandardIncludes body
+		out string;
+		needed = body.length + support.length + includes.length + 64
+		out.reserve needed
+		out += includes
+		if includes.length isgt 0
+			out += '\n'
+		out += support
+		out += body
+		return out
 
 	emitUnit unit;AST all;AST, string
 		body string;
@@ -198,6 +242,15 @@ impl Codegen
 			out += '#include <iostream>\n'
 		if body.contains 'std::size_t'
 			out += '#include <cstddef>\n'
+		needsCstdint = false
+		if body.contains 'int8_t' or body.contains 'int16_t' or body.contains 'int32_t' or body.contains 'int64_t'
+			needsCstdint = true
+		if body.contains 'uint8_t' or body.contains 'uint16_t' or body.contains 'uint32_t' or body.contains 'uint64_t'
+			needsCstdint = true
+		if body.contains 'intptr_t'
+			needsCstdint = true
+		if needsCstdint
+			out += '#include <cstdint>\n'
 		if body.contains 'std::exception' or body.contains 'std::bad_optional_access'
 			out += '#include <exception>\n'
 		if body.contains 'std::initializer_list<'

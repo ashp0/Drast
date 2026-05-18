@@ -1,9 +1,3 @@
-# Drast — Implementation Handoff Prompt
-
-> Paste everything below the line into a fresh Claude (or other LLM) session.
-
----
-
 ## Context
 
 You are working on **Drast**, a self-hosted programming language authored by Ashwin Paudel (solo). The project lives at `/Users/ashwinpaudel/Documents/Drast`. The compiler is currently self-hosted (the legacy C++ implementation was recently retired) and emits C++ as its backend via `xmake` and `clang++`. LLVM is the eventual real backend; the C++ emission is a bootstrap detail.
@@ -28,7 +22,7 @@ Your job is to make the existing Drast compiler enforce the rules in `SEMANTICS.
 The following rules from `SEMANTICS.md` are mechanically straightforward to enforce. They do **not** require a borrow checker. Implement them, with a positive test and a negative test for each.
 
 1. **§3.1 / §3.2 — Integer types and overflow.**
-   - Remove `int` and `uint` as keywords (or alias them as deprecated with a clear migration error).
+   - Remove `int` and `uint` as keywords.
    - Integer literals get the type required by context; default to `i32` when ambiguous.
    - Literal overflow at compile time (`x: u8 := 300`) — emit `E0050`.
    - No implicit cross-width conversions; require `as`. Emit `E0051`.
@@ -39,7 +33,7 @@ The following rules from `SEMANTICS.md` are mechanically straightforward to enfo
 
 2. **§1.2 — Mutability.**
    - Bindings are immutable by default; reassigning an immutable binding is `E0010`.
-   - `mut x := ...` enables reassignment.
+   - `mut x = ...` enables reassignment.
    - Function parameters are immutable inside the function body unless declared `mut`.
 
 3. **§1.3 — Type discipline.**

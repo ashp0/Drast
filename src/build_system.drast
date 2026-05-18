@@ -17,7 +17,7 @@ use features/literals
 use platform
 use package
 use xmake_backend
-use typecheck/checker
+use checker
 
 struct BuildGraph
 	manifest PackageManifest
